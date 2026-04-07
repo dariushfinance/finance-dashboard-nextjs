@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #0a0f1e;
+  --bg-card: #111827;
+  --bg-elevated: #1a2236;
+  --bg-border: #1f2d45;
+  --text-primary: #f0f4ff;
+  --text-secondary: #94a3b8;
+  --green: #22c55e;
+  --red: #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-width: thin;
+  scrollbar-color: #1f2d45 transparent;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1f2d45; border-radius: 3px; }
+
+/* Finance card */
+.fin-card {
+  @apply bg-bg-card border border-bg-border rounded-xl p-5 shadow-card;
+}
+
+/* Metric value */
+.fin-value {
+  @apply font-mono text-2xl font-semibold tracking-tight text-text-primary;
+}
+
+/* Positive / Negative colors */
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+
+/* Table styles */
+.fin-table { @apply w-full text-sm; }
+.fin-table thead tr { @apply border-b border-bg-border; }
+.fin-table thead th { @apply text-text-secondary font-medium text-left py-3 px-4; }
+.fin-table tbody tr { @apply border-b border-bg-border/50 transition-colors hover:bg-bg-elevated; }
+.fin-table tbody td { @apply py-3 px-4 font-mono text-sm; }
+
+/* Button */
+.btn-primary {
+  @apply bg-brand-green text-bg-base font-semibold rounded-lg px-4 py-2 text-sm
+    hover:bg-brand-green-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-ghost {
+  @apply border border-bg-border text-text-secondary rounded-lg px-4 py-2 text-sm
+    hover:border-brand-red hover:text-brand-red transition-colors;
+}
+
+/* Input */
+.fin-input {
+  @apply w-full bg-bg-elevated border border-bg-border text-text-primary rounded-lg px-3 py-2 text-sm
+    focus:outline-none focus:border-brand-green/60 focus:ring-1 focus:ring-brand-green/20
+    placeholder:text-text-muted transition-colors;
+}
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid #1f2d45;
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Tooltip override for recharts */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #1a2236 !important;
+  border: 1px solid #1f2d45 !important;
+  border-radius: 8px !important;
+  color: #f0f4ff !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+}
+
+/* Gradient tick for charts */
+.recharts-cartesian-axis-tick-value { fill: #94a3b8 !important; font-size: 11px !important; }
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line { stroke: #1f2d45 !important; }
