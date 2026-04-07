@@ -9,5 +9,6 @@ export async function POST(req: NextRequest) {
   if (!tickers.length) return NextResponse.json([])
 
   const results = await Promise.all(tickers.map((t) => getFundamentals(t.toUpperCase())))
+  console.log('[fundamentals]', JSON.stringify(results))
   return NextResponse.json(results)
 }
