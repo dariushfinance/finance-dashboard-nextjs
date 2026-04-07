@@ -74,12 +74,24 @@ export async function getHistoricalPrices(
   }
 }
 
-// --- Company fundamentals (maps Yahoo Finance quoteSummary fields) ---
+// --- Company fundamentals ---
+// Strategy: fetch crumb+cookie first (required by Yahoo since 2024), then quoteSummary
 export async function getFundamentals(ticker: string) {
   try {
+    // Step 1: get a valid session cookie + crumb
+    const { cookie, crumb } = await getYahooCrumb()
+
     const modules = 'defaultKeyStatistics,financialData,summaryDetail'
-    const url = `${YAHOO_BASE2}/v10/finance/quoteSummary/${ticker}?modules=${modules}`
-    const res = await fetch(url, { headers: HEADERS, next: { revalidate: 3600 } })
+    const url = `${YAHOO_BASE2}/v10/finance/quoteSummary/${ticker}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`
+
+    const res = await fetch(url, {
+      headers: {
+        ...HEADERS,
+        Cookie: cookie,
+      },
+      next: { revalidate: 3600 },
+    })
+
     const data = await res.json()
     const r = data?.quoteSummary?.result?.[0]
     if (!r) return { ticker }
@@ -88,24 +100,66 @@ export async function getFundamentals(ticker: string) {
     const fd = r.financialData ?? {}
     const sd = r.summaryDetail ?? {}
 
-    const marketCap = sd.marketCap?.raw
-    const fcf = fd.freeCashflow?.raw
+    const marketCap = sd.marketCap?.raw ?? null
+    const fcf = fd.freeCashflow?.raw ?? null
 
     return {
       ticker,
-      pe: sd.trailingPE?.raw ?? ks.trailingEps?.raw ? sd.trailingPE?.raw : null,
+      pe: sd.trailingPE?.raw ?? null,
       ev_ebitda: ks.enterpriseToEbitda?.raw ?? null,
       ps: sd.priceToSalesTrailing12Months?.raw ?? null,
       gross_margin: fd.grossMargins?.raw ?? null,
       net_margin: fd.profitMargins?.raw ?? null,
       roe: fd.returnOnEquity?.raw ?? null,
-      debt_equity: fd.debtToEquity?.raw ? fd.debtToEquity.raw / 100 : null,
+      debt_equity: fd.debtToEquity?.raw != null ? fd.debtToEquity.raw / 100 : null,
       rev_growth: fd.revenueGrowth?.raw ?? null,
-      fcf_yield: fcf && marketCap ? fcf / marketCap : null,
+      fcf_yield: fcf != null && marketCap != null && marketCap > 0 ? fcf / marketCap : null,
     }
   } catch {
     return { ticker }
   }
+}
+
+// Yahoo Finance requires a crumb + cookie since mid-2024
+let _crumbCache: { cookie: string; crumb: string; ts: number } | null = null
+
+async function getYahooCrumb(): Promise<{ cookie: string; crumb: string }> {
+  const now = Date.now()
+  // Cache crumb for 1 hour
+  if (_crumbCache && now - _crumbCache.ts < 3600_000) {
+    return { cookie: _crumbCache.cookie, crumb: _crumbCache.crumb }
+  }
+
+  // 1. Hit the main Yahoo Finance page to get a session cookie
+  const pageRes = await fetch('https://finance.yahoo.com', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    redirect: 'follow',
+  })
+
+  const rawCookie = pageRes.headers.get('set-cookie') ?? ''
+  // Extract just the A1/A3 cookies Yahoo needs
+  const cookie = rawCookie
+    .split(',')
+    .map((c) => c.split(';')[0].trim())
+    .filter((c) => c.startsWith('A1=') || c.startsWith('A3=') || c.startsWith('A1S=') || c.startsWith('GUC='))
+    .join('; ')
+
+  // 2. Fetch the crumb
+  const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+      Cookie: cookie,
+    },
+  })
+
+  const crumb = await crumbRes.text()
+
+  _crumbCache = { cookie, crumb, ts: now }
+  return { cookie, crumb }
 }
 
 // --- Helper: Sharpe Ratio & Volatility ---
