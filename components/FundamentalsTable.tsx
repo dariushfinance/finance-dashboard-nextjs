@@ -34,6 +34,7 @@ const COLS: { key: keyof Fundamentals; label: string; fmt: (v: number | null | u
 export default function FundamentalsTable({ positions }: Props) {
   const [fundamentals, setFundamentals] = useState<Fundamentals[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function FundamentalsTable({ positions }: Props) {
     const tickers = [...new Set(positions.map((p) => p.ticker))]
     setLoading(true)
     setError('')
+    setLoadingMsg(`Fetching ${tickers.length} ticker${tickers.length > 1 ? 's' : ''}… (~${tickers.length * 13}s due to API rate limit)`)
     fetch('/api/fundamentals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,14 +51,19 @@ export default function FundamentalsTable({ positions }: Props) {
       .then((r) => r.json())
       .then(setFundamentals)
       .catch(() => setError('Failed to load fundamentals'))
-      .finally(() => setLoading(false))
+      .finally(() => { setLoading(false); setLoadingMsg('') })
   }, [positions])
 
   return (
     <div className="fin-card overflow-hidden p-0">
       <div className="px-5 py-4 border-b border-bg-border flex items-center justify-between">
         <h2 className="font-semibold text-text-primary">Company Fundamentals</h2>
-        {loading && <span className="spinner" />}
+        {loading && (
+          <div className="flex items-center gap-2">
+            <span className="spinner" />
+            {loadingMsg && <span className="text-xs text-text-muted">{loadingMsg}</span>}
+          </div>
+        )}
       </div>
 
       {error && <div className="px-5 py-3 text-brand-red text-sm">{error}</div>}

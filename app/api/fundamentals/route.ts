@@ -8,7 +8,13 @@ export async function POST(req: NextRequest) {
   const tickers: string[] = body.tickers ?? []
   if (!tickers.length) return NextResponse.json([])
 
-  const results = await Promise.all(tickers.map((t) => getFundamentals(t.toUpperCase())))
-  console.log('[fundamentals]', JSON.stringify(results))
+  // Alpha Vantage free: max 5 req/min → sequential with 13s delay between calls
+  const results = []
+  for (const ticker of tickers) {
+    results.push(await getFundamentals(ticker.toUpperCase()))
+    if (tickers.indexOf(ticker) < tickers.length - 1) {
+      await new Promise((r) => setTimeout(r, 13_000))
+    }
+  }
   return NextResponse.json(results)
 }
