@@ -74,76 +74,45 @@ export async function getHistoricalPrices(
   }
 }
 
-// --- Company fundamentals ---
-// Two-source strategy:
-//   1. v7/quote  → reliable, no auth, basic metrics (P/E, P/S, market cap)
-//   2. v11/quoteSummary → extended metrics (margins, ROE, FCF) — works server-side without crumb
+// --- Company fundamentals via Alpha Vantage OVERVIEW ---
+// Yahoo Finance blocks Vercel IPs — Alpha Vantage works reliably server-side.
 export async function getFundamentals(ticker: string) {
+  const avKey = process.env.ALPHA_VANTAGE_KEY
+  if (!avKey) return { ticker }
+
   try {
-    const [basic, extended] = await Promise.allSettled([
-      fetchBasicQuote(ticker),
-      fetchQuoteSummary(ticker),
-    ])
+    const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${avKey}`
+    const res = await fetch(url, { cache: 'no-store' })
+    const d = await res.json()
 
-    const b = basic.status === 'fulfilled' ? basic.value : {}
-    const e = extended.status === 'fulfilled' ? extended.value : {}
+    // Alpha Vantage returns { Information: '...' } when rate limited
+    if (!d.Symbol) return { ticker }
 
-    return { ticker, ...b, ...e }
+    const parse = (v: string | undefined) => {
+      const n = parseFloat(v ?? '')
+      return isNaN(n) ? null : n
+    }
+
+    const revenue = parse(d.RevenueTTM)
+    const grossProfit = parse(d.GrossProfitTTM)
+    const marketCap = parse(d.MarketCapitalization)
+    // Alpha Vantage doesn't expose FCF directly — approximate via OperatingCashflow - CapEx
+    // Not available in OVERVIEW, so we skip FCF Yield
+
+    return {
+      ticker,
+      pe: parse(d.TrailingPE),
+      ev_ebitda: parse(d.EVToEBITDA),
+      ps: parse(d.PriceToSalesRatioTTM),
+      gross_margin: revenue && grossProfit ? grossProfit / revenue : null,
+      net_margin: parse(d.ProfitMargin),
+      roe: parse(d.ReturnOnEquityTTM),
+      debt_equity: null, // not in OVERVIEW endpoint
+      rev_growth: parse(d.QuarterlyRevenueGrowthYOY),
+      fcf_yield: null,
+    }
   } catch {
     return { ticker }
-  }
-}
-
-async function fetchBasicQuote(ticker: string) {
-  const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${ticker}&fields=trailingPE,priceToSalesTrailing12Months,marketCap,freeCashflow`
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'python-requests/2.31.0',
-      Accept: 'application/json',
-    },
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  const q = data?.quoteResponse?.result?.[0]
-  if (!q) return {}
-  return {
-    pe: q.trailingPE ?? null,
-    ps: q.priceToSalesTrailing12Months ?? null,
-  }
-}
-
-async function fetchQuoteSummary(ticker: string) {
-  const modules = 'defaultKeyStatistics,financialData,summaryDetail'
-  const url = `${YAHOO_BASE}/v11/finance/quoteSummary/${ticker}?modules=${modules}`
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'python-requests/2.31.0',
-      Accept: 'application/json',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  const r = data?.quoteSummary?.result?.[0]
-  if (!r) return {}
-
-  const ks = r.defaultKeyStatistics ?? {}
-  const fd = r.financialData ?? {}
-  const sd = r.summaryDetail ?? {}
-
-  const marketCap = sd.marketCap?.raw ?? null
-  const fcf = fd.freeCashflow?.raw ?? null
-
-  return {
-    pe: sd.trailingPE?.raw ?? null,
-    ev_ebitda: ks.enterpriseToEbitda?.raw ?? null,
-    ps: sd.priceToSalesTrailing12Months?.raw ?? null,
-    gross_margin: fd.grossMargins?.raw ?? null,
-    net_margin: fd.profitMargins?.raw ?? null,
-    roe: fd.returnOnEquity?.raw ?? null,
-    debt_equity: fd.debtToEquity?.raw != null ? fd.debtToEquity.raw / 100 : null,
-    rev_growth: fd.revenueGrowth?.raw ?? null,
-    fcf_yield: fcf != null && marketCap != null && marketCap > 0 ? fcf / marketCap : null,
   }
 }
 
