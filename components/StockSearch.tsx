@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { SearchQuote } from '@/app/api/search/route'
+import type { IsinResult } from '@/app/api/isin/route'
+
+function isIsin(s: string): boolean {
+  return /^[A-Z]{2}[A-Z0-9]{10}$/.test(s.toUpperCase())
+}
 
 // Popular stocks shown as quick-pick chips before the user types anything
 const POPULAR: { symbol: string; label: string }[] = [
@@ -29,12 +34,13 @@ interface Props {
 }
 
 export default function StockSearch({ value, onChange, disabled }: Props) {
-  const [query, setQuery]       = useState(value)
-  const [results, setResults]   = useState<SearchQuote[]>([])
-  const [open, setOpen]         = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const containerRef            = useRef<HTMLDivElement>(null)
-  const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [query, setQuery]         = useState(value)
+  const [results, setResults]     = useState<SearchQuote[]>([])
+  const [open, setOpen]           = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [isinResolved, setIsinResolved] = useState<string | null>(null) // shows resolved ticker label
+  const containerRef              = useRef<HTMLDivElement>(null)
+  const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Keep input in sync when parent resets value
   useEffect(() => { setQuery(value) }, [value])
@@ -52,6 +58,32 @@ export default function StockSearch({ value, onChange, disabled }: Props) {
 
   const search = useCallback((q: string) => {
     if (!q || q.length < 1) { setResults([]); setOpen(false); return }
+
+    // If input looks like a full ISIN, resolve it directly
+    if (isIsin(q)) {
+      setLoading(true)
+      setIsinResolved(null)
+      fetch(`/api/isin?isin=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((d: IsinResult) => {
+          if (d.ticker) {
+            // Show all exchange options as dropdown
+            setResults(
+              d.options.map((o) => ({ symbol: o.symbol, shortname: d.name, exchange: o.exchange, quoteType: 'ETF' }))
+            )
+            setOpen(true)
+            setIsinResolved(d.ticker)
+          } else {
+            setResults([])
+            setOpen(false)
+          }
+        })
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false))
+      return
+    }
+
+    setIsinResolved(null)
     setLoading(true)
     fetch(`/api/search?q=${encodeURIComponent(q)}`)
       .then((r) => r.json())
@@ -77,6 +109,7 @@ export default function StockSearch({ value, onChange, disabled }: Props) {
     onChange(symbol)
     setOpen(false)
     setResults([])
+    setIsinResolved(null)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -101,6 +134,14 @@ export default function StockSearch({ value, onChange, disabled }: Props) {
           <span className="absolute right-2 top-1/2 -translate-y-1/2 spinner scale-75" />
         )}
       </div>
+
+      {/* ISIN resolved badge */}
+      {isinResolved && !open && (
+        <div className="mt-1 text-xs text-brand-blue flex items-center gap-1">
+          <span>ISIN resolved to</span>
+          <span className="font-mono font-semibold">{isinResolved}</span>
+        </div>
+      )}
 
       {/* Search results dropdown */}
       {open && results.length > 0 && (

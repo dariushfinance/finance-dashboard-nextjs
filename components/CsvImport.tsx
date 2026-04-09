@@ -1,19 +1,28 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import type { IsinResult } from '@/app/api/isin/route'
 
 interface CsvRow {
-  ticker:    string
-  shares:    number
-  buy_price: number
-  buy_date:  string
-  status:    'pending' | 'importing' | 'done' | 'error'
-  message:   string
+  ticker:      string
+  originalId:  string       // original value from CSV (may be ISIN or ticker)
+  isIsin:      boolean
+  resolvedFrom: string | null // exchange the ticker was resolved from
+  shares:      number
+  buy_price:   number
+  buy_date:    string
+  status:      'pending' | 'resolving' | 'importing' | 'done' | 'error'
+  message:     string
 }
 
 interface Props {
   portfolioName: string
   onDone: () => void
+}
+
+// ISIN: 2-letter country code + 10 alphanumeric chars, total 12
+function detectIsin(s: string): boolean {
+  return /^[A-Z]{2}[A-Z0-9]{10}$/.test(s.toUpperCase())
 }
 
 // Parse one CSV/TSV line, handling quoted fields
@@ -43,10 +52,9 @@ function parseCsv(text: string): { rows: CsvRow[]; error: string } {
 
   if (lines.length === 0) return { rows: [], error: 'File is empty.' }
 
-  // Detect header row (contains non-numeric first cell)
   const firstCells = parseLine(lines[0])
-  const hasHeader = isNaN(Number(firstCells[1]))
-  const dataLines = hasHeader ? lines.slice(1) : lines
+  const hasHeader  = isNaN(Number(firstCells[1]))
+  const dataLines  = hasHeader ? lines.slice(1) : lines
 
   if (dataLines.length === 0) return { rows: [], error: 'No data rows found.' }
 
@@ -56,26 +64,31 @@ function parseCsv(text: string): { rows: CsvRow[]; error: string } {
   for (let i = 0; i < dataLines.length; i++) {
     const cells = parseLine(dataLines[i])
     if (cells.length < 4) {
-      errors.push(`Row ${i + 1}: needs 4 columns (ticker, shares, buy_price, buy_date)`)
+      errors.push(`Row ${i + 1}: needs 4 columns (ticker/ISIN, shares, buy_price, buy_date)`)
       continue
     }
 
-    const [ticker, sharesStr, priceStr, date] = cells
+    const [rawId, sharesStr, priceStr, date] = cells
+    const id        = rawId.replace(/['"]/g, '').toUpperCase()
     const shares    = parseFloat(sharesStr)
-    const buy_price = parseFloat(priceStr)
+    const buy_price = parseFloat(priceStr.replace(/[$,]/g, ''))
 
-    if (!ticker)         { errors.push(`Row ${i + 1}: missing ticker`);    continue }
-    if (isNaN(shares))   { errors.push(`Row ${i + 1}: invalid shares`);    continue }
-    if (isNaN(buy_price)){ errors.push(`Row ${i + 1}: invalid buy_price`); continue }
-    if (!date)           { errors.push(`Row ${i + 1}: missing buy_date`);  continue }
+    if (!id)             { errors.push(`Row ${i + 1}: missing ticker/ISIN`);  continue }
+    if (isNaN(shares))   { errors.push(`Row ${i + 1}: invalid shares`);       continue }
+    if (isNaN(buy_price)){ errors.push(`Row ${i + 1}: invalid buy_price`);    continue }
+    if (!date)           { errors.push(`Row ${i + 1}: missing buy_date`);     continue }
 
+    const isIsin = detectIsin(id)
     rows.push({
-      ticker:    ticker.toUpperCase().replace(/['"]/g, ''),
+      ticker:       isIsin ? '' : id,
+      originalId:   id,
+      isIsin,
+      resolvedFrom: null,
       shares,
       buy_price,
-      buy_date:  date.replace(/['"]/g, ''),
-      status:    'pending',
-      message:   '',
+      buy_date:     date.replace(/['"]/g, ''),
+      status:       isIsin ? 'resolving' : 'pending',
+      message:      '',
     })
   }
 
@@ -87,22 +100,77 @@ function parseCsv(text: string): { rows: CsvRow[]; error: string } {
 }
 
 export default function CsvImport({ portfolioName, onDone }: Props) {
-  const [rows, setRows]         = useState<CsvRow[]>([])
+  const [rows, setRows]             = useState<CsvRow[]>([])
   const [parseError, setParseError] = useState('')
+  const [resolving, setResolving]   = useState(false)
   const [importing, setImporting]   = useState(false)
   const [done, setDone]             = useState(false)
   const fileRef                     = useRef<HTMLInputElement>(null)
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // After parsing, resolve any ISIN rows → ticker
+  const resolveIsins = async (parsed: CsvRow[]) => {
+    const isinIndexes = parsed
+      .map((r, i) => (r.isIsin ? i : -1))
+      .filter((i) => i >= 0)
+
+    if (isinIndexes.length === 0) return parsed
+
+    setResolving(true)
+    const resolved = [...parsed]
+
+    await Promise.all(
+      isinIndexes.map(async (idx) => {
+        const isin = resolved[idx].originalId
+        try {
+          const res  = await fetch(`/api/isin?isin=${encodeURIComponent(isin)}`)
+          const data: IsinResult = await res.json()
+
+          if (data.ticker) {
+            resolved[idx] = {
+              ...resolved[idx],
+              ticker:       data.ticker,
+              resolvedFrom: data.options[0]?.exchange ?? null,
+              status:       'pending',
+              message:      '',
+            }
+          } else {
+            resolved[idx] = {
+              ...resolved[idx],
+              status:  'error',
+              message: `ISIN ${isin} could not be resolved to a ticker`,
+            }
+          }
+        } catch {
+          resolved[idx] = {
+            ...resolved[idx],
+            status:  'error',
+            message: 'Network error during ISIN lookup',
+          }
+        }
+      })
+    )
+
+    setResolving(false)
+    return resolved
+  }
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = ev.target?.result as string
       const { rows: parsed, error } = parseCsv(text)
       setParseError(error)
-      setRows(parsed)
       setDone(false)
+
+      if (parsed.length > 0) {
+        setRows(parsed)               // show immediately (ISINs show "resolving")
+        const withTickers = await resolveIsins(parsed)
+        setRows(withTickers)          // update with resolved tickers
+      } else {
+        setRows(parsed)
+      }
     }
     reader.readAsText(file)
   }
@@ -112,8 +180,7 @@ export default function CsvImport({ portfolioName, onDone }: Props) {
     setImporting(true)
 
     for (let i = 0; i < rows.length; i++) {
-      // Skip already done/errored rows on re-import
-      if (rows[i].status === 'done') continue
+      if (rows[i].status === 'done' || rows[i].status === 'error') continue
 
       setRows((prev) =>
         prev.map((r, idx) => (idx === i ? { ...r, status: 'importing' } : r))
@@ -167,11 +234,11 @@ export default function CsvImport({ portfolioName, onDone }: Props) {
       {/* Format hint */}
       <div className="bg-bg-elevated rounded-lg p-3">
         <div className="text-xs font-semibold text-text-secondary mb-1">Expected CSV format</div>
-        <pre className="text-xs text-text-muted font-mono leading-relaxed">{`ticker,shares,buy_price,buy_date
+        <pre className="text-xs text-text-muted font-mono leading-relaxed">{`ticker/ISIN,shares,buy_price,buy_date
 AAPL,10,150.00,2023-01-15
-MSFT,5,280.00,2023-02-01`}</pre>
+IE00B4L5Y983,1245,135.37,2026-02-16`}</pre>
         <div className="text-xs text-text-muted mt-1.5">
-          Header row optional · separators: , ; or tab
+          ISINs are auto-resolved to tickers · header optional · , ; or tab
         </div>
       </div>
 
@@ -200,16 +267,29 @@ MSFT,5,280.00,2023-02-01`}</pre>
         </div>
       )}
 
+      {/* Resolving ISINs indicator */}
+      {resolving && (
+        <div className="flex items-center gap-2 text-xs text-brand-gold">
+          <span className="spinner scale-75 inline-block flex-shrink-0" />
+          Resolving ISIN codes to tickers…
+        </div>
+      )}
+
       {/* Preview table */}
       {rows.length > 0 && (
         <>
           <div className="text-xs text-text-muted font-medium">
-            {rows.length} row{rows.length !== 1 ? 's' : ''} found
-            {countDone > 0 && <span className="text-brand-green ml-2">· {countDone} imported</span>}
+            {rows.length} row{rows.length !== 1 ? 's' : ''}
+            {rows.some((r) => r.isIsin) && (
+              <span className="text-brand-blue ml-2">
+                · {rows.filter((r) => r.isIsin).length} ISIN{rows.filter((r) => r.isIsin).length !== 1 ? 's' : ''} detected
+              </span>
+            )}
+            {countDone  > 0 && <span className="text-brand-green ml-2">· {countDone} imported</span>}
             {countError > 0 && <span className="text-brand-red ml-2">· {countError} failed</span>}
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded-lg border border-bg-border">
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-bg-border">
             <table className="w-full text-xs font-mono">
               <thead className="sticky top-0 bg-bg-elevated">
                 <tr>
@@ -223,16 +303,33 @@ MSFT,5,280.00,2023-02-01`}</pre>
               <tbody>
                 {rows.map((row, i) => (
                   <tr key={i} className="border-t border-bg-border/50">
-                    <td className="px-2 py-1.5 text-text-primary font-semibold">{row.ticker}</td>
+                    <td className="px-2 py-1.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`font-semibold ${
+                          row.status === 'resolving' ? 'text-text-muted' : 'text-text-primary'
+                        }`}>
+                          {row.status === 'resolving'
+                            ? <span className="flex items-center gap-1"><span className="spinner scale-50 inline-block" />{row.originalId}</span>
+                            : (row.ticker || row.originalId)
+                          }
+                        </span>
+                        {row.isIsin && row.ticker && (
+                          <span className="text-brand-blue text-xs" title={`Resolved from ISIN: ${row.originalId}`}>
+                            ISIN {row.originalId.slice(0, 6)}…
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-2 py-1.5 text-text-secondary text-right">{row.shares}</td>
                     <td className="px-2 py-1.5 text-text-secondary text-right">${row.buy_price}</td>
                     <td className="px-2 py-1.5 text-text-muted">{row.buy_date}</td>
                     <td className="px-2 py-1.5 text-center">
                       {row.status === 'pending'   && <span className="text-text-muted">·</span>}
+                      {row.status === 'resolving' && <span className="spinner scale-75 inline-block" />}
                       {row.status === 'importing' && <span className="spinner scale-75 inline-block" />}
                       {row.status === 'done'      && <span className="text-brand-green">✓</span>}
                       {row.status === 'error'     && (
-                        <span className="text-brand-red" title={row.message}>✗</span>
+                        <span className="text-brand-red cursor-help" title={row.message}>✗</span>
                       )}
                     </td>
                   </tr>
@@ -259,13 +356,13 @@ MSFT,5,280.00,2023-02-01`}</pre>
                 : 'bg-brand-gold/10 border border-brand-gold/20 text-brand-gold'
             }`}>
               {countError === 0
-                ? `All ${countDone} positions imported successfully.`
-                : `${countDone} imported · ${countError} failed — check error rows.`}
+                ? `All ${countDone} positions imported.`
+                : `${countDone} imported · ${countError} failed — hover ✗ for details.`}
             </div>
           )}
 
           <div className="flex gap-2">
-            {countPending > 0 && !done && (
+            {countPending > 0 && !done && !resolving && (
               <button
                 type="button"
                 className="btn-primary flex-1"
@@ -281,7 +378,7 @@ MSFT,5,280.00,2023-02-01`}</pre>
               type="button"
               className="btn-ghost flex-1"
               onClick={reset}
-              disabled={importing}
+              disabled={importing || resolving}
             >
               {done ? 'Import more' : 'Clear'}
             </button>
