@@ -9,6 +9,7 @@ import HistoryChart from './HistoryChart'
 import BenchmarkChart from './BenchmarkChart'
 import FundamentalsTable from './FundamentalsTable'
 import AddPositionForm from './AddPositionForm'
+import RiskTab from './RiskTab'
 
 export default function Dashboard() {
   const [portfolioName, setPortfolioName] = useState('MyPortfolio')
@@ -19,7 +20,7 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecking, setAdminChecking] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk'>('overview')
 
   const fetchPortfolio = useCallback(async (name: string) => {
     if (!name) return
@@ -69,10 +70,11 @@ export default function Dashboard() {
   const total_return = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
 
   const TABS = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'history', label: 'History' },
-    { id: 'benchmark', label: 'Benchmark' },
+    { id: 'overview',     label: 'Overview' },
+    { id: 'history',      label: 'History' },
+    { id: 'benchmark',    label: 'Benchmark' },
     { id: 'fundamentals', label: 'Fundamentals' },
+    { id: 'risk',         label: 'Risk' },
   ] as const
 
   return (
@@ -246,6 +248,9 @@ export default function Dashboard() {
                 <div className="animate-slide-up">
                   <FundamentalsTable positions={positions} />
                 </div>
+              )}
+              {activeTab === 'risk' && (
+                <RiskTab positions={positions} />
               )}
             </>
           )}

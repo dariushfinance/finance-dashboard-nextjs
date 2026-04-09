@@ -56,3 +56,9 @@ export interface BenchmarkResult {
   beta: number | null
   alpha: number | null
 }
+
+export interface CorrelationResult {
+  tickers: string[]
+  matrix: number[][]
+  avgOffDiagonal: number | null
+}
