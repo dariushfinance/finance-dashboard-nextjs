@@ -1,20 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import StockSearch from './StockSearch'
+import CsvImport from './CsvImport'
 
 interface Props {
   portfolioName: string
   onAdded: () => void
 }
 
+type Tab = 'manual' | 'csv'
+
 export default function AddPositionForm({ portfolioName, onAdded }: Props) {
-  const [ticker, setTicker] = useState('')
-  const [shares, setShares] = useState('')
+  const [tab, setTab]           = useState<Tab>('manual')
+
+  // Manual form state
+  const [ticker, setTicker]     = useState('')
+  const [shares, setShares]     = useState('')
   const [buyPrice, setBuyPrice] = useState('')
-  const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [buyDate, setBuyDate]   = useState(new Date().toISOString().split('T')[0])
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
+  const [success, setSuccess]   = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,18 +37,18 @@ export default function AddPositionForm({ portfolioName, onAdded }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: portfolioName,
-          ticker: ticker.toUpperCase(),
-          shares: parseFloat(shares),
+          user_id:   portfolioName,
+          ticker:    ticker.toUpperCase(),
+          shares:    parseFloat(shares),
           buy_price: parseFloat(buyPrice),
-          buy_date: buyDate,
+          buy_date:  buyDate,
         }),
       })
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? 'Failed to add position')
       } else {
-        setSuccess(`${ticker.toUpperCase()} added ✓`)
+        setSuccess(`${ticker.toUpperCase()} added`)
         setTicker('')
         setShares('')
         setBuyPrice('')
@@ -56,60 +63,86 @@ export default function AddPositionForm({ portfolioName, onAdded }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label className="text-xs text-text-muted block mb-1">Ticker</label>
-        <input
-          className="fin-input uppercase"
-          placeholder="AAPL"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value.toUpperCase())}
-          disabled={loading}
-        />
-      </div>
-      <div>
-        <label className="text-xs text-text-muted block mb-1">Shares</label>
-        <input
-          className="fin-input"
-          type="number"
-          placeholder="10"
-          min="0.001"
-          step="any"
-          value={shares}
-          onChange={(e) => setShares(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-      <div>
-        <label className="text-xs text-text-muted block mb-1">Buy Price ($)</label>
-        <input
-          className="fin-input"
-          type="number"
-          placeholder="150.00"
-          min="0.01"
-          step="any"
-          value={buyPrice}
-          onChange={(e) => setBuyPrice(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-      <div>
-        <label className="text-xs text-text-muted block mb-1">Buy Date</label>
-        <input
-          className="fin-input"
-          type="date"
-          value={buyDate}
-          onChange={(e) => setBuyDate(e.target.value)}
-          disabled={loading}
-        />
+    <div className="space-y-4">
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-bg-elevated border border-bg-border rounded-lg">
+        {(['manual', 'csv'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => { setTab(t); setError(''); setSuccess('') }}
+            className={`flex-1 py-1.5 text-xs rounded-md font-medium transition-all ${
+              tab === t
+                ? 'bg-bg-card text-text-primary shadow-sm'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            {t === 'manual' ? 'Manual' : 'CSV Import'}
+          </button>
+        ))}
       </div>
 
-      {error && <div className="text-xs text-brand-red">{error}</div>}
-      {success && <div className="text-xs text-brand-green">{success}</div>}
+      {/* ── Manual entry ──────────────────────────────────────────────────── */}
+      {tab === 'manual' && (
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs text-text-muted block mb-1">Stock</label>
+            <StockSearch
+              value={ticker}
+              onChange={setTicker}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted block mb-1">Shares</label>
+            <input
+              className="fin-input"
+              type="number"
+              placeholder="10"
+              min="0.001"
+              step="any"
+              value={shares}
+              onChange={(e) => setShares(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted block mb-1">Buy Price ($)</label>
+            <input
+              className="fin-input"
+              type="number"
+              placeholder="150.00"
+              min="0.01"
+              step="any"
+              value={buyPrice}
+              onChange={(e) => setBuyPrice(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted block mb-1">Buy Date</label>
+            <input
+              className="fin-input"
+              type="date"
+              value={buyDate}
+              onChange={(e) => setBuyDate(e.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-      <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? <span className="spinner mx-auto block" /> : 'Add Position'}
-      </button>
-    </form>
+          {error   && <div className="text-xs text-brand-red">{error}</div>}
+          {success && <div className="text-xs text-brand-green">{success} ✓</div>}
+
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? <span className="spinner mx-auto block" /> : 'Add Position'}
+          </button>
+        </form>
+      )}
+
+      {/* ── CSV import ────────────────────────────────────────────────────── */}
+      {tab === 'csv' && (
+        <CsvImport portfolioName={portfolioName} onDone={onAdded} />
+      )}
+    </div>
   )
 }
