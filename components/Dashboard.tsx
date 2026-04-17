@@ -10,64 +10,58 @@ import BenchmarkChart from './BenchmarkChart'
 import FundamentalsTable from './FundamentalsTable'
 import AddPositionForm from './AddPositionForm'
 import RiskTab from './RiskTab'
+import { createBrowserSupabase } from '@/lib/supabase-browser'
+import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 
 export default function Dashboard() {
-  const [portfolioName, setPortfolioName] = useState('MyPortfolio')
-  const [inputName, setInputName] = useState('MyPortfolio')
+  const [user, setUser]           = useState<User | null>(null)
   const [positions, setPositions] = useState<Position[]>([])
-  const [loading, setLoading] = useState(false)
-  const [adminPw, setAdminPw] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [adminChecking, setAdminChecking] = useState(false)
+  const [loading, setLoading]     = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk'>('overview')
+  const router = useRouter()
+  const [supabase] = useState(() => createBrowserSupabase())
 
-  const fetchPortfolio = useCallback(async (name: string) => {
-    if (!name) return
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (!session?.user) router.push('/login')
+    })
+    return () => subscription.unsubscribe()
+  }, [supabase, router])
+
+  const fetchPortfolio = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/portfolio?user_id=${encodeURIComponent(name)}`)
+      const res = await fetch('/api/portfolio')
       if (res.ok) setPositions(await res.json())
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetchPortfolio(portfolioName) }, [portfolioName, fetchPortfolio])
-
-  const handleLoadPortfolio = () => {
-    setPortfolioName(inputName.trim())
-  }
+  useEffect(() => { fetchPortfolio() }, [fetchPortfolio])
 
   const handleDelete = async (id: number) => {
     await fetch('/api/portfolio', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, user_id: portfolioName }),
+      body: JSON.stringify({ id }),
     })
-    fetchPortfolio(portfolioName)
+    fetchPortfolio()
   }
 
-  const handleAdminCheck = async () => {
-    setAdminChecking(true)
-    try {
-      const res = await fetch('/api/admin/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPw }),
-      })
-      setIsAdmin(res.ok)
-    } catch {
-      setIsAdmin(false)
-    } finally {
-      setAdminChecking(false)
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
-  const total_value = positions.reduce((s, p) => s + (p.current_value ?? 0), 0)
-  const total_invested = positions.reduce((s, p) => s + (p.invested ?? 0), 0)
-  const total_pnl = total_value - total_invested
-  const total_return = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
+  const total_value    = positions.reduce((s, p) => s + (p.current_value ?? 0), 0)
+  const total_invested = positions.reduce((s, p) => s + (p.invested    ?? 0), 0)
+  const total_pnl      = total_value - total_invested
+  const total_return   = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
 
   const TABS = [
     { id: 'overview',     label: 'Overview' },
@@ -94,60 +88,25 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Portfolio selector */}
+        {/* User info */}
         <div className="px-6 py-5 border-b border-bg-border">
-          <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Portfolio</div>
-          <div className="flex gap-2">
-            <input
-              className="fin-input flex-1"
-              value={inputName}
-              onChange={(e) => setInputName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLoadPortfolio()}
-              placeholder="Portfolio name"
-            />
-            <button className="btn-primary px-3" onClick={handleLoadPortfolio} title="Load">
-              →
-            </button>
+          <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Account</div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse flex-shrink-0" />
+            <span className="text-xs text-text-secondary truncate">{user?.email}</span>
           </div>
-          {portfolioName && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
-              <span className="text-xs text-text-secondary">{portfolioName}</span>
-            </div>
-          )}
+          <button
+            onClick={handleLogout}
+            className="mt-3 text-xs text-text-muted hover:text-brand-red transition-colors"
+          >
+            Sign out →
+          </button>
         </div>
 
         {/* Add position form */}
         <div className="px-6 py-5 flex-1 overflow-y-auto">
           <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-4">Add Position</div>
-          <AddPositionForm
-            portfolioName={portfolioName}
-            onAdded={() => fetchPortfolio(portfolioName)}
-          />
-        </div>
-
-        {/* Admin */}
-        <div className="px-6 py-5 border-t border-bg-border">
-          <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Admin</div>
-          {!isAdmin ? (
-            <div className="flex gap-2">
-              <input
-                className="fin-input flex-1"
-                type="password"
-                placeholder="Admin password"
-                value={adminPw}
-                onChange={(e) => setAdminPw(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdminCheck()}
-              />
-              <button className="btn-ghost px-3" onClick={handleAdminCheck} disabled={adminChecking}>
-                {adminChecking ? <span className="spinner" /> : '→'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-brand-green text-xs font-medium">
-              <span>✓</span> Admin access granted
-            </div>
-          )}
+          <AddPositionForm onAdded={fetchPortfolio} />
         </div>
       </aside>
 
@@ -171,9 +130,7 @@ export default function Dashboard() {
               ☰
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-text-primary">
-                {portfolioName || 'Portfolio Intelligence'}
-              </h1>
+              <h1 className="text-lg font-semibold text-text-primary">My Portfolio</h1>
               {positions.length > 0 && (
                 <div className="text-xs text-text-muted">{positions.length} positions · Live data</div>
               )}
@@ -183,7 +140,7 @@ export default function Dashboard() {
             {loading && <span className="spinner" />}
             <button
               className="text-xs text-text-muted hover:text-text-secondary border border-bg-border rounded-lg px-3 py-1.5 transition-colors"
-              onClick={() => fetchPortfolio(portfolioName)}
+              onClick={fetchPortfolio}
             >
               ↻ Refresh
             </button>
@@ -196,13 +153,10 @@ export default function Dashboard() {
             <div className="fin-card flex flex-col items-center justify-center py-20 text-center">
               <div className="text-4xl mb-4">📊</div>
               <div className="text-text-primary font-semibold mb-1">No positions yet</div>
-              <div className="text-text-muted text-sm">
-                Enter a portfolio name and add your first position via the sidebar.
-              </div>
+              <div className="text-text-muted text-sm">Add your first position via the sidebar.</div>
             </div>
           ) : (
             <>
-              {/* Metrics */}
               <MetricsRow
                 total_value={total_value}
                 total_invested={total_invested}
@@ -210,7 +164,6 @@ export default function Dashboard() {
                 total_return={total_return}
               />
 
-              {/* Tabs */}
               <div className="flex gap-1 p-1 bg-bg-card border border-bg-border rounded-xl w-fit">
                 {TABS.map((tab) => (
                   <button
@@ -227,31 +180,16 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Tab content */}
               {activeTab === 'overview' && (
                 <div className="space-y-6 animate-slide-up">
                   <PortfolioTable positions={positions} onDelete={handleDelete} />
                   <AllocationChart positions={positions} />
                 </div>
               )}
-              {activeTab === 'history' && (
-                <div className="animate-slide-up">
-                  <HistoryChart positions={positions} />
-                </div>
-              )}
-              {activeTab === 'benchmark' && (
-                <div className="animate-slide-up">
-                  <BenchmarkChart positions={positions} />
-                </div>
-              )}
-              {activeTab === 'fundamentals' && (
-                <div className="animate-slide-up">
-                  <FundamentalsTable positions={positions} />
-                </div>
-              )}
-              {activeTab === 'risk' && (
-                <RiskTab positions={positions} />
-              )}
+              {activeTab === 'history'      && <div className="animate-slide-up"><HistoryChart positions={positions} /></div>}
+              {activeTab === 'benchmark'    && <div className="animate-slide-up"><BenchmarkChart positions={positions} /></div>}
+              {activeTab === 'fundamentals' && <div className="animate-slide-up"><FundamentalsTable positions={positions} /></div>}
+              {activeTab === 'risk'         && <RiskTab positions={positions} />}
             </>
           )}
         </main>

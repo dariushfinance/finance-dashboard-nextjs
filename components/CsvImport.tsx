@@ -16,7 +16,6 @@ interface CsvRow {
 }
 
 interface Props {
-  portfolioName: string
   onDone: () => void
 }
 
@@ -99,7 +98,7 @@ function parseCsv(text: string): { rows: CsvRow[]; error: string } {
   return { rows, error: errors.join('\n') }
 }
 
-export default function CsvImport({ portfolioName, onDone }: Props) {
+export default function CsvImport({ onDone }: Props) {
   const [rows, setRows]             = useState<CsvRow[]>([])
   const [parseError, setParseError] = useState('')
   const [resolving, setResolving]   = useState(false)
@@ -176,7 +175,6 @@ export default function CsvImport({ portfolioName, onDone }: Props) {
   }
 
   const handleImport = async () => {
-    if (!portfolioName) return
     setImporting(true)
 
     for (let i = 0; i < rows.length; i++) {
@@ -191,7 +189,6 @@ export default function CsvImport({ portfolioName, onDone }: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_id:   portfolioName,
             ticker:    rows[i].ticker,
             shares:    rows[i].shares,
             buy_price: rows[i].buy_price,
@@ -367,7 +364,7 @@ IE00B4L5Y983,1245,135.37,2026-02-16`}</pre>
                 type="button"
                 className="btn-primary flex-1"
                 onClick={handleImport}
-                disabled={importing || !portfolioName}
+                disabled={importing}
               >
                 {importing
                   ? `Importing ${countDone + countError + 1}/${rows.length}…`

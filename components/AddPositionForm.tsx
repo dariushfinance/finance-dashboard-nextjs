@@ -5,13 +5,12 @@ import StockSearch from './StockSearch'
 import CsvImport from './CsvImport'
 
 interface Props {
-  portfolioName: string
   onAdded: () => void
 }
 
 type Tab = 'manual' | 'csv'
 
-export default function AddPositionForm({ portfolioName, onAdded }: Props) {
+export default function AddPositionForm({ onAdded }: Props) {
   const [tab, setTab]           = useState<Tab>('manual')
 
   // Manual form state
@@ -25,7 +24,6 @@ export default function AddPositionForm({ portfolioName, onAdded }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!portfolioName) { setError('Enter a portfolio name first.'); return }
     if (!ticker || !shares || !buyPrice || !buyDate) { setError('All fields required.'); return }
 
     setLoading(true)
@@ -37,7 +35,6 @@ export default function AddPositionForm({ portfolioName, onAdded }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id:   portfolioName,
           ticker:    ticker.toUpperCase(),
           shares:    parseFloat(shares),
           buy_price: parseFloat(buyPrice),
@@ -141,7 +138,7 @@ export default function AddPositionForm({ portfolioName, onAdded }: Props) {
 
       {/* ── CSV import ────────────────────────────────────────────────────── */}
       {tab === 'csv' && (
-        <CsvImport portfolioName={portfolioName} onDone={onAdded} />
+        <CsvImport onDone={onAdded} />
       )}
     </div>
   )
