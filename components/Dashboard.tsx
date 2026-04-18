@@ -10,6 +10,8 @@ import BenchmarkChart from './BenchmarkChart'
 import FundamentalsTable from './FundamentalsTable'
 import AddPositionForm from './AddPositionForm'
 import RiskTab from './RiskTab'
+import StressTest from './StressTest'
+import FrontierChart from './FrontierChart'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
@@ -19,7 +21,8 @@ export default function Dashboard() {
   const [positions, setPositions] = useState<Position[]>([])
   const [loading, setLoading]     = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk'>('overview')
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk' | 'stress' | 'frontier'>('overview')
   const router = useRouter()
   const [supabase] = useState(() => createBrowserSupabase())
 
@@ -58,8 +61,11 @@ export default function Dashboard() {
     router.push('/login')
   }
 
-  const total_value    = positions.reduce((s, p) => s + (p.current_value ?? 0), 0)
-  const total_invested = positions.reduce((s, p) => s + (p.invested    ?? 0), 0)
+  // Exclude positions where the price fetch failed so a data error
+  // doesn't distort portfolio totals into apparent large losses
+  const priced         = positions.filter((p) => !p.price_error)
+  const total_value    = priced.reduce((s, p) => s + (p.current_value ?? 0), 0)
+  const total_invested = priced.reduce((s, p) => s + (p.invested ?? 0), 0)
   const total_pnl      = total_value - total_invested
   const total_return   = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
 
@@ -69,6 +75,8 @@ export default function Dashboard() {
     { id: 'benchmark',    label: 'Benchmark' },
     { id: 'fundamentals', label: 'Fundamentals' },
     { id: 'risk',         label: 'Risk' },
+    { id: 'stress',       label: 'Stress Test' },
+    { id: 'frontier',     label: 'Frontier' },
   ] as const
 
   return (
@@ -81,10 +89,9 @@ export default function Dashboard() {
       >
         {/* Logo */}
         <div className="px-6 py-5 border-b border-bg-border flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-green rounded-lg flex items-center justify-center text-bg-base font-bold text-sm">P</div>
+          <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center text-white font-bold text-sm">P</div>
           <div>
             <div className="font-semibold text-sm text-text-primary">Portfolio Intelligence</div>
-            <div className="text-xs text-text-muted">v2.0 · Next.js</div>
           </div>
         </div>
 
@@ -92,7 +99,7 @@ export default function Dashboard() {
         <div className="px-6 py-5 border-b border-bg-border">
           <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Account</div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse flex-shrink-0" />
+            <div className="w-2 h-2 rounded-full bg-brand-blue animate-pulse flex-shrink-0" />
             <span className="text-xs text-text-secondary truncate">{user?.email}</span>
           </div>
           <button
@@ -103,11 +110,8 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Add position form */}
-        <div className="px-6 py-5 flex-1 overflow-y-auto">
-          <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-4">Add Position</div>
-          <AddPositionForm onAdded={fetchPortfolio} />
-        </div>
+        {/* Nav placeholder for future links */}
+        <div className="flex-1" />
       </aside>
 
       {/* Mobile overlay */}
@@ -144,6 +148,12 @@ export default function Dashboard() {
             >
               ↻ Refresh
             </button>
+            <button
+              className="btn-primary text-xs px-3 py-1.5"
+              onClick={() => setAddModalOpen(true)}
+            >
+              + Add Position
+            </button>
           </div>
         </header>
 
@@ -153,7 +163,13 @@ export default function Dashboard() {
             <div className="fin-card flex flex-col items-center justify-center py-20 text-center">
               <div className="text-4xl mb-4">📊</div>
               <div className="text-text-primary font-semibold mb-1">No positions yet</div>
-              <div className="text-text-muted text-sm">Add your first position via the sidebar.</div>
+              <div className="text-text-muted text-sm mb-4">Add your first holding to get started.</div>
+              <button
+                className="btn-primary"
+                onClick={() => setAddModalOpen(true)}
+              >
+                + Add Position
+              </button>
             </div>
           ) : (
             <>
@@ -190,6 +206,8 @@ export default function Dashboard() {
               {activeTab === 'benchmark'    && <div className="animate-slide-up"><BenchmarkChart positions={positions} /></div>}
               {activeTab === 'fundamentals' && <div className="animate-slide-up"><FundamentalsTable positions={positions} /></div>}
               {activeTab === 'risk'         && <RiskTab positions={positions} />}
+              {activeTab === 'stress'       && <StressTest positions={positions} />}
+              {activeTab === 'frontier'     && <FrontierChart positions={positions} />}
             </>
           )}
         </main>
@@ -199,6 +217,33 @@ export default function Dashboard() {
           <span>Data: Alpha Vantage · Yahoo Finance · Supabase</span>
         </footer>
       </div>
+
+      {/* Add Position Modal */}
+      {addModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setAddModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-bg-card border border-bg-border rounded-2xl shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-bg-border flex items-center justify-between">
+              <h2 className="font-semibold text-text-primary">Add Position</h2>
+              <button
+                onClick={() => setAddModalOpen(false)}
+                className="text-text-muted hover:text-text-primary transition-colors text-xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <AddPositionForm onAdded={() => { fetchPortfolio(); setAddModalOpen(false); }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

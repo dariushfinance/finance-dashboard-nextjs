@@ -2,6 +2,13 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient as createSSRServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// Shared auth helper for API routes — returns the authenticated user or null
+export async function getAuthUser() {
+  const supabase = createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
+
 // For API routes — reads the authenticated user from request cookies
 export function createAuthClient() {
   const cookieStore = cookies()

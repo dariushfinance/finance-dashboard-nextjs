@@ -83,12 +83,19 @@ export default function FundamentalsTable({ positions }: Props) {
           <tbody>
             {fundamentals.map((row) => (
               <tr key={row.ticker}>
-                <td className="font-semibold text-text-primary">{row.ticker}</td>
+                <td>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-text-primary">{row.ticker}</span>
+                    {row.rateLimited && (
+                      <span title="Alpha Vantage rate limit reached — data unavailable. Try again later." className="text-brand-gold text-xs font-mono">⚠ rate limit</span>
+                    )}
+                  </div>
+                </td>
                 {COLS.map((c) => {
                   const val = row[c.key] as number | null | undefined
                   return (
-                    <td key={c.key} className={`text-right ${colorClass(val, c.key)}`}>
-                      {c.fmt(val)}
+                    <td key={c.key} className={`text-right ${row.rateLimited ? 'text-text-muted' : colorClass(val, c.key)}`}>
+                      {row.rateLimited ? '—' : c.fmt(val)}
                     </td>
                   )
                 })}

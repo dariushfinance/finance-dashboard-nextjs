@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/supabase'
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -15,6 +16,8 @@ export interface SearchQuote {
 // GET /api/search?q=apple
 // Returns: { quotes: SearchQuote[] }
 export async function GET(req: NextRequest) {
+  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q || q.length < 1) return NextResponse.json({ quotes: [] })
 

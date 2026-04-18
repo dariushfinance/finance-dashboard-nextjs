@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getHistoricalPrices, calcSharpeAndVol } from '@/lib/yahoo'
+import { getHistoricalPrices, calcSharpeAndVol, calcTWRReturns, calcMaxDrawdown, calcSortino, calcVaR, calcCVaR } from '@/lib/yahoo'
+import { getAuthUser } from '@/lib/supabase'
 import type { HistoryResult } from '@/types'
 
 interface PositionInput {
@@ -10,17 +11,15 @@ interface PositionInput {
 
 // POST /api/history
 // Body: { positions: [{ ticker, shares, buy_date }] }
-// Returns: { history: [{date, value}], sharpe, volatility }
+// Returns: { history: [{date, value}], twrReturns: [{date, ret}], sharpe, volatility }
 export async function POST(req: NextRequest) {
+  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json()
   const positions: PositionInput[] = body.positions ?? []
-  if (!positions.length) return NextResponse.json({ history: [], sharpe: null, volatility: null })
+  if (!positions.length) return NextResponse.json({ history: [], twrReturns: [], sharpe: null, volatility: null, sortino: null, maxDrawdown: null, var95: null, cvar95: null })
 
-  const earliestDate = positions
-    .map((p) => p.buy_date)
-    .sort()[0]
-
-  // Fetch historical prices for each unique ticker
+  const earliestDate = positions.map((p) => p.buy_date).sort()[0]
   const uniqueTickers = [...new Set(positions.map((p) => p.ticker))]
   const priceMap: Record<string, Record<string, number>> = {}
 
@@ -32,11 +31,11 @@ export async function POST(req: NextRequest) {
     })
   )
 
-  // Build daily total portfolio value (same logic as plot_portfolio_history_accurate)
   const allDates = new Set<string>()
   Object.values(priceMap).forEach((m) => Object.keys(m).forEach((d) => allDates.add(d)))
   const sortedDates = [...allDates].sort()
 
+  // Absolute dollar value series — for chart display only
   const history = sortedDates.map((date) => {
     let value = 0
     for (const pos of positions) {
@@ -48,8 +47,16 @@ export async function POST(req: NextRequest) {
     return { date, value }
   }).filter((d) => d.value > 0)
 
-  const { sharpe, vol: volatility } = calcSharpeAndVol(history.map((h) => h.value))
+  // TWR daily returns — capital injections excluded from return series
+  const twrReturns = calcTWRReturns(positions, priceMap, sortedDates)
+  const retValues  = twrReturns.map((d) => d.ret)
 
-  const result: HistoryResult = { history, sharpe, volatility }
+  const { sharpe, vol: volatility } = calcSharpeAndVol(retValues)
+  const sortino    = calcSortino(retValues)
+  const maxDrawdown = calcMaxDrawdown(twrReturns)
+  const var95      = calcVaR(retValues)
+  const cvar95     = calcCVaR(retValues)
+
+  const result: HistoryResult = { history, twrReturns, sharpe, volatility, sortino, maxDrawdown, var95, cvar95 }
   return NextResponse.json(result)
 }

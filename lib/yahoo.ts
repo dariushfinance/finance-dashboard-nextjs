@@ -1,19 +1,47 @@
 /**
  * Yahoo Finance & Alpha Vantage helpers (server-side only)
- * Replicates the Python yfinance + Alpha Vantage fallback logic from portfolviz.py
  */
 
 const YAHOO_BASE = 'https://query1.finance.yahoo.com'
-const YAHOO_BASE2 = 'https://query2.finance.yahoo.com'
+
+// Annual risk-free rate used across all metrics (Sharpe, Sortino, Alpha).
+// Update this when the Fed meaningfully changes rates.
+export const RISK_FREE_ANNUAL = 0.04
+export const RISK_FREE_DAILY  = RISK_FREE_ANNUAL / 252
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   Accept: 'application/json',
 }
 
-// --- Current Price (Alpha Vantage → Yahoo fallback) ---
+// Module-level price cache — warm serverless instances reuse this across requests.
+// 5-min TTL keeps prices fresh without burning AV's 25 req/day free limit.
+const priceCache = new Map<string, { price: number; expiry: number }>()
+
+// --- Current Price (Yahoo first → Alpha Vantage fallback) ---
+// Yahoo has no daily request limit; AV is reserved as fallback only.
 export async function getCurrentPrice(ticker: string): Promise<number> {
-  // 1. Alpha Vantage
+  const cached = priceCache.get(ticker)
+  if (cached && Date.now() < cached.expiry) return cached.price
+
+  const store = (price: number) => {
+    priceCache.set(ticker, { price, expiry: Date.now() + 5 * 60_000 })
+    return price
+  }
+
+  // 1. Yahoo Finance (no daily rate limit)
+  try {
+    const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&range=1d`
+    const res = await fetch(url, { headers: HEADERS, next: { revalidate: 300 } })
+    const data = await res.json()
+    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close
+    if (closes?.length) {
+      const last = (closes as (number | null)[]).filter((v) => v != null).pop()
+      if (last) return store(last)
+    }
+  } catch {}
+
+  // 2. Alpha Vantage fallback (25 req/day on free tier — use sparingly)
   const avKey = process.env.ALPHA_VANTAGE_KEY
   if (avKey) {
     try {
@@ -21,22 +49,10 @@ export async function getCurrentPrice(ticker: string): Promise<number> {
       const res = await fetch(url, { next: { revalidate: 300 } })
       const data = await res.json()
       if (data['Global Quote']?.['05. price']) {
-        return parseFloat(data['Global Quote']['05. price'])
+        return store(parseFloat(data['Global Quote']['05. price']))
       }
     } catch {}
   }
-
-  // 2. Yahoo Finance fallback
-  try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&range=1d`
-    const res = await fetch(url, { headers: HEADERS, next: { revalidate: 300 } })
-    const data = await res.json()
-    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close
-    if (closes?.length) {
-      const last = closes.filter((v: number | null) => v != null).pop()
-      if (last) return last
-    }
-  } catch {}
 
   return 0
 }
@@ -50,21 +66,25 @@ export async function getHistoricalPrices(
   const endTs = Math.floor(Date.now() / 1000)
 
   try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&period1=${startTs}&period2=${endTs}`
+    // Include events so Yahoo populates the adjclose array (dividend-adjusted prices)
+    const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&period1=${startTs}&period2=${endTs}&events=splits%2Cdividends`
     const res = await fetch(url, { headers: HEADERS, next: { revalidate: 3600 } })
     const data = await res.json()
     const result = data?.chart?.result?.[0]
     if (!result) return []
 
     const timestamps: number[] = result.timestamp ?? []
-    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
+    // Prefer adjclose (dividend + split adjusted); fall back to raw close
+    const adjCloses: (number | null)[] = result.indicators?.adjclose?.[0]?.adjclose ?? []
+    const rawCloses: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
+    const prices = adjCloses.length ? adjCloses : rawCloses
 
     const out: { date: string; close: number }[] = []
     for (let i = 0; i < timestamps.length; i++) {
-      if (closes[i] != null) {
+      if (prices[i] != null) {
         out.push({
           date: new Date(timestamps[i] * 1000).toISOString().split('T')[0],
-          close: closes[i]!,
+          close: prices[i]!,
         })
       }
     }
@@ -85,8 +105,11 @@ export async function getFundamentals(ticker: string) {
     const res = await fetch(url, { cache: 'no-store' })
     const d = await res.json()
 
-    // Alpha Vantage returns { Information: '...' } when rate limited
-    if (!d.Symbol) return { ticker }
+    // Alpha Vantage returns { Information: '...' } or { Note: '...' } when rate limited
+    if (!d.Symbol) {
+      const rateLimited = typeof d.Information === 'string' || typeof d.Note === 'string'
+      return { ticker, rateLimited }
+    }
 
     const parse = (v: string | undefined) => {
       const n = parseFloat(v ?? '')
@@ -116,29 +139,52 @@ export async function getFundamentals(ticker: string) {
   }
 }
 
-// --- Helper: Sharpe Ratio & Volatility ---
-export function calcSharpeAndVol(values: number[]): { sharpe: number | null; vol: number | null } {
-  if (values.length < 5) return { sharpe: null, vol: null }
-
-  const returns: number[] = []
-  for (let i = 1; i < values.length; i++) {
-    if (values[i - 1] > 0) returns.push((values[i] - values[i - 1]) / values[i - 1])
+// --- Helper: TWR daily returns (strips capital injection distortion) ---
+// For each consecutive date pair, return = performance of positions already held
+// before that date, so new buys on date D are excluded from D's return.
+export function calcTWRReturns(
+  positions: { ticker: string; shares: number; buy_date: string }[],
+  priceMap: Record<string, Record<string, number>>,
+  sortedDates: string[]
+): { date: string; ret: number }[] {
+  const results: { date: string; ret: number }[] = []
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = sortedDates[i - 1]
+    const currDate = sortedDates[i]
+    let prevValue = 0
+    let currValue = 0
+    for (const pos of positions) {
+      const buyDate = pos.buy_date.split('T')[0]
+      if (buyDate > prevDate) continue  // not yet bought — exclude from this period
+      const prev = priceMap[pos.ticker]?.[prevDate]
+      const curr = priceMap[pos.ticker]?.[currDate]
+      if (prev != null && curr != null) {
+        prevValue += prev * pos.shares
+        currValue += curr * pos.shares
+      }
+    }
+    if (prevValue > 0) results.push({ date: currDate, ret: (currValue - prevValue) / prevValue })
   }
+  return results
+}
+
+// --- Helper: Sharpe Ratio & Volatility (accepts pre-computed daily returns) ---
+export function calcSharpeAndVol(returns: number[]): { sharpe: number | null; vol: number | null } {
   if (returns.length < 4) return { sharpe: null, vol: null }
 
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length
-  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / (returns.length - 1)  // sample variance
   const std = Math.sqrt(variance)
   if (std === 0) return { sharpe: null, vol: null }
 
-  const riskFreeDaily = 0.04 / 252
+  const riskFreeDaily = RISK_FREE_DAILY
   const sharpe = ((mean - riskFreeDaily) / std) * Math.sqrt(252)
   const vol = std * Math.sqrt(252)
 
   return { sharpe, vol }
 }
 
-// --- Helper: Beta & Alpha ---
+// --- Helper: Beta & Alpha (Jensen's, correct Rf treatment) ---
 export function calcBetaAlpha(
   portReturns: number[],
   mktReturns: number[]
@@ -160,7 +206,79 @@ export function calcBetaAlpha(
 
   if (varM === 0) return { beta: null, alpha: null }
   const beta = cov / varM
-  const alpha = (meanP - beta * meanM) * 252
+
+  // Jensen's Alpha: α = (Rp - Rf) - β(Rm - Rf), annualised
+  const riskFreeDaily = RISK_FREE_DAILY
+  const alpha = ((meanP - riskFreeDaily) - beta * (meanM - riskFreeDaily)) * 252
 
   return { beta, alpha }
+}
+
+// --- Helper: Max Drawdown from TWR returns (peak-to-trough of TWR index) ---
+export function calcMaxDrawdown(twrReturns: { date: string; ret: number }[]): number | null {
+  if (twrReturns.length < 2) return null
+  let idx = 100, peak = 100, maxDD = 0
+  for (const { ret } of twrReturns) {
+    idx *= (1 + ret)
+    if (idx > peak) peak = idx
+    const dd = (peak - idx) / peak
+    if (dd > maxDD) maxDD = dd
+  }
+  return maxDD
+}
+
+// --- Helper: Sortino Ratio (penalises downside deviation only) ---
+export function calcSortino(returns: number[]): number | null {
+  if (returns.length < 4) return null
+  const rfDaily = RISK_FREE_DAILY
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length
+  // Downside semi-deviation: sqrt(mean of squared shortfalls below Rf)
+  const downsideVar = returns.reduce((a, r) => a + Math.min(r - rfDaily, 0) ** 2, 0) / returns.length
+  const downsideStd = Math.sqrt(downsideVar)
+  if (downsideStd === 0) return null
+  return ((mean - rfDaily) / downsideStd) * Math.sqrt(252)
+}
+
+// --- Helper: Historical VaR — 1-day loss not exceeded at given confidence ---
+export function calcVaR(returns: number[], confidence = 0.95): number | null {
+  if (returns.length < 30) return null
+  const sorted = [...returns].sort((a, b) => a - b)
+  const idx = Math.max(Math.floor((1 - confidence) * sorted.length), 0)
+  return -sorted[idx]  // positive = loss amount
+}
+
+// --- Helper: CVaR / Expected Shortfall — mean loss in the tail beyond VaR ---
+export function calcCVaR(returns: number[], confidence = 0.95): number | null {
+  if (returns.length < 30) return null
+  const sorted = [...returns].sort((a, b) => a - b)
+  const cutoff = Math.floor((1 - confidence) * sorted.length)
+  const tail = sorted.slice(0, Math.max(cutoff, 1))
+  return -(tail.reduce((a, b) => a + b, 0) / tail.length)
+}
+
+// --- Helper: Rolling Beta (sliding window over aligned return pairs) ---
+export function calcRollingBeta(
+  portReturns: { date: string; ret: number }[],
+  spReturnMap: Map<string, number>,
+  window = 63
+): { date: string; beta: number }[] {
+  const aligned: { date: string; p: number; m: number }[] = []
+  for (const { date, ret } of portReturns) {
+    const m = spReturnMap.get(date)
+    if (m !== undefined) aligned.push({ date, p: ret, m })
+  }
+
+  const result: { date: string; beta: number }[] = []
+  for (let i = window; i <= aligned.length; i++) {
+    const slice = aligned.slice(i - window, i)
+    const meanP = slice.reduce((a, d) => a + d.p, 0) / window
+    const meanM = slice.reduce((a, d) => a + d.m, 0) / window
+    let cov = 0, varM = 0
+    for (const d of slice) {
+      cov  += (d.p - meanP) * (d.m - meanM)
+      varM += (d.m - meanM) ** 2
+    }
+    if (varM > 0) result.push({ date: slice[window - 1].date, beta: cov / varM })
+  }
+  return result
 }

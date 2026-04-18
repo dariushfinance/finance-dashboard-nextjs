@@ -22,7 +22,7 @@ function rollingAnnualisedVol(returns: number[], window = 21): (number | null)[]
     if (i < window - 1) return null
     const slice = returns.slice(i - window + 1, i + 1)
     const m = slice.reduce((a, b) => a + b, 0) / slice.length
-    const variance = slice.reduce((a, b) => a + (b - m) ** 2, 0) / slice.length
+    const variance = slice.reduce((a, b) => a + (b - m) ** 2, 0) / (slice.length - 1)
     return Math.sqrt(variance) * Math.sqrt(252)
   })
 }
@@ -37,23 +37,22 @@ function volRegime(vols: (number | null)[]): { regime: 'Low' | 'Medium' | 'High'
   return { regime, percentile }
 }
 
-function computeMonthlyReturns(history: { date: string; value: number }[]) {
-  const months = new Map<string, { first: number; last: number; year: number; month: number }>()
-  for (const { date, value } of history) {
-    const key = date.slice(0, 7) // "YYYY-MM"
+// Chain-link TWR daily returns within each calendar month.
+// This is the correct approach — raw value comparison is distorted by capital injections.
+function computeMonthlyTWRReturns(twrReturns: { date: string; ret: number }[]) {
+  const months = new Map<string, { year: number; month: number; chained: number }>()
+  for (const { date, ret } of twrReturns) {
+    const key = date.slice(0, 7)
     const [y, m] = key.split('-').map(Number)
     const entry = months.get(key)
     if (!entry) {
-      months.set(key, { first: value, last: value, year: y, month: m })
+      months.set(key, { year: y, month: m, chained: 1 + ret })
     } else {
-      entry.last = value
+      entry.chained *= (1 + ret)
     }
   }
   return [...months.values()]
-    .map(({ first, last, year, month }) => ({
-      year, month,
-      ret: first > 0 ? (last - first) / first : 0,
-    }))
+    .map(({ year, month, chained }) => ({ year, month, ret: chained - 1 }))
     .sort((a, b) => a.year - b.year || a.month - b.month)
 }
 
@@ -97,6 +96,7 @@ interface Props { positions: Position[] }
 
 export default function RiskTab({ positions }: Props) {
   const [historyValues, setHistoryValues] = useState<{ date: string; value: number }[]>([])
+  const [twrReturns, setTwrReturns] = useState<{ date: string; ret: number }[]>([])
   const [corrData, setCorrData] = useState<CorrelationResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -125,6 +125,7 @@ export default function RiskTab({ positions }: Props) {
     ])
       .then(([hist, corr]) => {
         setHistoryValues(hist.history ?? [])
+        setTwrReturns(hist.twrReturns ?? [])
         setCorrData(corr)
       })
       .catch(() => setError('Failed to load risk data'))
@@ -145,7 +146,7 @@ export default function RiskTab({ positions }: Props) {
     return { volChart, regime: volRegime(vols) }
   }, [historyValues])
 
-  const monthly = useMemo(() => computeMonthlyReturns(historyValues), [historyValues])
+  const monthly = useMemo(() => computeMonthlyTWRReturns(twrReturns), [twrReturns])
   const calendarYears = useMemo(
     () => [...new Set(monthly.map((m) => m.year))].sort((a, b) => b - a),
     [monthly]

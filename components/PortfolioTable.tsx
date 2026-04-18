@@ -44,32 +44,37 @@ export default function PortfolioTable({ positions, onDelete }: Props) {
           </thead>
           <tbody>
             {positions.map((pos) => {
-              const pnl = pos.pnl ?? 0
-              const ret = pos.return_pct ?? 0
-              const isPos = pnl >= 0
+              const pnl = pos.pnl ?? null
+              const ret = pos.return_pct ?? null
+              const isPos = (pnl ?? 0) >= 0
               return (
-                <tr key={pos.id}>
+                <tr key={pos.id} className={pos.price_error ? 'opacity-60' : ''}>
                   <td>
-                    <span className="font-semibold text-text-primary text-sm">{pos.ticker}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-text-primary text-sm">{pos.ticker}</span>
+                      {pos.price_error && (
+                        <span title="Price unavailable — data source error" className="text-brand-red text-xs font-mono">⚠</span>
+                      )}
+                    </div>
                   </td>
                   <td className="text-right text-text-secondary">{pos.shares}</td>
                   <td className="text-right text-text-secondary">
                     ${pos.buy_price.toFixed(2)}
                   </td>
                   <td className="text-right text-text-primary font-medium">
-                    ${(pos.current_price ?? 0).toFixed(2)}
+                    {pos.price_error ? <span className="text-text-muted text-xs">unavailable</span> : `$${(pos.current_price ?? 0).toFixed(2)}`}
                   </td>
                   <td className="text-right text-text-secondary">
                     ${(pos.invested ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="text-right text-text-primary">
-                    ${(pos.current_value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {pos.price_error ? <span className="text-text-muted text-xs">—</span> : `$${(pos.current_value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </td>
-                  <td className={`text-right font-medium ${isPos ? 'pos' : 'neg'}`}>
-                    {isPos ? '+' : ''}{pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'USD' })}
+                  <td className={`text-right font-medium ${pnl == null ? 'text-text-muted' : isPos ? 'pos' : 'neg'}`}>
+                    {pnl == null ? '—' : `${isPos ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'USD' })}`}
                   </td>
-                  <td className={`text-right font-medium ${isPos ? 'pos' : 'neg'}`}>
-                    {isPos ? '+' : ''}{ret.toFixed(2)}%
+                  <td className={`text-right font-medium ${ret == null ? 'text-text-muted' : isPos ? 'pos' : 'neg'}`}>
+                    {ret == null ? '—' : `${isPos ? '+' : ''}${ret.toFixed(2)}%`}
                   </td>
                   <td className="text-right text-text-muted text-xs">{pos.buy_date}</td>
                   <td className="text-right">

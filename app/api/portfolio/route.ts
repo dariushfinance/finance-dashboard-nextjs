@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAuthClient, createServerClient } from '@/lib/supabase'
+import { getAuthUser, createServerClient } from '@/lib/supabase'
 import { getCurrentPrice } from '@/lib/yahoo'
-
-async function getUser() {
-  const supabase = createAuthClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
 
 // GET /api/portfolio — fetch the authenticated user's positions with live prices
 export async function GET(_req: NextRequest) {
-  const user = await getUser()
+  const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServerClient()
@@ -26,13 +20,18 @@ export async function GET(_req: NextRequest) {
   const enriched = await Promise.all(
     data.map(async (row) => {
       const current_price = await getCurrentPrice(row.ticker)
-      const invested      = row.shares * row.buy_price
+      const invested = row.shares * row.buy_price
+      if (current_price === 0) {
+        // Price fetch failed — flag the row so the UI can warn the user
+        // rather than silently showing a 100% loss
+        return { ...row, current_price: null, invested, current_value: null, pnl: null, return_pct: null, price_error: true }
+      }
       const current_value = row.shares * current_price
       const pnl           = current_value - invested
       const return_pct    = row.buy_price > 0
         ? ((current_price - row.buy_price) / row.buy_price) * 100
         : 0
-      return { ...row, current_price, invested, current_value, pnl, return_pct }
+      return { ...row, current_price, invested, current_value, pnl, return_pct, price_error: false }
     })
   )
 
@@ -41,14 +40,26 @@ export async function GET(_req: NextRequest) {
 
 // POST /api/portfolio — add a position to the authenticated user's portfolio
 export async function POST(req: NextRequest) {
-  const user = await getUser()
+  const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
   const { ticker, shares, buy_price, buy_date } = body
 
-  if (!ticker || !shares || !buy_price || !buy_date)
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  const sharesNum = Number(shares)
+  const priceNum  = Number(buy_price)
+  const dateStr   = String(buy_date ?? '')
+  const errors: string[] = []
+  if (!ticker || typeof ticker !== 'string' || !ticker.trim())
+    errors.push('ticker is required')
+  if (!Number.isFinite(sharesNum) || sharesNum <= 0)
+    errors.push('shares must be a positive number')
+  if (!Number.isFinite(priceNum) || priceNum <= 0)
+    errors.push('buy_price must be a positive number')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || new Date(dateStr) > new Date())
+    errors.push('buy_date must be a valid past date (YYYY-MM-DD)')
+  if (errors.length)
+    return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
 
   const price = await getCurrentPrice(ticker.toUpperCase())
   if (price === 0)
@@ -75,7 +86,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/portfolio — remove a position (ownership verified via user_id)
 export async function DELETE(req: NextRequest) {
-  const user = await getUser()
+  const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()

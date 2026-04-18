@@ -19,13 +19,14 @@ const config: Config = {
           green: '#22c55e',
           'green-dim': '#16a34a',
           red: '#ef4444',
-          blue: '#3b82f6',
+          blue: '#2563eb',
+          'blue-dim': '#1d4ed8',
           gold: '#f59e0b',
         },
         text: {
           primary: '#f0f4ff',
           secondary: '#94a3b8',
-          muted: '#475569',
+          muted: '#7a8da8',
         },
       },
       fontFamily: {

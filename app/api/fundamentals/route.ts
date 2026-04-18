@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getFundamentals } from '@/lib/yahoo'
+import { getAuthUser } from '@/lib/supabase'
 
 // POST /api/fundamentals
 // Body: { tickers: ['AAPL', 'MSFT'] }
 export async function POST(req: NextRequest) {
+  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json()
   const tickers: string[] = body.tickers ?? []
   if (!tickers.length) return NextResponse.json([])

@@ -6,12 +6,27 @@ import {
 } from 'recharts'
 import type { Position, BenchmarkResult } from '@/types'
 
+const RANGES = ['1M', '3M', 'YTD', '1Y', 'All'] as const
+type Range = (typeof RANGES)[number]
+
+function filterByRange<T extends { date: string }>(arr: T[], range: Range): T[] {
+  if (range === 'All' || !arr.length) return arr
+  const now = new Date()
+  const cutoff = new Date(now)
+  if (range === '1M') cutoff.setMonth(now.getMonth() - 1)
+  else if (range === '3M') cutoff.setMonth(now.getMonth() - 3)
+  else if (range === 'YTD') { cutoff.setMonth(0); cutoff.setDate(1) }
+  else if (range === '1Y') cutoff.setFullYear(now.getFullYear() - 1)
+  return arr.filter((d) => new Date(d.date) >= cutoff)
+}
+
 interface Props { positions: Position[] }
 
 export default function BenchmarkChart({ positions }: Props) {
   const [data, setData] = useState<BenchmarkResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [range, setRange] = useState<Range>('1Y')
 
   useEffect(() => {
     if (!positions.length) return
@@ -54,14 +69,31 @@ export default function BenchmarkChart({ positions }: Props) {
 
   return (
     <div className="fin-card space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="font-semibold text-text-primary">Portfolio vs. S&amp;P 500</h2>
-        {loading && <span className="spinner" />}
+        <div className="flex items-center gap-2">
+          {loading && <span className="spinner" />}
+          <div className="flex items-center gap-0.5 bg-bg-elevated rounded-lg p-0.5">
+            {RANGES.map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-2.5 py-1 text-xs rounded font-medium transition-all ${
+                  range === r
+                    ? 'bg-brand-blue text-white shadow-sm'
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Beta & Alpha */}
-      {data && (data.beta != null || data.alpha != null) && (
-        <div className="grid grid-cols-2 gap-4">
+      {/* Beta, Alpha, IR */}
+      {data && (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {data.beta != null && (
             <div className="bg-bg-elevated rounded-lg p-3">
               <div className="text-xs text-text-muted mb-1">Beta (β)</div>
@@ -73,12 +105,23 @@ export default function BenchmarkChart({ positions }: Props) {
           )}
           {data.alpha != null && (
             <div className="bg-bg-elevated rounded-lg p-3">
-              <div className="text-xs text-text-muted mb-1">Alpha (α, ann.)</div>
+              <div className="text-xs text-text-muted mb-1">Jensen's Alpha (ann.)</div>
               <div className={`font-mono text-xl font-semibold ${data.alpha >= 0 ? 'pos' : 'neg'}`}>
                 {data.alpha >= 0 ? '+' : ''}{(data.alpha * 100).toFixed(2)}%
               </div>
               <div className="text-xs text-text-muted mt-1">
-                {data.alpha >= 0 ? 'Outperforming' : 'Underperforming'} the index
+                {data.alpha >= 0 ? 'Outperforming' : 'Underperforming'} vs CAPM
+              </div>
+            </div>
+          )}
+          {data.informationRatio != null && (
+            <div className="bg-bg-elevated rounded-lg p-3">
+              <div className="text-xs text-text-muted mb-1">Information Ratio</div>
+              <div className={`font-mono text-xl font-semibold ${data.informationRatio >= 0.5 ? 'pos' : data.informationRatio >= 0 ? 'text-brand-gold' : 'neg'}`}>
+                {data.informationRatio.toFixed(2)}
+              </div>
+              <div className="text-xs text-text-muted mt-1">
+                {data.informationRatio >= 0.5 ? 'Strong active return' : data.informationRatio >= 0 ? 'Modest outperformance' : 'Underperforming index'}
               </div>
             </div>
           )}
@@ -90,7 +133,7 @@ export default function BenchmarkChart({ positions }: Props) {
       {data?.data?.length ? (
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.data} margin={{ top: 4, right: 4, bottom: 0, left: 8 }}>
+            <LineChart data={filterByRange(data.data, range)} margin={{ top: 4, right: 4, bottom: 0, left: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2d45" vertical={false} />
               <XAxis
                 dataKey="date"
@@ -139,8 +182,44 @@ export default function BenchmarkChart({ positions }: Props) {
       )}
 
       <div className="text-xs text-text-muted">
-        Both series normalised to 100 at first buy date. Beta = market sensitivity. Alpha = excess annual return.
+        Portfolio: TWR index (capital flows excluded). Beta = market sensitivity. Alpha = Jensen's (CAPM-adjusted). IR = active return / tracking error.
       </div>
+
+      {/* Rolling Beta chart */}
+      {data?.rollingBeta && data.rollingBeta.length > 0 && (
+        <div className="pt-4 border-t border-bg-border space-y-2">
+          <div>
+            <div className="font-semibold text-text-primary text-sm">Rolling Beta (63d)</div>
+            <div className="text-xs text-text-muted">How market sensitivity has changed over time · &gt;1 = amplifies market moves · &lt;1 = defensive</div>
+          </div>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={filterByRange(data.rollingBeta, range)} margin={{ top: 4, right: 32, bottom: 0, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2d45" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={(v) => v.toFixed(1)} />
+                <ReferenceLine y={1} stroke="#475569" strokeDasharray="4 4" label={{ value: 'β=1', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    const b = payload[0].value as number
+                    return (
+                      <div className="bg-bg-elevated border border-bg-border rounded-lg p-3 text-xs font-mono">
+                        <div className="text-text-muted mb-1">{label}</div>
+                        <div className={b > 1.2 ? 'text-brand-red' : b > 0.8 ? 'text-brand-gold' : 'text-brand-green'}>
+                          β = {b.toFixed(2)}
+                        </div>
+                      </div>
+                    )
+                  }}
+                />
+                <Line type="monotone" dataKey="beta" stroke="#f59e0b" strokeWidth={1.5} dot={false}
+                  activeDot={{ r: 3, fill: '#f59e0b', stroke: '#0a0f1e', strokeWidth: 2 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices } from '@/lib/yahoo'
+import { getAuthUser } from '@/lib/supabase'
 
 // ── Math ──────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ function pearson(a: number[], b: number[]): number {
 // Body: { tickers: string[], days?: number }
 // Returns: { tickers, matrix, avgOffDiagonal }
 export async function POST(req: NextRequest) {
+  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { tickers, days = 252 }: { tickers: string[]; days?: number } = await req.json()
 
   if (!tickers?.length) {

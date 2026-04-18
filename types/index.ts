@@ -5,11 +5,12 @@ export interface Position {
   shares: number
   buy_price: number
   buy_date: string
-  current_price?: number
+  current_price?: number | null
   invested?: number
-  current_value?: number
-  pnl?: number
-  return_pct?: number
+  current_value?: number | null
+  pnl?: number | null
+  return_pct?: number | null
+  price_error?: boolean
 }
 
 export interface PortfolioMetrics {
@@ -43,18 +44,26 @@ export interface Fundamentals {
   debt_equity?: number | null
   rev_growth?: number | null
   fcf_yield?: number | null
+  rateLimited?: boolean
 }
 
 export interface HistoryResult {
   history: HistoricalDataPoint[]
+  twrReturns: { date: string; ret: number }[]
   sharpe: number | null
   volatility: number | null
+  sortino: number | null
+  maxDrawdown: number | null
+  var95: number | null
+  cvar95: number | null
 }
 
 export interface BenchmarkResult {
   data: BenchmarkDataPoint[]
   beta: number | null
   alpha: number | null
+  informationRatio: number | null
+  rollingBeta: { date: string; beta: number }[]
 }
 
 export interface CorrelationResult {

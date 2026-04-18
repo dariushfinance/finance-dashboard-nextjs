@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/supabase'
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -16,6 +17,8 @@ export interface IsinResult {
 // Resolves ISIN to ticker via Yahoo Finance search.
 // Returns best match + all alternatives (for different exchange listings).
 export async function GET(req: NextRequest) {
+  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const isin = req.nextUrl.searchParams.get('isin')?.trim().toUpperCase()
   if (!isin) return NextResponse.json({ error: 'isin required' }, { status: 400 })
 

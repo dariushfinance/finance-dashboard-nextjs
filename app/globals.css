@@ -11,8 +11,10 @@
   --bg-border: #1f2d45;
   --text-primary: #f0f4ff;
   --text-secondary: #94a3b8;
+  --text-muted: #7a8da8;
   --green: #22c55e;
   --red: #ef4444;
+  --blue: #2563eb;
 }
 
 * { box-sizing: border-box; }
@@ -53,8 +55,8 @@ html, body {
 
 /* Button */
 .btn-primary {
-  @apply bg-brand-green text-bg-base font-semibold rounded-lg px-4 py-2 text-sm
-    hover:bg-brand-green-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-brand-blue text-white font-semibold rounded-lg px-4 py-2 text-sm
+    hover:bg-brand-blue-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 .btn-ghost {
   @apply border border-bg-border text-text-secondary rounded-lg px-4 py-2 text-sm
@@ -64,7 +66,7 @@ html, body {
 /* Input */
 .fin-input {
   @apply w-full bg-bg-elevated border border-bg-border text-text-primary rounded-lg px-3 py-2 text-sm
-    focus:outline-none focus:border-brand-green/60 focus:ring-1 focus:ring-brand-green/20
+    focus:outline-none focus:border-brand-blue/60 focus:ring-1 focus:ring-brand-blue/20
     placeholder:text-text-muted transition-colors;
 }
 
@@ -74,7 +76,7 @@ html, body {
   display: inline-block;
   width: 16px; height: 16px;
   border: 2px solid #1f2d45;
-  border-top-color: var(--green);
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
