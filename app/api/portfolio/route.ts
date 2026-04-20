@@ -19,8 +19,22 @@ export async function GET(_req: NextRequest) {
 
   const enriched = await Promise.all(
     data.map(async (row) => {
-      const current_price = await getCurrentPrice(row.ticker)
       const invested = row.shares * row.buy_price
+
+      // Cash positions: price is always the face value — no API call needed
+      if (row.ticker === 'CASH' || row.ticker === 'USD') {
+        return {
+          ...row,
+          current_price: row.buy_price,
+          invested,
+          current_value: invested,
+          pnl: 0,
+          return_pct: 0,
+          price_error: false,
+        }
+      }
+
+      const current_price = await getCurrentPrice(row.ticker)
       if (current_price === 0) {
         // Price fetch failed — flag the row so the UI can warn the user
         // rather than silently showing a 100% loss

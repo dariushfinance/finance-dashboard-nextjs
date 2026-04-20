@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import type { CurrencyConfig } from './Dashboard'
+import { fmtCcy } from './Dashboard'
+
 interface Props {
   total_value: number
   total_invested: number
   total_pnl: number
   total_return: number
+  ccy: CurrencyConfig
 }
 
 // ── Cubic ease-out count-up ───────────────────────────────────
@@ -71,17 +75,17 @@ function SupportCard({
 
 // ── Main ──────────────────────────────────────────────────────
 
-export default function MetricsRow({ total_value, total_invested, total_pnl, total_return }: Props) {
+export default function MetricsRow({ total_value, total_invested, total_pnl, total_return, ccy }: Props) {
   const pnlPos = total_pnl >= 0
   const retPos = total_return >= 0
 
-  const animValue    = useCountUp(total_value,            1300, 0)
-  const animInvested = useCountUp(total_invested,         1100, 100)
-  const animPnl      = useCountUp(Math.abs(total_pnl),   1100, 180)
+  const animValue    = useCountUp(total_value * ccy.rate,            1300, 0)
+  const animInvested = useCountUp(total_invested * ccy.rate,         1100, 100)
+  const animPnl      = useCountUp(Math.abs(total_pnl) * ccy.rate,   1100, 180)
   const animReturn   = useCountUp(Math.abs(total_return), 1000, 260)
 
   const heroInt = Math.floor(animValue).toLocaleString('en-US')
-  const heroDec = (animValue % 1).toFixed(2).slice(1)
+  const heroDec = ccy.dec > 0 ? (animValue % 1).toFixed(ccy.dec).slice(1) : ''
 
   return (
     <div className="metrics-hero">
@@ -104,13 +108,13 @@ export default function MetricsRow({ total_value, total_invested, total_pnl, tot
             marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <div className="metric__icon"><IcoWallet /></div>
-            Total Portfolio Value · USD
+            Total Portfolio Value · {ccy.code}
           </div>
 
           <div className="metric__val-hero">
-            <span className="cur">$</span>
+            <span className="cur">{ccy.symbol}</span>
             {heroInt}
-            <span className="dec">{heroDec}</span>
+            {heroDec && <span className="dec">{heroDec}</span>}
           </div>
 
           <div className="metric__delta-row">
@@ -125,7 +129,7 @@ export default function MetricsRow({ total_value, total_invested, total_pnl, tot
               {pnlPos ? '▲' : '▼'} {Math.abs(total_return).toFixed(2)}%
             </span>
             <span className="metric__delta-muted">
-              {pnlPos ? '+' : '−'}${fmtNum(Math.abs(total_pnl))} unrealised P&amp;L
+              {fmtCcy(total_pnl, ccy, true)} unrealised P&amp;L
             </span>
           </div>
         </div>
@@ -133,13 +137,13 @@ export default function MetricsRow({ total_value, total_invested, total_pnl, tot
         {/* Stat strip at bottom */}
         <div className="stat-strip" style={{ margin: '20px -32px 0' }}>
           <div className="stat-strip__item">
-            <div className="stat-strip__label">Invested</div>
-            <div className="stat-strip__val">${fmtNum(total_invested, 0)}</div>
+            <div className="stat-strip__label">Invested · {ccy.code}</div>
+            <div className="stat-strip__val">{fmtCcy(total_invested, ccy)}</div>
           </div>
           <div className="stat-strip__item">
             <div className="stat-strip__label">Gain / Loss</div>
             <div className={`stat-strip__val ${pnlPos ? 'pos' : 'neg'}`}>
-              {pnlPos ? '+' : '−'}${fmtNum(Math.abs(total_pnl))}
+              {fmtCcy(total_pnl, ccy, true)}
             </div>
           </div>
           <div className="stat-strip__item">
@@ -153,8 +157,8 @@ export default function MetricsRow({ total_value, total_invested, total_pnl, tot
 
       {/* ── Supporting cards ── */}
       <SupportCard
-        label="Invested"
-        value={`$${fmtNum(animInvested, 0)}`}
+        label={`Invested · ${ccy.code}`}
+        value={`${ccy.symbol}${Math.round(animInvested).toLocaleString('en-US')}`}
         sub="Total cost basis"
         variant="neutral"
         icon={<IcoDollar />}
@@ -162,7 +166,7 @@ export default function MetricsRow({ total_value, total_invested, total_pnl, tot
       />
       <SupportCard
         label="Unrealised P&L"
-        value={`${pnlPos ? '+' : '−'}$${fmtNum(animPnl)}`}
+        value={`${pnlPos ? '+' : '−'}${ccy.symbol}${animPnl.toLocaleString('en-US', { minimumFractionDigits: ccy.dec, maximumFractionDigits: ccy.dec })}`}
         sub={`${Math.abs(total_return).toFixed(2)}% vs cost`}
         variant={pnlPos ? 'pos' : 'neg'}
         icon={<IcoTrend />}

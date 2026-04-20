@@ -151,20 +151,57 @@ const META: Record<string, TickerMeta> = {
   XLI:   { name: 'SPDR Industrials',   sector: 'Industrials',            industry: 'Sector ETF',             country: 'United States', region: 'Americas',     marketCap: 'N/A',   assetType: 'ETF',   currency: 'USD' },
   XLU:   { name: 'SPDR Utilities',     sector: 'Utilities',              industry: 'Sector ETF',             country: 'United States', region: 'Americas',     marketCap: 'N/A',   assetType: 'ETF',   currency: 'USD' },
   XLP:   { name: 'SPDR Cons. Staples', sector: 'Consumer Staples',       industry: 'Sector ETF',             country: 'United States', region: 'Americas',     marketCap: 'N/A',   assetType: 'ETF',   currency: 'USD' },
+  // ── Global / World ETFs (URTH etc.) ─────────────────────────
+  URTH:  { name: 'iShares MSCI World ETF',        sector: 'Broad Market', industry: 'Global Index',       country: 'Global',        region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  VT:    { name: 'Vanguard Total World Stock',    sector: 'Broad Market', industry: 'Global Index',       country: 'Global',        region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  ACWI:  { name: 'iShares MSCI ACWI ETF',        sector: 'Broad Market', industry: 'Global Index',       country: 'Global',        region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  ACWX:  { name: 'iShares MSCI ACWI ex US',      sector: 'Broad Market', industry: 'Intl Index',         country: 'International', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  EFA:   { name: 'iShares MSCI EAFE ETF',        sector: 'Broad Market', industry: 'Developed Mkt Index',country: 'International', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  IEFA:  { name: 'iShares Core MSCI EAFE',       sector: 'Broad Market', industry: 'Developed Mkt Index',country: 'International', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  IEMG:  { name: 'iShares Core MSCI EM',         sector: 'Emerging Markets', industry: 'EM Index',       country: 'International', region: 'Asia-Pacific', marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  // ── US Bond ETFs ──────────────────────────────────────────────
+  AGG:   { name: 'iShares Core US Aggregate Bond', sector: 'Bonds',       industry: 'Total Bond Market',  country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  LQD:   { name: 'iShares iBoxx $ IG Corp Bond',   sector: 'Bonds',       industry: 'Corporate Bonds',    country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  SHY:   { name: 'iShares 1-3 Yr Treasury',        sector: 'Bonds',       industry: 'Short-Term Govt',    country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  IEF:   { name: 'iShares 7-10 Yr Treasury',       sector: 'Bonds',       industry: 'Intermediate Govt',  country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  // ── Factor / Smart-beta ETFs ──────────────────────────────────
+  VIG:   { name: 'Vanguard Dividend Appreciation', sector: 'Broad Market', industry: 'Dividend Growth',   country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  VYM:   { name: 'Vanguard High Dividend Yield',   sector: 'Broad Market', industry: 'High Dividend',     country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  DGRO:  { name: 'iShares Dividend Growth',        sector: 'Broad Market', industry: 'Dividend Growth',   country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  SCHD:  { name: 'Schwab US Dividend Equity',      sector: 'Broad Market', industry: 'High Dividend',     country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  QUAL:  { name: 'iShares MSCI USA Quality',       sector: 'Broad Market', industry: 'Quality Factor',    country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  MTUM:  { name: 'iShares MSCI USA Momentum',      sector: 'Broad Market', industry: 'Momentum Factor',   country: 'United States', region: 'Americas',     marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  // ── Country / Regional ETFs ──────────────────────────────────
+  EWL:   { name: 'iShares MSCI Switzerland ETF',   sector: 'Broad Market', industry: 'Country ETF',       country: 'Switzerland',   region: 'Europe',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  EWG:   { name: 'iShares MSCI Germany ETF',       sector: 'Broad Market', industry: 'Country ETF',       country: 'Germany',       region: 'Europe',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  EWJ:   { name: 'iShares MSCI Japan ETF',         sector: 'Broad Market', industry: 'Country ETF',       country: 'Japan',         region: 'Asia-Pacific', marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  EWU:   { name: 'iShares MSCI United Kingdom',    sector: 'Broad Market', industry: 'Country ETF',       country: 'United Kingdom', region: 'Europe',      marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  EWQ:   { name: 'iShares MSCI France ETF',        sector: 'Broad Market', industry: 'Country ETF',       country: 'France',        region: 'Europe',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  INDA:  { name: 'iShares MSCI India ETF',         sector: 'Emerging Markets', industry: 'Country ETF',   country: 'India',         region: 'Asia-Pacific', marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  MCHI:  { name: 'iShares MSCI China ETF',         sector: 'Emerging Markets', industry: 'Country ETF',   country: 'China',         region: 'Asia-Pacific', marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  FXF:   { name: 'Invesco Swiss Franc Trust',      sector: 'Currencies',   industry: 'FX',                country: 'Switzerland',   region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  // ── MSCI / Commodity ETFs ─────────────────────────────────────
+  IAU:   { name: 'iShares Gold Trust',             sector: 'Commodities',  industry: 'Gold',              country: 'United States', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  PDBC:  { name: 'Invesco Optimum Yield Comm.',    sector: 'Commodities',  industry: 'Commodities',       country: 'United States', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
+  DJP:   { name: 'iPath Bloomberg Commodity',      sector: 'Commodities',  industry: 'Commodities',       country: 'United States', region: 'Global',       marketCap: 'N/A', assetType: 'ETF', currency: 'USD' },
   // ── Crypto ───────────────────────────────────────────────────
   'BTC-USD': { name: 'Bitcoin',        sector: 'Cryptocurrency',         industry: 'Store of Value',         country: 'Global',        region: 'Global',       marketCap: 'Mega',  assetType: 'Crypto', currency: 'USD' },
   'ETH-USD': { name: 'Ethereum',       sector: 'Cryptocurrency',         industry: 'Smart Contracts',        country: 'Global',        region: 'Global',       marketCap: 'Large', assetType: 'Crypto', currency: 'USD' },
   'SOL-USD': { name: 'Solana',         sector: 'Cryptocurrency',         industry: 'Smart Contracts',        country: 'Global',        region: 'Global',       marketCap: 'Large', assetType: 'Crypto', currency: 'USD' },
+  // ── Cash ─────────────────────────────────────────────────────
+  CASH:  { name: 'Cash (USD)',          sector: 'Cash',                   industry: 'Cash & Equivalents',     country: 'United States', region: 'Americas',     marketCap: 'N/A',   assetType: 'Fund', currency: 'USD' },
+  USD:   { name: 'US Dollar Cash',      sector: 'Cash',                   industry: 'Cash & Equivalents',     country: 'United States', region: 'Americas',     marketCap: 'N/A',   assetType: 'Fund', currency: 'USD' },
 }
 
 export function getTickerMeta(ticker: string): TickerMeta {
-  const clean = ticker.replace(/\.(NYSE|NASDAQ|LSE|SWX|XETRA)$/, '').toUpperCase()
+  const clean = ticker.replace(/\.(NYSE|NASDAQ|LSE|SWX|XETRA|PA|L|F|SW)$/, '').toUpperCase()
   return META[clean] ?? {
     name: clean,
     sector: 'Other',
     industry: 'Other',
-    country: 'Unknown',
-    region: 'Unknown',
+    // Don't label unfamiliar tickers as "Unknown" — use "Global" as sensible default
+    country: 'Global',
+    region: 'Global',
     marketCap: 'N/A',
     assetType: 'Stock',
     currency: 'USD',
@@ -224,6 +261,12 @@ export const ASSET_TYPE_COLORS: Record<string, string> = {
   'Crypto': '#f59e0b',
   'REIT':   '#22c55e',
   'Fund':   '#94a3b8',
+  'Cash':   '#10b981',
+}
+
+export const SECTOR_COLORS_EXTRA: Record<string, string> = {
+  'Cash':       '#10b981',
+  'Currencies': '#06b6d4',
 }
 
 export const MARKET_CAP_COLORS: Record<string, string> = {

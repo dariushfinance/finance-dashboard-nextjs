@@ -2,6 +2,42 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { Position } from '@/types'
+
+// ── Currency types ────────────────────────────────────────────
+
+export type CurrencyCode = 'USD' | 'CHF' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'SGD'
+export interface CurrencyConfig {
+  code: CurrencyCode
+  symbol: string
+  dec: number   // decimal places for display
+  rate: number  // how many of this currency per 1 USD
+}
+
+const CURRENCIES: Omit<CurrencyConfig, 'rate'>[] = [
+  { code: 'USD', symbol: '$',     dec: 2 },
+  { code: 'CHF', symbol: 'Fr. ', dec: 2 },
+  { code: 'EUR', symbol: '€',    dec: 2 },
+  { code: 'GBP', symbol: '£',    dec: 2 },
+  { code: 'JPY', symbol: '¥',    dec: 0 },
+  { code: 'CAD', symbol: 'CA$',  dec: 2 },
+  { code: 'SGD', symbol: 'S$',   dec: 2 },
+]
+
+/** Format a USD amount in the target currency */
+export function fmtCcy(usd: number, ccy: CurrencyConfig, sign = false): string {
+  const val = usd * ccy.rate
+  const abs = Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: ccy.dec, maximumFractionDigits: ccy.dec })
+  const neg = val < 0 ? '−' : sign && val > 0 ? '+' : ''
+  return `${neg}${ccy.symbol}${abs}`
+}
+
+/** Compact format (K / M) */
+export function fmtCcyCompact(usd: number, ccy: CurrencyConfig): string {
+  const val = Math.abs(usd * ccy.rate)
+  if (val >= 1_000_000) return `${ccy.symbol}${(val / 1_000_000).toFixed(2)}M`
+  if (val >= 1_000)     return `${ccy.symbol}${(val / 1_000).toFixed(1)}K`
+  return `${ccy.symbol}${val.toFixed(ccy.dec)}`
+}
 import MetricsRow from './MetricsRow'
 import PortfolioTable from './PortfolioTable'
 import AllocationChart from './AllocationChart'
@@ -110,6 +146,8 @@ export default function Dashboard() {
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
   const [theme, setTheme]                 = useState<'dark' | 'light'>('dark')
+  const [currencyCode, setCurrencyCode]   = useState<CurrencyCode>('USD')
+  const [fxRates, setFxRates]             = useState<Record<string, number>>({ USD: 1 })
   const router   = useRouter()
   const [supabase] = useState(() => createBrowserSupabase())
 
@@ -117,11 +155,22 @@ export default function Dashboard() {
   useEffect(() => {
     const stored = localStorage.getItem('pi_theme') as 'dark' | 'light' | null
     if (stored) setTheme(stored)
+    const storedCcy = localStorage.getItem('pi_currency') as CurrencyCode | null
+    if (storedCcy) setCurrencyCode(storedCcy)
   }, [])
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('pi_theme', theme)
   }, [theme])
+  useEffect(() => { localStorage.setItem('pi_currency', currencyCode) }, [currencyCode])
+
+  // Fetch FX rates on mount (cached 15 min server-side)
+  useEffect(() => {
+    fetch('/api/fx')
+      .then(r => r.json())
+      .then(d => { if (d.rates) setFxRates(d.rates) })
+      .catch(() => {}) // silently fall back to 1:1
+  }, [])
 
   // Auth
   useEffect(() => {
@@ -190,6 +239,10 @@ export default function Dashboard() {
   const total_invested = priced.reduce((s, p) => s + (p.invested ?? 0), 0)
   const total_pnl      = total_value - total_invested
   const total_return   = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
+
+  // Currency config — all monetary display goes through this
+  const ccyDef   = CURRENCIES.find(c => c.code === currencyCode) ?? CURRENCIES[0]
+  const ccy: CurrencyConfig = { ...ccyDef, rate: fxRates[currencyCode] ?? 1 }
 
   const activeLabel = TABS.find(t => t.id === activeTab)?.label ?? ''
   const initials    = user?.email ? user.email.slice(0, 2).toUpperCase() : 'DT'
@@ -276,6 +329,27 @@ export default function Dashboard() {
           <div className="topbar__tools">
             <MarketStatus />
 
+            {/* Currency switcher */}
+            <div className="currency-switcher" title="Display currency">
+              {CURRENCIES.map(c => (
+                <button
+                  key={c.code}
+                  className={`currency-btn ${currencyCode === c.code ? 'active' : ''}`}
+                  onClick={() => setCurrencyCode(c.code)}
+                  title={`Display in ${c.code}`}
+                >
+                  {c.code}
+                </button>
+              ))}
+            </div>
+
+            {/* FX rate badge — shows when not USD */}
+            {currencyCode !== 'USD' && fxRates[currencyCode] && (
+              <div className="fx-badge" title={`Live FX rate from Yahoo Finance`}>
+                1 USD = {ccy.rate.toFixed(currencyCode === 'JPY' ? 2 : 4)} {currencyCode}
+              </div>
+            )}
+
             {/* Clickable search → opens command palette */}
             <button
               className="topbar-search"
@@ -345,10 +419,11 @@ export default function Dashboard() {
                     total_invested={total_invested}
                     total_pnl={total_pnl}
                     total_return={total_return}
+                    ccy={ccy}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <PortfolioTable positions={positions} onDelete={handleDelete} />
-                    <AllocationChart positions={positions} />
+                    <PortfolioTable positions={positions} onDelete={handleDelete} ccy={ccy} />
+                    <AllocationChart positions={positions} ccy={ccy} />
                   </div>
                 </>
               )}

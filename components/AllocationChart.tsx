@@ -3,15 +3,17 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Position } from '@/types'
 import { getTickerMeta, SECTOR_COLORS } from '@/lib/ticker-meta'
+import type { CurrencyConfig } from './Dashboard'
+import { fmtCcyCompact } from './Dashboard'
 
-interface Props { positions: Position[] }
+interface Props { positions: Position[]; ccy: CurrencyConfig }
 
 const PALETTE = [
   '#6366f1','#22d3a0','#f59e0b','#60a5fa','#f472b6',
   '#34d399','#fb923c','#a78bfa','#38bdf8','#4ade80',
 ]
 
-export default function AllocationChart({ positions }: Props) {
+export default function AllocationChart({ positions, ccy }: Props) {
   if (!positions.length) return null
 
   const data = positions
@@ -51,7 +53,7 @@ export default function AllocationChart({ positions }: Props) {
       <div className="card__head">
         <div>
           <div className="card__title">Allocation</div>
-          <div className="card__sub">By position · {data.length} holdings</div>
+          <div className="card__sub">By position · {data.length} holdings · values in {ccy.code}</div>
         </div>
       </div>
 
@@ -82,7 +84,7 @@ export default function AllocationChart({ positions }: Props) {
                 Total
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginTop: 3, letterSpacing: '-0.02em' }}>
-                ${total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toFixed(0)}
+                {fmtCcyCompact(total, ccy)}
               </div>
             </div>
           </div>
@@ -101,7 +103,7 @@ export default function AllocationChart({ positions }: Props) {
                   <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 0.6s ease' }} />
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-3)', textAlign: 'right' }}>
-                  ${d.value >= 1000 ? `${(d.value / 1000).toFixed(1)}K` : d.value.toFixed(0)}
+                  {fmtCcyCompact(d.value, ccy)}
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color, fontWeight: 600, textAlign: 'right' }}>
                   {pct.toFixed(1)}%
