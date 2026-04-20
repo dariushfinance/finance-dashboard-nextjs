@@ -78,10 +78,16 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+interface RiskMetrics {
+  sharpe: number | null; sortino: number | null; volatility: number | null
+  maxDrawdown: number | null; var95: number | null; cvar95: number | null
+}
+
 interface Props { positions: Position[] }
 
 export default function RiskTab({ positions }: Props) {
   const [twrReturns, setTwrReturns] = useState<{ date: string; ret: number }[]>([])
+  const [riskMetrics, setRiskMetrics] = useState<RiskMetrics>({ sharpe: null, sortino: null, volatility: null, maxDrawdown: null, var95: null, cvar95: null })
   const [corrData,   setCorrData]   = useState<CorrelationResult | null>(null)
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
@@ -97,6 +103,14 @@ export default function RiskTab({ positions }: Props) {
     ])
       .then(([hist, corr]) => {
         setTwrReturns(hist.twrReturns ?? [])
+        setRiskMetrics({
+          sharpe:      hist.sharpe      ?? null,
+          sortino:     hist.sortino     ?? null,
+          volatility:  hist.volatility  ?? null,
+          maxDrawdown: hist.maxDrawdown ?? null,
+          var95:       hist.var95       ?? null,
+          cvar95:      hist.cvar95      ?? null,
+        })
         setCorrData(corr)
       })
       .catch(() => setError('Failed to load risk data'))
@@ -127,8 +141,31 @@ export default function RiskTab({ positions }: Props) {
 
   if (!positions.length) return null
 
+  const rm = riskMetrics
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* ── 0. Key Risk Metrics ───────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+        {[
+          { label: 'Sharpe Ratio',     val: rm.sharpe,      fmt: (v: number) => v.toFixed(2),           variant: rm.sharpe != null ? (rm.sharpe >= 1 ? 'pos' : rm.sharpe >= 0 ? 'warn' : 'neg') : '',  sub: rm.sharpe != null ? (rm.sharpe >= 2 ? 'Excellent' : rm.sharpe >= 1 ? 'Good' : rm.sharpe >= 0 ? 'Acceptable' : 'Poor') : 'Need ≥30d' },
+          { label: 'Sortino Ratio',    val: rm.sortino,     fmt: (v: number) => v.toFixed(2),           variant: rm.sortino != null ? (rm.sortino >= 1 ? 'pos' : rm.sortino >= 0 ? 'warn' : 'neg') : '', sub: 'Downside-only' },
+          { label: 'Ann. Volatility',  val: rm.volatility,  fmt: (v: number) => `${(v*100).toFixed(1)}%`, variant: rm.volatility != null ? (rm.volatility < 0.15 ? 'pos' : rm.volatility < 0.25 ? 'warn' : 'neg') : '', sub: rm.volatility != null ? (rm.volatility < 0.15 ? 'Low' : rm.volatility < 0.25 ? 'Medium' : 'High') : 'Need ≥30d' },
+          { label: 'Max Drawdown',     val: rm.maxDrawdown, fmt: (v: number) => `-${(v*100).toFixed(1)}%`, variant: rm.maxDrawdown != null ? (rm.maxDrawdown > 0.2 ? 'neg' : rm.maxDrawdown > 0.1 ? 'warn' : 'pos') : '', sub: 'Peak-to-trough' },
+          { label: 'VaR 95% (1d)',     val: rm.var95,       fmt: (v: number) => `-${(v*100).toFixed(2)}%`, variant: 'neg', sub: 'Worst day 19/20' },
+          { label: 'CVaR / ES 95%',    val: rm.cvar95,      fmt: (v: number) => `-${(v*100).toFixed(2)}%`, variant: 'neg', sub: 'Expected tail loss' },
+        ].map(m => (
+          <div key={m.label} className="stat-box" style={{ animation: 'fade-up 0.4s both' }}>
+            <div className="stat-box__label">{m.label}</div>
+            {m.val != null
+              ? <div className={`stat-box__val ${m.variant}`}>{m.fmt(m.val)}</div>
+              : <div className="stat-box__val" style={{ color: 'var(--ink-4)', fontSize: 14 }}>—</div>
+            }
+            <div className="stat-box__sub">{m.sub}</div>
+          </div>
+        ))}
+      </div>
 
       {/* ── 1. Rolling Volatility ─────────────────────────────────────────── */}
       <div className="card" style={{ padding: 0 }}>
