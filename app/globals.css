@@ -502,11 +502,102 @@ a      { color: inherit; text-decoration: none; }
 }
 .chip-group button.active { background: var(--bg-3); color: var(--ink); }
 
-/* ── Metric cards ────────────────────────────────────────────── */
+/* ── Metric hero layout ──────────────────────────────────────── */
 
+.metrics-hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+  min-height: 168px;
+}
+
+/* Large display number for hero card */
+.metric__val-hero {
+  font-family: var(--font-display);
+  font-size: 62px; font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 1; color: var(--ink);
+  font-feature-settings: 'tnum';
+  display: flex; align-items: baseline; gap: 0;
+}
+.metric__val-hero .cur {
+  font-size: 26px; color: var(--ink-3); font-weight: 500;
+  margin-right: 6px; transform: translateY(-14px); display: inline-block;
+}
+.metric__val-hero .dec { font-size: 38px; color: var(--ink-2); letter-spacing: -0.02em; }
+
+.metric__delta-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 14px; font-family: var(--font-mono); font-size: 13px;
+}
+.metric__delta-muted { color: var(--ink-3); }
+
+/* Legacy 4-col grid (fallback) */
 .metrics {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
 }
+
+/* Stat strip — inline key/value row */
+.stat-strip {
+  display: flex; gap: 0;
+  border-top: 1px solid var(--line-soft);
+}
+.stat-strip__item {
+  flex: 1; padding: 14px 18px;
+  border-right: 1px solid var(--line-soft);
+}
+.stat-strip__item:last-child { border-right: none; }
+.stat-strip__label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4);
+  margin-bottom: 5px;
+}
+.stat-strip__val {
+  font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--ink);
+  font-feature-settings: 'tnum';
+}
+.stat-strip__val.pos { color: var(--pos); }
+.stat-strip__val.neg { color: var(--neg); }
+.stat-strip__sub { font-size: 10.5px; color: var(--ink-4); margin-top: 3px; }
+
+/* Inline stat box (used in chart headers) */
+.stat-box {
+  padding: 14px 20px;
+  background: var(--bg); border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.18s;
+}
+.stat-box:hover { border-color: var(--line); }
+.stat-box__label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 4px;
+}
+.stat-box__val {
+  font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--ink);
+  font-feature-settings: 'tnum'; letter-spacing: -0.01em;
+}
+.stat-box__val.pos { color: var(--pos); }
+.stat-box__val.neg { color: var(--neg); }
+.stat-box__val.warn { color: var(--warn); }
+.stat-box__sub { font-size: 10.5px; color: var(--ink-4); margin-top: 3px; }
+
+/* Range selector pill group */
+.range-tabs {
+  display: inline-flex;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 9px; padding: 3px; gap: 1px;
+}
+.range-tab {
+  padding: 5px 12px; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--ink-3); transition: background 0.14s, color 0.14s; white-space: nowrap;
+}
+.range-tab:hover { color: var(--ink-2); }
+.range-tab.active {
+  background: var(--bg-3); color: var(--ink);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.25);
+}
+
+/* ── Metric cards ────────────────────────────────────────────── */
 
 .metric {
   background: oklch(from var(--bg-1) l c h / 0.88);
