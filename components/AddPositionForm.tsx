@@ -6,15 +6,16 @@ import CsvImport from './CsvImport'
 
 interface Props {
   onAdded: () => void
+  preFillTicker?: string
 }
 
 type Tab = 'manual' | 'csv'
 
-export default function AddPositionForm({ onAdded }: Props) {
+export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) {
   const [tab, setTab]           = useState<Tab>('manual')
 
   // Manual form state
-  const [ticker, setTicker]     = useState('')
+  const [ticker, setTicker]     = useState(preFillTicker)
   const [shares, setShares]     = useState('')
   const [buyPrice, setBuyPrice] = useState('')
   const [buyDate, setBuyDate]   = useState(new Date().toISOString().split('T')[0])
