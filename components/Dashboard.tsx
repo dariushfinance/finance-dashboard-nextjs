@@ -12,28 +12,113 @@ import AddPositionForm from './AddPositionForm'
 import RiskTab from './RiskTab'
 import StressTest from './StressTest'
 import FrontierChart from './FrontierChart'
+import TickerTape from './TickerTape'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
+type TabId = 'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk' | 'stress' | 'frontier'
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: 'overview',     label: 'Overview',      icon: <IconGrid /> },
+  { id: 'history',      label: 'History',       icon: <IconHistory /> },
+  { id: 'benchmark',    label: 'Benchmark',     icon: <IconTrend /> },
+  { id: 'fundamentals', label: 'Fundamentals',  icon: <IconTable /> },
+  { id: 'risk',         label: 'Risk',          icon: <IconWarning /> },
+  { id: 'stress',       label: 'Stress Test',   icon: <IconActivity /> },
+  { id: 'frontier',     label: 'Frontier',      icon: <IconScatter /> },
+]
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function Ico({ d, size = 16, sw = 1.6 }: { d: React.ReactNode; size?: number; sw?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+      {d}
+    </svg>
+  )
+}
+function IconGrid()     { return <Ico d={<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>} /> }
+function IconHistory()  { return <Ico d={<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12a9 9 0 0 1 9-9"/></>} /> }
+function IconTrend()    { return <Ico d={<><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></>} /> }
+function IconTable()    { return <Ico d={<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></>} /> }
+function IconWarning()  { return <Ico d={<><path d="M12 3l9 16H3z"/><path d="M12 10v5"/><circle cx="12" cy="18" r="0.5" fill="currentColor" stroke="none"/></>} /> }
+function IconActivity() { return <Ico d={<path d="M3 12h3l2-8 4 16 2-8h7"/>} /> }
+function IconScatter()  { return <Ico d={<><path d="M3 20c4-12 10-14 18-14"/><circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="7" r="1.5" fill="currentColor" stroke="none"/></>} /> }
+function IconSearch()   { return <Ico d={<><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></>} /> }
+function IconPlus()     { return <Ico d={<path d="M12 5v14M5 12h14"/>} /> }
+function IconRefresh()  { return <Ico d={<><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></>} /> }
+function IconSun()      { return <Ico d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></>} /> }
+function IconMoon()     { return <Ico d={<path d="M21 12.8A9 9 0 0 1 11.2 3a7 7 0 1 0 9.8 9.8z"/>} /> }
+function IconMenu()     { return <Ico d={<><path d="M4 6h16M4 12h16M4 18h16"/></>} /> }
+function IconClose()    { return <Ico d={<path d="M6 6l12 12M18 6L6 18"/>} sw={2} /> }
+
+// ── Market Status ─────────────────────────────────────────────────────────────
+
+function MarketStatus() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const h   = now.getUTCHours()
+  const day = now.getUTCDay()
+  const open = day >= 1 && day <= 5 && h >= 13 && h < 20
+  return (
+    <div className={`pill ${open ? 'pill--open' : 'pill--closed'}`}>
+      <span className="pill__dot" />
+      {open ? 'Market open' : 'After hours'}
+      <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>
+        {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} ET
+      </span>
+    </div>
+  )
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
-  const [user, setUser]           = useState<User | null>(null)
-  const [positions, setPositions] = useState<Position[]>([])
-  const [loading, setLoading]     = useState(false)
+  const [user, setUser]               = useState<User | null>(null)
+  const [positions, setPositions]     = useState<Position[]>([])
+  const [loading, setLoading]         = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'benchmark' | 'fundamentals' | 'risk' | 'stress' | 'frontier'>('overview')
-  const router = useRouter()
+  const [activeTab, setActiveTab]     = useState<TabId>('overview')
+  const [theme, setTheme]             = useState<'dark' | 'light'>('dark')
+  const router  = useRouter()
   const [supabase] = useState(() => createBrowserSupabase())
 
+  // Persist theme on <html>
+  useEffect(() => {
+    const stored = localStorage.getItem('pi_theme') as 'dark' | 'light' | null
+    if (stored) setTheme(stored)
+  }, [])
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('pi_theme', theme)
+  }, [theme])
+
+  // Auth
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
       if (!session?.user) router.push('/login')
     })
     return () => subscription.unsubscribe()
   }, [supabase, router])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).tagName === 'INPUT') return
+      const n = parseInt(e.key, 10)
+      if (n >= 1 && n <= TABS.length) setActiveTab(TABS[n - 1].id)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const fetchPortfolio = useCallback(async () => {
     setLoading(true)
@@ -61,189 +146,219 @@ export default function Dashboard() {
     router.push('/login')
   }
 
-  // Exclude positions where the price fetch failed so a data error
-  // doesn't distort portfolio totals into apparent large losses
-  const priced         = positions.filter((p) => !p.price_error)
+  const priced         = positions.filter(p => !p.price_error)
   const total_value    = priced.reduce((s, p) => s + (p.current_value ?? 0), 0)
   const total_invested = priced.reduce((s, p) => s + (p.invested ?? 0), 0)
   const total_pnl      = total_value - total_invested
   const total_return   = total_invested > 0 ? ((total_value / total_invested) - 1) * 100 : 0
 
-  const TABS = [
-    { id: 'overview',     label: 'Overview' },
-    { id: 'history',      label: 'History' },
-    { id: 'benchmark',    label: 'Benchmark' },
-    { id: 'fundamentals', label: 'Fundamentals' },
-    { id: 'risk',         label: 'Risk' },
-    { id: 'stress',       label: 'Stress Test' },
-    { id: 'frontier',     label: 'Frontier' },
-  ] as const
+  const activeLabel = TABS.find(t => t.id === activeTab)?.label ?? ''
+  const initials    = user?.email ? user.email.slice(0, 2).toUpperCase() : 'DT'
+  const displayName = user?.email?.split('@')[0] ?? 'User'
 
   return (
-    <div className="min-h-screen bg-bg-base text-text-primary flex">
+    <div className="app">
+      {/* Ticker tape */}
+      <TickerTape />
+
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 bg-bg-card border-r border-bg-border flex flex-col
-          transform transition-transform duration-200 md:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        {/* Logo */}
-        <div className="px-6 py-5 border-b border-bg-border flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center text-white font-bold text-sm">P</div>
+      <aside className={`side ${sidebarOpen ? 'open' : ''}`}>
+        {/* Brand */}
+        <div className="brand">
+          <div className="brand__mark">P</div>
           <div>
-            <div className="font-semibold text-sm text-text-primary">Portfolio Intelligence</div>
+            <div className="brand__name">Portfolio<br />Intelligence</div>
+            <div className="brand__tag">Pro · v4.2</div>
           </div>
         </div>
 
-        {/* User info */}
-        <div className="px-6 py-5 border-b border-bg-border">
-          <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Account</div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-brand-blue animate-pulse flex-shrink-0" />
-            <span className="text-xs text-text-secondary truncate">{user?.email}</span>
+        {/* Nav */}
+        <nav className="nav">
+          <div className="nav__label">Workspace</div>
+          {TABS.map((t, i) => (
+            <button
+              key={t.id}
+              className={`nav__item ${activeTab === t.id ? 'nav__item--active' : ''}`}
+              onClick={() => { setActiveTab(t.id); setSidebarOpen(false) }}
+            >
+              <span style={{ color: activeTab === t.id ? 'var(--ink)' : 'var(--ink-3)', display: 'inline-flex' }}>
+                {t.icon}
+              </span>
+              {t.label}
+              <span className="kbd">{i + 1}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="side__foot">
+          <div className="user-card">
+            <div className="user-card__avatar">{initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="user-card__name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {displayName}
+              </div>
+              <div className="user-card__plan">Pro · HSG &#39;26</div>
+            </div>
           </div>
           <button
             onClick={handleLogout}
-            className="mt-3 text-xs text-text-muted hover:text-brand-red transition-colors"
+            style={{ fontSize: 11, color: 'var(--ink-4)', padding: '4px 8px', textAlign: 'left', transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--neg)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-4)')}
           >
             Sign out →
           </button>
         </div>
-
-        {/* Nav placeholder for future links */}
-        <div className="flex-1" />
       </aside>
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main content */}
-      <div className="flex-1 md:ml-72 flex flex-col min-h-screen">
-        {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-bg-border px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* Main */}
+      <main className="main">
+        {/* Topbar */}
+        <div className="topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Mobile hamburger */}
             <button
-              className="md:hidden text-text-secondary hover:text-text-primary"
+              className="icon-btn"
+              style={{ display: 'none' }}
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              id="mobile-menu-btn"
             >
-              ☰
+              <IconMenu />
             </button>
-            <div>
-              <h1 className="text-lg font-semibold text-text-primary">My Portfolio</h1>
-              {positions.length > 0 && (
-                <div className="text-xs text-text-muted">{positions.length} positions · Live data</div>
-              )}
+            <div className="crumbs">
+              <span>My Portfolio</span>
+              <span>/</span>
+              <strong>{activeLabel}</strong>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="topbar__tools">
+            <MarketStatus />
+            <div className="topbar-search">
+              <IconSearch />
+              <span>Search symbols…</span>
+              <span className="kbd">⌘K</span>
+            </div>
             {loading && <span className="spinner" />}
             <button
-              className="text-xs text-text-muted hover:text-text-secondary border border-bg-border rounded-lg px-3 py-1.5 transition-colors"
-              onClick={fetchPortfolio}
+              className="icon-btn"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
             >
-              ↻ Refresh
+              {theme === 'dark' ? <IconSun /> : <IconMoon />}
             </button>
-            <button
-              className="btn-primary text-xs px-3 py-1.5"
-              onClick={() => setAddModalOpen(true)}
-            >
-              + Add Position
+            <button className="btn btn--ghost" onClick={fetchPortfolio}>
+              <IconRefresh /><span>Refresh</span>
+            </button>
+            <button className="btn btn--primary" onClick={() => setAddModalOpen(true)}>
+              <IconPlus /><span>Add position</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* Body */}
-        <main className="flex-1 px-6 py-6 space-y-6 animate-fade-in">
-          {positions.length === 0 && !loading ? (
-            <div className="fin-card flex flex-col items-center justify-center py-20 text-center">
-              <div className="text-4xl mb-4">📊</div>
-              <div className="text-text-primary font-semibold mb-1">No positions yet</div>
-              <div className="text-text-muted text-sm mb-4">Add your first holding to get started.</div>
+        {/* Page */}
+        <div className="page">
+          {/* Tab bar */}
+          <div className="tabbar">
+            {TABS.map(t => (
               <button
-                className="btn-primary"
-                onClick={() => setAddModalOpen(true)}
+                key={t.id}
+                className={`tabbar__btn ${activeTab === t.id ? 'tabbar__btn--active' : ''}`}
+                onClick={() => setActiveTab(t.id)}
               >
-                + Add Position
+                {t.label}
+                {t.id === 'overview' && positions.length > 0 && (
+                  <span className="count">{positions.length}</span>
+                )}
               </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          {positions.length === 0 && !loading ? (
+            <div className="card">
+              <div className="empty-state">
+                <div className="empty-state__icon">📊</div>
+                <div className="empty-state__title">No positions yet</div>
+                <div className="empty-state__sub">Add your first holding to get started tracking your portfolio.</div>
+                <button className="btn btn--primary" style={{ marginTop: 20 }} onClick={() => setAddModalOpen(true)}>
+                  <IconPlus /><span>Add position</span>
+                </button>
+              </div>
             </div>
           ) : (
             <>
-              <MetricsRow
-                total_value={total_value}
-                total_invested={total_invested}
-                total_pnl={total_pnl}
-                total_return={total_return}
-              />
-
-              <div className="flex gap-1 p-1 bg-bg-card border border-bg-border rounded-xl w-fit">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-bg-elevated text-text-primary shadow-sm'
-                        : 'text-text-muted hover:text-text-secondary'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
               {activeTab === 'overview' && (
-                <div className="space-y-6 animate-slide-up">
-                  <PortfolioTable positions={positions} onDelete={handleDelete} />
-                  <AllocationChart positions={positions} />
-                </div>
+                <>
+                  <MetricsRow
+                    total_value={total_value}
+                    total_invested={total_invested}
+                    total_pnl={total_pnl}
+                    total_return={total_return}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <PortfolioTable positions={positions} onDelete={handleDelete} />
+                    <AllocationChart positions={positions} />
+                  </div>
+                </>
               )}
-              {activeTab === 'history'      && <div className="animate-slide-up"><HistoryChart positions={positions} /></div>}
-              {activeTab === 'benchmark'    && <div className="animate-slide-up"><BenchmarkChart positions={positions} /></div>}
-              {activeTab === 'fundamentals' && <div className="animate-slide-up"><FundamentalsTable positions={positions} /></div>}
+              {activeTab === 'history'      && <HistoryChart positions={positions} />}
+              {activeTab === 'benchmark'    && <BenchmarkChart positions={positions} />}
+              {activeTab === 'fundamentals' && <FundamentalsTable positions={positions} />}
               {activeTab === 'risk'         && <RiskTab positions={positions} />}
               {activeTab === 'stress'       && <StressTest positions={positions} />}
               {activeTab === 'frontier'     && <FrontierChart positions={positions} />}
             </>
           )}
-        </main>
 
-        <footer className="px-6 py-4 border-t border-bg-border text-xs text-text-muted flex items-center justify-between">
-          <span>Portfolio Intelligence · Built by Dariush Tahajomi</span>
-          <span>Data: Alpha Vantage · Yahoo Finance · Supabase</span>
-        </footer>
-      </div>
+          {/* Footer */}
+          <div style={{
+            marginTop: 40, paddingTop: 16,
+            borderTop: '1px solid var(--line-soft)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontSize: 11, color: 'var(--ink-4)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <span>Portfolio Intelligence · Built by Dariush Tahajomi</span>
+            <span>Alpha Vantage · Yahoo Finance · Supabase</span>
+          </div>
+        </div>
+      </main>
 
       {/* Add Position Modal */}
       {addModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/70 backdrop-blur-sm"
-          onClick={() => setAddModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-md bg-bg-card border border-bg-border rounded-2xl shadow-2xl animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-bg-border flex items-center justify-between">
-              <h2 className="font-semibold text-text-primary">Add Position</h2>
-              <button
-                onClick={() => setAddModalOpen(false)}
-                className="text-text-muted hover:text-text-primary transition-colors text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
+        <div className="modal-backdrop" onClick={() => setAddModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal__head">
+              <div>
+                <div className="modal__head-title">Add position</div>
+                <div className="modal__head-sub">Track a new holding in your portfolio</div>
+              </div>
+              <button className="icon-btn" onClick={() => setAddModalOpen(false)}>
+                <IconClose />
               </button>
             </div>
-            <div className="px-6 py-5">
-              <AddPositionForm onAdded={() => { fetchPortfolio(); setAddModalOpen(false); }} />
+            <div className="modal__body">
+              <AddPositionForm onAdded={() => { fetchPortfolio(); setAddModalOpen(false) }} />
             </div>
           </div>
         </div>
       )}
+
+      {/* Mobile hamburger visibility */}
+      <style>{`
+        @media (max-width: 768px) {
+          #mobile-menu-btn { display: inline-grid !important; }
+        }
+      `}</style>
     </div>
   )
 }

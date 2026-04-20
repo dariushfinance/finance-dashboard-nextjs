@@ -8,6 +8,15 @@ interface Props {
   onDelete: (id: number) => void
 }
 
+const TICKER_COLORS: Record<string, string> = {
+  AAPL: '#6366f1', NVDA: '#22c55e', MSFT: '#3b82f6', AMZN: '#f59e0b',
+  TSLA: '#ef4444', META: '#06b6d4', GOOGL: '#8b5cf6', GOOG: '#8b5cf6',
+  BRK: '#d97706', JPM: '#0ea5e9', V: '#10b981', MA: '#f472b6',
+}
+function tickerColor(sym: string) {
+  return TICKER_COLORS[sym] ?? 'var(--ink-3)'
+}
+
 export default function PortfolioTable({ positions, onDelete }: Props) {
   const [deleting, setDeleting] = useState<number | null>(null)
 
@@ -21,69 +30,87 @@ export default function PortfolioTable({ positions, onDelete }: Props) {
   if (!positions.length) return null
 
   return (
-    <div className="fin-card overflow-hidden p-0">
-      <div className="px-5 py-4 border-b border-bg-border flex items-center justify-between">
-        <h2 className="font-semibold text-text-primary">Positions</h2>
-        <span className="text-xs text-text-muted">{positions.length} holdings</span>
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="card__head">
+        <div>
+          <div className="card__title">Positions</div>
+          <div className="card__sub">{positions.length} holdings tracked</div>
+        </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="fin-table">
+      <div className="tbl-wrap">
+        <table className="tbl">
           <thead>
             <tr>
               <th>Ticker</th>
-              <th className="text-right">Shares</th>
-              <th className="text-right">Buy Price</th>
-              <th className="text-right">Current</th>
-              <th className="text-right">Invested</th>
-              <th className="text-right">Value</th>
-              <th className="text-right">P&L</th>
-              <th className="text-right">Return</th>
-              <th className="text-right">Since</th>
+              <th className="num">Shares</th>
+              <th className="num">Buy Price</th>
+              <th className="num">Current</th>
+              <th className="num">Invested</th>
+              <th className="num">Value</th>
+              <th className="num">P&amp;L</th>
+              <th className="num">Return</th>
+              <th className="num">Since</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {positions.map((pos) => {
-              const pnl = pos.pnl ?? null
-              const ret = pos.return_pct ?? null
-              const isPos = (pnl ?? 0) >= 0
+              const pnl    = pos.pnl ?? null
+              const ret    = pos.return_pct ?? null
+              const isPos  = (pnl ?? 0) >= 0
+              const color  = tickerColor(pos.ticker)
+
               return (
-                <tr key={pos.id} className={pos.price_error ? 'opacity-60' : ''}>
+                <tr key={pos.id} style={pos.price_error ? { opacity: 0.55 } : {}}>
                   <td>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-text-primary text-sm">{pos.ticker}</span>
-                      {pos.price_error && (
-                        <span title="Price unavailable — data source error" className="text-brand-red text-xs font-mono">⚠</span>
-                      )}
+                    <div className="sym">
+                      <div className="sym__logo" style={{ background: color + '22', color, borderColor: color + '44' }}>
+                        {pos.ticker.slice(0, 2)}
+                      </div>
+                      <div>
+                        <div className="sym__ticker">
+                          {pos.ticker}
+                          {pos.price_error && (
+                            <span title="Price unavailable" style={{ color: 'var(--neg)', marginLeft: 5, fontSize: 11 }}>⚠</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </td>
-                  <td className="text-right text-text-secondary">{pos.shares}</td>
-                  <td className="text-right text-text-secondary">
-                    ${pos.buy_price.toFixed(2)}
+                  <td className="num">{pos.shares}</td>
+                  <td className="num">${pos.buy_price.toFixed(2)}</td>
+                  <td className="num" style={{ color: 'var(--ink)' }}>
+                    {pos.price_error
+                      ? <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>unavailable</span>
+                      : `$${(pos.current_price ?? 0).toFixed(2)}`}
                   </td>
-                  <td className="text-right text-text-primary font-medium">
-                    {pos.price_error ? <span className="text-text-muted text-xs">unavailable</span> : `$${(pos.current_price ?? 0).toFixed(2)}`}
-                  </td>
-                  <td className="text-right text-text-secondary">
+                  <td className="num">
                     ${(pos.invested ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
-                  <td className="text-right text-text-primary">
-                    {pos.price_error ? <span className="text-text-muted text-xs">—</span> : `$${(pos.current_value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  <td className="num" style={{ color: 'var(--ink)' }}>
+                    {pos.price_error
+                      ? <span style={{ color: 'var(--ink-4)' }}>—</span>
+                      : `$${(pos.current_value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </td>
-                  <td className={`text-right font-medium ${pnl == null ? 'text-text-muted' : isPos ? 'pos' : 'neg'}`}>
+                  <td className={`num ${pnl == null ? '' : isPos ? 'pos' : 'neg'}`}>
                     {pnl == null ? '—' : `${isPos ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'USD' })}`}
                   </td>
-                  <td className={`text-right font-medium ${ret == null ? 'text-text-muted' : isPos ? 'pos' : 'neg'}`}>
+                  <td className={`num ${ret == null ? '' : isPos ? 'pos' : 'neg'}`}>
                     {ret == null ? '—' : `${isPos ? '+' : ''}${ret.toFixed(2)}%`}
                   </td>
-                  <td className="text-right text-text-muted text-xs">{pos.buy_date}</td>
-                  <td className="text-right">
+                  <td className="num" style={{ color: 'var(--ink-4)', fontSize: 11 }}>{pos.buy_date}</td>
+                  <td>
                     <button
-                      className="text-text-muted hover:text-brand-red transition-colors text-xs px-2 py-1 rounded hover:bg-brand-red/10"
+                      className="row-action"
                       onClick={() => handleDelete(pos.id)}
                       disabled={deleting === pos.id}
+                      title="Remove position"
                     >
-                      {deleting === pos.id ? <span className="spinner" /> : '✕'}
+                      {deleting === pos.id ? <span className="spinner" /> : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                          <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/>
+                        </svg>
+                      )}
                     </button>
                   </td>
                 </tr>
