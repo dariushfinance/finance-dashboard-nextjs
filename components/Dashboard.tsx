@@ -69,20 +69,31 @@ function MarketStatus() {
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
-  const h   = now.getUTCHours()
+
   const day = now.getUTCDay()
-  const open = day >= 1 && day <= 5 && h >= 13 && h < 20
+  const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+
+  // US DST: approx. Mar–Oct = EDT (UTC-4), Nov–Feb = EST (UTC-5)
+  const month = now.getUTCMonth() // 0-indexed
+  const isEDT = month >= 2 && month <= 9
+  const openUTC  = isEDT ? 13 * 60 + 30 : 14 * 60 + 30  // 9:30 AM ET → UTC
+  const closeUTC = isEDT ? 20 * 60      : 21 * 60        // 4:00 PM ET → UTC
+  const open = day >= 1 && day <= 5 && utcMin >= openUTC && utcMin < closeUTC
+
+  // Display ET clock
+  const etOffsetMs = (isEDT ? -4 : -5) * 3_600_000
+  const etDate = new Date(now.getTime() + etOffsetMs)
+  const etStr = `${String(etDate.getUTCHours()).padStart(2,'0')}:${String(etDate.getUTCMinutes()).padStart(2,'0')}`
+
   return (
     <div
       className={`pill ${open ? 'pill--open' : 'pill--closed'}`}
-      title={open ? 'NYSE is currently open' : 'NYSE is currently closed'}
+      title={open ? 'NYSE is currently open (9:30–16:00 ET)' : 'NYSE is currently closed'}
       style={{ cursor: 'default', userSelect: 'none' }}
     >
       <span className="pill__dot" />
       {open ? 'Market open' : 'After hours'}
-      <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>
-        {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} ET
-      </span>
+      <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>{etStr} ET</span>
     </div>
   )
 }

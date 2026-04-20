@@ -377,7 +377,7 @@ export default function FrontierChart({ positions }: Props) {
           <div>
             <div className="card__title">Efficient Frontier</div>
             <div className="card__sub">
-              Markowitz · 2,000 Monte Carlo portfolios · 2-year lookback · long-only
+              Markowitz · 2,000 Monte Carlo portfolios · 2-year lookback · long-only · X = annualised volatility · Y = expected return
             </div>
           </div>
           {loading && <span className="spinner" />}
@@ -401,15 +401,13 @@ export default function FrontierChart({ positions }: Props) {
                     tickFormatter={v => `${(v * 100).toFixed(0)}%`}
                     tick={{ fontSize: 11, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}
                     tickLine={false} axisLine={{ stroke: 'var(--line-soft)' }}
-                    label={{ value: 'Annualised Volatility →', position: 'insideBottom', offset: -28, fontSize: 11, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}
                   />
                   <YAxis
                     type="number" dataKey="expectedReturn" name="Expected Return"
                     tickFormatter={v => `${(v * 100).toFixed(0)}%`}
                     tick={{ fontSize: 11, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}
                     tickLine={false} axisLine={{ stroke: 'var(--line-soft)' }}
-                    width={50}
-                    label={{ value: '← Expected Return', angle: -90, position: 'insideLeft', offset: 16, fontSize: 11, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}
+                    width={42}
                   />
                   <ZAxis range={[18, 18]} />
                   <ReferenceLine y={0} stroke="var(--line-soft)" strokeDasharray="4 4" />
