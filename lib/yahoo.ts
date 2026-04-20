@@ -18,6 +18,11 @@ const HEADERS = {
 // 5-min TTL keeps prices fresh without burning AV's 25 req/day free limit.
 const priceCache = new Map<string, { price: number; expiry: number }>()
 
+// Module-level historical price cache — 60-min TTL.
+// Prevents redundant Yahoo fetches when correlation + history tabs load close together,
+// and avoids re-fetching all N tickers on every risk-tab visit within the same instance.
+const histCache = new Map<string, { data: { date: string; close: number }[]; expiry: number }>()
+
 // --- Current Price (Yahoo first → Alpha Vantage fallback) ---
 // Yahoo has no daily request limit; AV is reserved as fallback only.
 export async function getCurrentPrice(ticker: string): Promise<number> {
@@ -62,16 +67,20 @@ export async function getHistoricalPrices(
   ticker: string,
   startDate: string // YYYY-MM-DD
 ): Promise<{ date: string; close: number }[]> {
+  const cacheKey = `${ticker}:${startDate}`
+  const cached   = histCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiry) return cached.data
+
   const startTs = Math.floor(new Date(startDate).getTime() / 1000)
-  const endTs = Math.floor(Date.now() / 1000)
+  const endTs   = Math.floor(Date.now() / 1000)
 
   try {
     // Include events so Yahoo populates the adjclose array (dividend-adjusted prices)
     const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&period1=${startTs}&period2=${endTs}&events=splits%2Cdividends`
-    const res = await fetch(url, { headers: HEADERS, next: { revalidate: 3600 } })
+    const res  = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
     const data = await res.json()
     const result = data?.chart?.result?.[0]
-    if (!result) return []
+    if (!result) { histCache.set(cacheKey, { data: [], expiry: Date.now() + 60_000 }); return [] }
 
     const timestamps: number[] = result.timestamp ?? []
     // Prefer adjclose (dividend + split adjusted); fall back to raw close
@@ -83,11 +92,12 @@ export async function getHistoricalPrices(
     for (let i = 0; i < timestamps.length; i++) {
       if (prices[i] != null) {
         out.push({
-          date: new Date(timestamps[i] * 1000).toISOString().split('T')[0],
+          date:  new Date(timestamps[i] * 1000).toISOString().split('T')[0],
           close: prices[i]!,
         })
       }
     }
+    histCache.set(cacheKey, { data: out, expiry: Date.now() + 60 * 60_000 })
     return out
   } catch {
     return []
