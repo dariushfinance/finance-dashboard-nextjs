@@ -50,24 +50,30 @@ import StressTest from './StressTest'
 import FrontierChart from './FrontierChart'
 import HedgingTab from './HedgingTab'
 import BreakdownTab from './BreakdownTab'
+import DividendsTab from './DividendsTab'
+import MarketsTab from './MarketsTab'
+import CashflowsTab from './CashflowsTab'
 import TickerTape from './TickerTape'
 import CommandPalette from './CommandPalette'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
-type TabId = 'overview' | 'holdings' | 'history' | 'benchmark' | 'fundamentals' | 'risk' | 'stress' | 'frontier' | 'hedging'
+type TabId = 'overview' | 'holdings' | 'history' | 'benchmark' | 'dividends' | 'fundamentals' | 'risk' | 'stress' | 'frontier' | 'hedging' | 'markets' | 'cashflows'
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',     label: 'Overview',      icon: <IconGrid /> },
   { id: 'holdings',     label: 'Holdings',      icon: <IconPie /> },
   { id: 'history',      label: 'History',       icon: <IconHistory /> },
   { id: 'benchmark',    label: 'Benchmark',     icon: <IconTrend /> },
+  { id: 'dividends',    label: 'Dividends',     icon: <IconCoins /> },
   { id: 'fundamentals', label: 'Fundamentals',  icon: <IconTable /> },
   { id: 'risk',         label: 'Risk',          icon: <IconWarning /> },
   { id: 'stress',       label: 'Stress Test',   icon: <IconActivity /> },
   { id: 'frontier',     label: 'Frontier',      icon: <IconScatter /> },
-  { id: 'hedging',      label: 'Hedging',        icon: <IconShield /> },
+  { id: 'hedging',      label: 'Hedging',       icon: <IconShield /> },
+  { id: 'markets',      label: 'Markets',       icon: <IconGlobe /> },
+  { id: 'cashflows',    label: 'Cashflows',     icon: <IconCash /> },
 ]
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -89,6 +95,9 @@ function IconWarning()  { return <Ico d={<><path d="M12 3l9 16H3z"/><path d="M12
 function IconActivity() { return <Ico d={<path d="M3 12h3l2-8 4 16 2-8h7"/>} /> }
 function IconScatter()  { return <Ico d={<><path d="M3 20c4-12 10-14 18-14"/><circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="7" r="1.5" fill="currentColor" stroke="none"/></>} /> }
 function IconShield()   { return <Ico d={<><path d="M12 3l8 4v5c0 4.4-3.4 8.5-8 9.5C7.4 20.5 4 16.4 4 12V7z"/><path d="M9 12l2 2 4-4"/></>} /> }
+function IconCoins()    { return <Ico d={<><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/></>} /> }
+function IconGlobe()    { return <Ico d={<><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></>} /> }
+function IconCash()     { return <Ico d={<><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></>} /> }
 function IconSearch()   { return <Ico d={<><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></>} /> }
 function IconPlus()     { return <Ico d={<path d="M12 5v14M5 12h14"/>} /> }
 function IconRefresh()  { return <Ico d={<><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></>} /> }
@@ -398,8 +407,11 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Empty state */}
-          {positions.length === 0 && !loading ? (
+          {/* Markets tab works without positions */}
+          {activeTab === 'markets' && <MarketsTab />}
+
+          {/* Empty state — applies to all other tabs */}
+          {activeTab !== 'markets' && positions.length === 0 && !loading ? (
             <div className="card">
               <div className="empty-state">
                 <div className="empty-state__icon">📊</div>
@@ -410,7 +422,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'markets' ? null : (
             <>
               {activeTab === 'overview' && (
                 <>
@@ -430,11 +442,13 @@ export default function Dashboard() {
               {activeTab === 'holdings'     && <BreakdownTab positions={positions} />}
               {activeTab === 'history'      && <HistoryChart positions={positions} />}
               {activeTab === 'benchmark'    && <BenchmarkChart positions={positions} />}
+              {activeTab === 'dividends'    && <DividendsTab positions={positions} ccy={ccy} />}
               {activeTab === 'fundamentals' && <FundamentalsTable positions={positions} />}
               {activeTab === 'risk'         && <RiskTab positions={positions} />}
               {activeTab === 'stress'       && <StressTest positions={positions} />}
               {activeTab === 'frontier'     && <FrontierChart positions={positions} />}
               {activeTab === 'hedging'      && <HedgingTab positions={positions} />}
+              {activeTab === 'cashflows'    && <CashflowsTab positions={positions} ccy={ccy} />}
             </>
           )}
 
