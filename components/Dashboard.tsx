@@ -55,6 +55,9 @@ import MarketsTab from './MarketsTab'
 import CashflowsTab from './CashflowsTab'
 import TickerTape from './TickerTape'
 import CommandPalette from './CommandPalette'
+import CsvImport from './CsvImport'
+import YuhImport from './YuhImport'
+import NeonImport from './NeonImport'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
@@ -105,6 +108,7 @@ function IconSun()      { return <Ico d={<><circle cx="12" cy="12" r="4"/><path 
 function IconMoon()     { return <Ico d={<path d="M21 12.8A9 9 0 0 1 11.2 3a7 7 0 1 0 9.8 9.8z"/>} /> }
 function IconMenu()     { return <Ico d={<><path d="M4 6h16M4 12h16M4 18h16"/></>} /> }
 function IconClose()    { return <Ico d={<path d="M6 6l12 12M18 6L6 18"/>} sw={2} /> }
+function IconUpload()   { return <Ico d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></>} /> }
 
 // ── Market Status pill (display-only) ────────────────────────────────────────
 
@@ -150,8 +154,10 @@ export default function Dashboard() {
   const [positions, setPositions]         = useState<Position[]>([])
   const [loading, setLoading]             = useState(false)
   const [sidebarOpen, setSidebarOpen]     = useState(false)
-  const [addModalOpen, setAddModalOpen]   = useState(false)
-  const [paletteOpen, setPaletteOpen]     = useState(false)
+  const [addModalOpen, setAddModalOpen]       = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importBroker, setImportBroker]       = useState<'csv' | 'yuh' | 'neon'>('yuh')
+  const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
   const [theme, setTheme]                 = useState<'dark' | 'light'>('dark')
@@ -383,6 +389,9 @@ export default function Dashboard() {
             <button className="btn btn--ghost" onClick={fetchPortfolio}>
               <IconRefresh /><span>Refresh</span>
             </button>
+            <button className="btn btn--ghost" onClick={() => setImportModalOpen(true)}>
+              <IconUpload /><span>Import</span>
+            </button>
             <button className="btn btn--primary" onClick={() => { setPreFillTicker(''); setAddModalOpen(true) }}>
               <IconPlus /><span>Add position</span>
             </button>
@@ -483,6 +492,54 @@ export default function Dashboard() {
                 onAdded={() => { fetchPortfolio(); setAddModalOpen(false) }}
                 preFillTicker={preFillTicker}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {importModalOpen && (
+        <div className="modal-backdrop" onClick={() => setImportModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal__head">
+              <div>
+                <div className="modal__head-title">Import positions</div>
+                <div className="modal__head-sub">Import from your broker export</div>
+              </div>
+              <button className="icon-btn" onClick={() => setImportModalOpen(false)}>
+                <IconClose />
+              </button>
+            </div>
+
+            {/* Broker tab selector */}
+            <div style={{ display: 'flex', gap: 4, padding: '0 20px 0', borderBottom: '1px solid var(--line-soft)' }}>
+              {(['yuh', 'neon', 'csv'] as const).map(broker => (
+                <button
+                  key={broker}
+                  onClick={() => setImportBroker(broker)}
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    borderBottom: importBroker === broker ? '2px solid var(--brand-green)' : '2px solid transparent',
+                    color: importBroker === broker ? 'var(--ink-1)' : 'var(--ink-4)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {broker === 'csv' ? 'Generic CSV' : broker === 'yuh' ? 'Yuh' : 'Neon'}
+                </button>
+              ))}
+            </div>
+
+            <div className="modal__body">
+              {importBroker === 'yuh'  && <YuhImport  onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
+              {importBroker === 'neon' && <NeonImport onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
+              {importBroker === 'csv'  && <CsvImport  onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
             </div>
           </div>
         </div>
