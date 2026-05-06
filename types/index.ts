@@ -11,6 +11,8 @@ export interface Position {
   pnl?: number | null
   return_pct?: number | null
   price_error?: boolean
+  lot_count?: number
+  lot_ids?: number[]
 }
 
 export interface PortfolioMetrics {

@@ -49,7 +49,37 @@ export async function GET(_req: NextRequest) {
     })
   )
 
-  return NextResponse.json(enriched)
+  // Consolidate multiple lots of the same ticker into one row
+  const consolidated = new Map<string, typeof enriched[0] & { lot_count: number; lot_ids: number[] }>()
+  for (const row of enriched) {
+    const existing = consolidated.get(row.ticker)
+    if (!existing) {
+      consolidated.set(row.ticker, { ...row, lot_count: 1, lot_ids: [row.id] })
+    } else {
+      const newShares   = existing.shares + row.shares
+      const newInvested = (existing.invested ?? 0) + (row.invested ?? 0)
+      const price       = existing.current_price ?? row.current_price
+      const hasError    = existing.price_error || row.price_error
+      const newValue    = hasError || price == null ? null : newShares * price
+      const newPnl      = newValue !== null ? newValue - newInvested : null
+      consolidated.set(row.ticker, {
+        ...existing,
+        shares:        newShares,
+        buy_price:     newInvested / newShares,
+        buy_date:      existing.buy_date < row.buy_date ? existing.buy_date : row.buy_date,
+        invested:      newInvested,
+        current_price: price,
+        current_value: newValue,
+        pnl:           newPnl,
+        return_pct:    newInvested > 0 && newPnl !== null ? (newPnl / newInvested) * 100 : null,
+        price_error:   hasError,
+        lot_count:     existing.lot_count + 1,
+        lot_ids:       [...existing.lot_ids, row.id],
+      })
+    }
+  }
+
+  return NextResponse.json([...consolidated.values()])
 }
 
 // POST /api/portfolio — add a position to the authenticated user's portfolio
@@ -91,22 +121,22 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data, { status: 201 })
 }
 
-// DELETE /api/portfolio — remove a position (ownership verified via user_id)
+// DELETE /api/portfolio — remove all lots for a ticker (ownership verified via user_id)
 export async function DELETE(req: NextRequest) {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
-  const { id } = body
+  const body   = await req.json()
+  const ticker = body.ticker as string | undefined
+  const id     = body.id     as number | undefined
 
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  if (!ticker && !id) return NextResponse.json({ error: 'ticker or id required' }, { status: 400 })
 
   const supabase = createServerClient()
-  const { error } = await supabase
-    .from('portfolio')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)  // ensures users can only delete their own rows
+  const query    = supabase.from('portfolio').delete().eq('user_id', user.id)
+  const { error } = ticker
+    ? await query.eq('ticker', ticker.toUpperCase())
+    : await query.eq('id', id!)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })

@@ -229,11 +229,11 @@ export default function Dashboard() {
 
   useEffect(() => { fetchPortfolio() }, [fetchPortfolio])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (ticker: string) => {
     await fetch('/api/portfolio', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ ticker }),
     })
     fetchPortfolio()
   }

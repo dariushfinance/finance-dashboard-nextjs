@@ -8,7 +8,7 @@ import { getTickerMeta } from '@/lib/ticker-meta'
 
 interface Props {
   positions: Position[]
-  onDelete: (id: number) => void
+  onDelete: (ticker: string) => void
   ccy: CurrencyConfig
 }
 
@@ -22,12 +22,15 @@ function tickerColor(sym: string) {
 }
 
 export default function PortfolioTable({ positions, onDelete, ccy }: Props) {
-  const [deleting, setDeleting] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Remove this position?')) return
-    setDeleting(id)
-    await onDelete(id)
+  const handleDelete = async (ticker: string, lotCount = 1) => {
+    const msg = lotCount > 1
+      ? `Remove all ${lotCount} lots of ${ticker}?`
+      : `Remove ${ticker}?`
+    if (!confirm(msg)) return
+    setDeleting(ticker)
+    await onDelete(ticker)
     setDeleting(null)
   }
 
@@ -94,13 +97,14 @@ export default function PortfolioTable({ positions, onDelete, ccy }: Props) {
                         <div className="sym__ticker">
                           {pos.ticker}
                           {isCash && <span style={{ marginLeft: 5, fontSize: 9.5, background: 'var(--pos-soft)', color: 'var(--pos)', border: '1px solid var(--pos-line)', borderRadius: 4, padding: '1px 5px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>CASH</span>}
+                          {(pos.lot_count ?? 1) > 1 && <span style={{ marginLeft: 5, fontSize: 9.5, background: 'var(--ink-1)', color: 'var(--ink-3)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 5px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{pos.lot_count} lots</span>}
                           {pos.price_error && <span title="Price unavailable" style={{ color: 'var(--neg)', marginLeft: 5, fontSize: 11 }}>⚠</span>}
                         </div>
                         <div className="sym__name">{meta.name !== pos.ticker ? meta.name : meta.sector}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="num">{isCash ? '—' : pos.shares}</td>
+                  <td className="num">{isCash ? '—' : pos.shares.toFixed(4)}</td>
                   <td className="num">{ccy.symbol}{(pos.buy_price * ccy.rate).toFixed(ccy.dec)}</td>
                   <td className="num" style={{ color: 'var(--ink)' }}>
                     {pos.price_error
@@ -124,11 +128,11 @@ export default function PortfolioTable({ positions, onDelete, ccy }: Props) {
                   <td>
                     <button
                       className="row-action"
-                      onClick={() => handleDelete(pos.id)}
-                      disabled={deleting === pos.id}
-                      title="Remove position"
+                      onClick={() => handleDelete(pos.ticker, pos.lot_count)}
+                      disabled={deleting === pos.ticker}
+                      title={`Remove ${pos.ticker}${(pos.lot_count ?? 1) > 1 ? ` (${pos.lot_count} lots)` : ''}`}
                     >
-                      {deleting === pos.id ? <span className="spinner" /> : (
+                      {deleting === pos.ticker ? <span className="spinner" /> : (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                           <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/>
                         </svg>
