@@ -23,8 +23,28 @@ const priceCache = new Map<string, { price: number; expiry: number }>()
 // and avoids re-fetching all N tickers on every risk-tab visit within the same instance.
 const histCache = new Map<string, { data: { date: string; close: number }[]; expiry: number }>()
 
+// Exchange suffixes to try for European/Swiss tickers that Yahoo lists with a suffix.
+// Tried in order: bare ticker first (US tickers resolve immediately), then SIX, London, Xetra, Paris, Amsterdam.
+const EXCHANGE_SUFFIXES = ['', '.SW', '.L', '.DE', '.PA', '.AS']
+
+async function fetchYahooPrice(sym: string): Promise<number> {
+  try {
+    const url = `${YAHOO_BASE}/v8/finance/chart/${sym}?interval=1d&range=1d`
+    const res  = await fetch(url, { headers: HEADERS, next: { revalidate: 300 } })
+    const data = await res.json()
+    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close
+    if (closes?.length) {
+      const last = (closes as (number | null)[]).filter(v => v != null).pop()
+      if (last) return last
+    }
+  } catch {}
+  return 0
+}
+
 // --- Current Price (Yahoo first → Alpha Vantage fallback) ---
 // Yahoo has no daily request limit; AV is reserved as fallback only.
+// For tickers without an exchange suffix, tries .SW → .L → .DE → .PA → .AS
+// so Swiss/European ETFs (VWRA, XDUE, IWMO, etc.) resolve automatically.
 export async function getCurrentPrice(ticker: string): Promise<number> {
   const cached = priceCache.get(ticker)
   if (cached && Date.now() < cached.expiry) return cached.price
@@ -34,19 +54,17 @@ export async function getCurrentPrice(ticker: string): Promise<number> {
     return price
   }
 
-  // 1. Yahoo Finance (no daily rate limit)
-  try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${ticker}?interval=1d&range=1d`
-    const res = await fetch(url, { headers: HEADERS, next: { revalidate: 300 } })
-    const data = await res.json()
-    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close
-    if (closes?.length) {
-      const last = (closes as (number | null)[]).filter((v) => v != null).pop()
-      if (last) return store(last)
-    }
-  } catch {}
+  // If ticker already has a dot (e.g. ROG.SW), trust it as-is
+  const candidates = ticker.includes('.')
+    ? [ticker]
+    : EXCHANGE_SUFFIXES.map(s => ticker + s)
 
-  // 2. Alpha Vantage fallback (25 req/day on free tier — use sparingly)
+  for (const sym of candidates) {
+    const price = await fetchYahooPrice(sym)
+    if (price > 0) return store(price)
+  }
+
+  // Alpha Vantage fallback (25 req/day on free tier — use sparingly)
   const avKey = process.env.ALPHA_VANTAGE_KEY
   if (avKey) {
     try {

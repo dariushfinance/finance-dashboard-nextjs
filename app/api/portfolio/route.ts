@@ -75,13 +75,6 @@ export async function POST(req: NextRequest) {
   if (errors.length)
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
 
-  const price = await getCurrentPrice(ticker.toUpperCase())
-  if (price === 0)
-    return NextResponse.json(
-      { error: `Ticker '${ticker}' not found. Use a valid symbol like AAPL, MSFT.` },
-      { status: 422 }
-    )
-
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('portfolio')
