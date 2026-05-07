@@ -3,6 +3,7 @@ import { getStripe, PRICE_IDS, type PlanKey } from '@/lib/stripe'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
+  try {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -46,4 +47,9 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ url: session.url })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[stripe/checkout]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
