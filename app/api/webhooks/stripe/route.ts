@@ -3,9 +3,6 @@ import { stripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase'
 import type Stripe from 'stripe'
 
-// Stripe requires the raw body for signature verification
-export const config = { api: { bodyParser: false } }
-
 const TIER_MAP: Record<string, string> = {
   [process.env.STRIPE_PRO_PRICE_ID!]:     'pro',
   [process.env.STRIPE_PRO_MAX_PRICE_ID!]: 'pro_max',
