@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No active subscription' }, { status: 400 })
   }
 
+  const stripe = getStripe()
   const origin = req.headers.get('origin') ?? 'http://localhost:3000'
 
   const session = await stripe.billingPortal.sessions.create({

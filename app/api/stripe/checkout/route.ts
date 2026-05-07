@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, PRICE_IDS, type PlanKey } from '@/lib/stripe'
+import { getStripe, PRICE_IDS, type PlanKey } from '@/lib/stripe'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
   const { plan } = await req.json() as { plan: PlanKey }
   if (!PRICE_IDS[plan]) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
+  const stripe = getStripe()
   const db = createServerClient()
 
-  // Fetch or create Stripe customer
   const { data: tierRow } = await db
     .from('user_tiers')
     .select('stripe_customer_id')
@@ -35,14 +35,14 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin') ?? 'http://localhost:3000'
 
   const session = await stripe.checkout.sessions.create({
-    customer:            customerId,
-    mode:                'subscription',
-    line_items:          [{ price: PRICE_IDS[plan], quantity: 1 }],
-    success_url:         `${origin}/?upgraded=1`,
-    cancel_url:          `${origin}/`,
+    customer:             customerId,
+    mode:                 'subscription',
+    line_items:           [{ price: PRICE_IDS[plan], quantity: 1 }],
+    success_url:          `${origin}/?upgraded=1`,
+    cancel_url:           `${origin}/`,
     payment_method_types: ['card'],
-    metadata:            { user_id: user.id, plan },
-    subscription_data:   { metadata: { user_id: user.id, plan } },
+    metadata:             { user_id: user.id, plan },
+    subscription_data:    { metadata: { user_id: user.id, plan } },
   })
 
   return NextResponse.json({ url: session.url })

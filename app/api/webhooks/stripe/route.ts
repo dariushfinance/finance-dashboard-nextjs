@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase'
 import type Stripe from 'stripe'
 
@@ -9,11 +9,11 @@ const TIER_MAP: Record<string, string> = {
 }
 
 async function upsertSubscription(sub: Stripe.Subscription, db: ReturnType<typeof createServerClient>) {
-  const userId  = sub.metadata?.user_id
+  const userId = sub.metadata?.user_id
   if (!userId) return
 
-  const priceId = sub.items.data[0]?.price.id ?? ''
-  const tier    = TIER_MAP[priceId] ?? 'pro'
+  const priceId  = sub.items.data[0]?.price.id ?? ''
+  const tier     = TIER_MAP[priceId] ?? 'pro'
   const isActive = sub.status === 'active' || sub.status === 'trialing'
 
   await db.from('user_tiers').upsert({
@@ -28,11 +28,11 @@ async function upsertSubscription(sub: Stripe.Subscription, db: ReturnType<typeo
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.text()
-  const sig  = req.headers.get('stripe-signature')!
+  const stripe = getStripe()
+  const body   = await req.text()
+  const sig    = req.headers.get('stripe-signature')!
 
   let event: Stripe.Event
-
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch {
@@ -46,9 +46,7 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session
       if (session.mode !== 'subscription') break
 
-      // Fetch the full subscription to get metadata + price
       const sub = await stripe.subscriptions.retrieve(session.subscription as string)
-      // Attach user_id metadata if not already on the subscription
       if (!sub.metadata?.user_id && session.metadata?.user_id) {
         await stripe.subscriptions.update(sub.id, {
           metadata: { user_id: session.metadata.user_id, plan: session.metadata.plan ?? 'pro' },
