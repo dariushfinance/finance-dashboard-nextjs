@@ -101,9 +101,9 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
       </div>
       <div>
         <label className="text-xs text-text-muted block mb-1">Buy Price</label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <select
-            className="fin-input w-24 flex-shrink-0"
+            className="fin-input"
             value={currency}
             onChange={(e) => setCurrency(e.target.value as InputCurrency)}
             disabled={loading}
@@ -113,7 +113,7 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
             ))}
           </select>
           <input
-            className="fin-input flex-1"
+            className="fin-input"
             type="number"
             placeholder="150.00"
             min="0.01"
