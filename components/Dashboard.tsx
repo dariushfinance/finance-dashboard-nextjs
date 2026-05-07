@@ -110,7 +110,7 @@ function IconMenu()     { return <Ico d={<><path d="M4 6h16M4 12h16M4 18h16"/></
 function IconClose()    { return <Ico d={<path d="M6 6l12 12M18 6L6 18"/>} sw={2} /> }
 function IconUpload()   { return <Ico d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></>} /> }
 
-// ── Market Status pill (display-only) ────────────────────────────────────────
+// ── Market Status pills ───────────────────────────────────────────────────────
 
 function MarketStatus() {
   const [now, setNow] = useState(new Date())
@@ -119,30 +119,72 @@ function MarketStatus() {
     return () => clearInterval(t)
   }, [])
 
-  const day = now.getUTCDay()
-  const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+  const utcMs  = now.getTime()
+  const day    = now.getUTCDay()   // 0=Sun, 6=Sat
+  const month  = now.getUTCMonth() // 0-indexed
+  const isWeekday = day >= 1 && day <= 5
 
-  // US DST: approx. Mar–Oct = EDT (UTC-4), Nov–Feb = EST (UTC-5)
-  const month = now.getUTCMonth() // 0-indexed
-  const isEDT = month >= 2 && month <= 9
-  const openUTC  = isEDT ? 13 * 60 + 30 : 14 * 60 + 30  // 9:30 AM ET → UTC
-  const closeUTC = isEDT ? 20 * 60      : 21 * 60        // 4:00 PM ET → UTC
-  const open = day >= 1 && day <= 5 && utcMin >= openUTC && utcMin < closeUTC
+  // DST offsets (month-based approximation)
+  const chOffset = (month >= 2 && month <= 9) ? 2 : 1   // CEST / CET
+  const etOffset = (month >= 2 && month <= 10) ? -4 : -5 // EDT / EST
+  const ukOffset = (month >= 2 && month <= 9) ? 1 : 0    // BST / GMT
 
-  // Display ET clock
-  const etOffsetMs = (isEDT ? -4 : -5) * 3_600_000
-  const etDate = new Date(now.getTime() + etOffsetMs)
-  const etStr = `${String(etDate.getUTCHours()).padStart(2,'0')}:${String(etDate.getUTCMinutes()).padStart(2,'0')}`
+  function localTime(offsetH: number) {
+    const d   = new Date(utcMs + offsetH * 3_600_000)
+    const hh  = String(d.getUTCHours()).padStart(2, '0')
+    const mm  = String(d.getUTCMinutes()).padStart(2, '0')
+    const min = d.getUTCHours() * 60 + d.getUTCMinutes()
+    return { str: `${hh}:${mm}`, min }
+  }
+
+  function isOpen(offsetH: number, openH: number, openM: number, closeH: number, closeM: number) {
+    if (!isWeekday) return false
+    const { min } = localTime(offsetH)
+    return min >= openH * 60 + openM && min < closeH * 60 + closeM
+  }
+
+  const ch = localTime(chOffset)
+  const et = localTime(etOffset)
+  const uk = localTime(ukOffset)
+
+  const markets = [
+    {
+      label: 'SIX',
+      time:  ch.str,
+      zone:  chOffset === 2 ? 'CEST' : 'CET',
+      open:  isOpen(chOffset, 9, 0, 17, 30),
+      title: 'SIX Swiss Exchange · 09:00–17:30 CEST',
+    },
+    {
+      label: 'NYSE',
+      time:  et.str,
+      zone:  etOffset === -4 ? 'EDT' : 'EST',
+      open:  isOpen(etOffset, 9, 30, 16, 0),
+      title: 'NYSE · 09:30–16:00 ET',
+    },
+    {
+      label: 'LSE',
+      time:  uk.str,
+      zone:  ukOffset === 1 ? 'BST' : 'GMT',
+      open:  isOpen(ukOffset, 8, 0, 16, 30),
+      title: 'London Stock Exchange · 08:00–16:30 BST',
+    },
+  ]
 
   return (
-    <div
-      className={`pill ${open ? 'pill--open' : 'pill--closed'}`}
-      title={open ? 'NYSE is currently open (9:30–16:00 ET)' : 'NYSE is currently closed'}
-      style={{ cursor: 'default', userSelect: 'none' }}
-    >
-      <span className="pill__dot" />
-      {open ? 'Market open' : 'After hours'}
-      <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>{etStr} ET</span>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      {markets.map(m => (
+        <div
+          key={m.label}
+          className={`pill ${m.open ? 'pill--open' : 'pill--closed'}`}
+          title={m.title}
+          style={{ cursor: 'default', userSelect: 'none', gap: 5 }}
+        >
+          <span className="pill__dot" />
+          <span style={{ fontWeight: 700 }}>{m.label}</span>
+          <span style={{ color: 'var(--ink-4)', fontSize: 10 }}>{m.time} {m.zone}</span>
+        </div>
+      ))}
     </div>
   )
 }
