@@ -28,9 +28,11 @@ function CloseIcon() {
 
 export default function UpgradeModal({ onClose, hasSubscription = false }: Props) {
   const [loading, setLoading] = useState<PlanKey | null>(null)
+  const [error, setError]     = useState<string | null>(null)
 
   const handleUpgrade = async (plan: PlanKey) => {
     setLoading(plan)
+    setError(null)
     try {
       const res  = await fetch('/api/stripe/checkout', {
         method:  'POST',
@@ -38,8 +40,14 @@ export default function UpgradeModal({ onClose, hasSubscription = false }: Props
         body:    JSON.stringify({ plan }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch {
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error ?? 'Checkout failed — check Vercel logs')
+        setLoading(null)
+      }
+    } catch (e) {
+      setError(String(e))
       setLoading(null)
     }
   }
@@ -181,7 +189,12 @@ export default function UpgradeModal({ onClose, hasSubscription = false }: Props
             })}
           </div>
 
-          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-4)', marginTop: 16 }}>
+          {error && (
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--neg)', marginTop: 12 }}>
+              {error}
+            </p>
+          )}
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>
             Powered by Stripe · Apple Pay & Google Pay supported · Cancel anytime
           </p>
         </div>
