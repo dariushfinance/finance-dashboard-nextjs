@@ -2,23 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import StockSearch from './StockSearch'
-import CsvImport from './CsvImport'
-import NeonImport from './NeonImport'
 
 interface Props {
   onAdded: () => void
   preFillTicker?: string
 }
 
-type Tab = 'manual' | 'csv' | 'neon'
-
 const SUPPORTED_CURRENCIES = ['USD', 'CHF', 'EUR', 'GBP', 'JPY', 'CAD', 'SGD', 'HKD', 'AUD'] as const
 type InputCurrency = typeof SUPPORTED_CURRENCIES[number]
 
 export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) {
-  const [tab, setTab]           = useState<Tab>('manual')
-
-  // Manual form state
   const [ticker, setTicker]     = useState(preFillTicker)
   const [shares, setShares]     = useState('')
   const [buyPrice, setBuyPrice] = useState('')
@@ -83,111 +76,76 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
     }
   }
 
-  const TAB_LABELS: Record<Tab, string> = { manual: 'Manual', csv: 'CSV Import', neon: 'Neon Bank' }
-
   return (
-    <div className="space-y-4">
-      {/* Tab switcher */}
-      <div className="flex gap-1 p-1 bg-bg-elevated border border-bg-border rounded-lg">
-        {(['manual', 'csv', 'neon'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => { setTab(t); setError(''); setSuccess('') }}
-            className={`flex-1 py-1.5 text-xs rounded-md font-medium transition-all ${
-              tab === t
-                ? 'bg-bg-card text-text-primary shadow-sm'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div>
+        <label className="text-xs text-text-muted block mb-1">Stock</label>
+        <StockSearch
+          value={ticker}
+          onChange={setTicker}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <label className="text-xs text-text-muted block mb-1">Shares</label>
+        <input
+          className="fin-input"
+          type="number"
+          placeholder="10"
+          min="0.001"
+          step="any"
+          value={shares}
+          onChange={(e) => setShares(e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <label className="text-xs text-text-muted block mb-1">Buy Price</label>
+        <div className="flex gap-2">
+          <select
+            className="fin-input w-24 flex-shrink-0"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as InputCurrency)}
+            disabled={loading}
           >
-            {TAB_LABELS[t]}
-          </button>
-        ))}
+            {SUPPORTED_CURRENCIES.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <input
+            className="fin-input flex-1"
+            type="number"
+            placeholder="150.00"
+            min="0.01"
+            step="any"
+            value={buyPrice}
+            onChange={(e) => setBuyPrice(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+        {usdPreview != null && (
+          <div className="text-xs text-text-muted mt-1">
+            ≈ ${usdPreview.toFixed(2)} USD stored
+          </div>
+        )}
+      </div>
+      <div>
+        <label className="text-xs text-text-muted block mb-1">Buy Date</label>
+        <input
+          className="fin-input"
+          type="date"
+          value={buyDate}
+          onChange={(e) => setBuyDate(e.target.value)}
+          disabled={loading}
+        />
       </div>
 
-      {/* ── Manual entry ──────────────────────────────────────────────────── */}
-      {tab === 'manual' && (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Stock</label>
-            <StockSearch
-              value={ticker}
-              onChange={setTicker}
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Shares</label>
-            <input
-              className="fin-input"
-              type="number"
-              placeholder="10"
-              min="0.001"
-              step="any"
-              value={shares}
-              onChange={(e) => setShares(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Buy Price</label>
-            <div className="flex gap-2">
-              <select
-                className="fin-input w-24 flex-shrink-0"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as InputCurrency)}
-                disabled={loading}
-              >
-                {SUPPORTED_CURRENCIES.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <input
-                className="fin-input flex-1"
-                type="number"
-                placeholder="150.00"
-                min="0.01"
-                step="any"
-                value={buyPrice}
-                onChange={(e) => setBuyPrice(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            {usdPreview != null && (
-              <div className="text-xs text-text-muted mt-1">
-                ≈ ${usdPreview.toFixed(2)} USD stored
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Buy Date</label>
-            <input
-              className="fin-input"
-              type="date"
-              value={buyDate}
-              onChange={(e) => setBuyDate(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+      {error   && <div className="text-xs text-brand-red">{error}</div>}
+      {success && <div className="text-xs text-brand-green">{success} ✓</div>}
 
-          {error   && <div className="text-xs text-brand-red">{error}</div>}
-          {success && <div className="text-xs text-brand-green">{success} ✓</div>}
-
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? <span className="spinner mx-auto block" /> : 'Add Position'}
-          </button>
-        </form>
-      )}
-
-      {/* ── CSV import ────────────────────────────────────────────────────── */}
-      {tab === 'csv' && (
-        <CsvImport onDone={onAdded} />
-      )}
-
-      {/* ── Neon Bank import ──────────────────────────────────────────────── */}
-      {tab === 'neon' && (
-        <NeonImport onDone={onAdded} />
-      )}
-    </div>
+      <button type="submit" className="btn-primary w-full" disabled={loading}>
+        {loading ? <span className="spinner mx-auto block" /> : 'Add Position'}
+      </button>
+    </form>
   )
 }
