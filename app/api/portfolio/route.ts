@@ -126,15 +126,18 @@ export async function DELETE(req: NextRequest) {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body   = await req.json()
-  const ticker = body.ticker as string | undefined
-  const id     = body.id     as number | undefined
+  const body     = await req.json()
+  const ticker   = body.ticker   as string | undefined
+  const id       = body.id       as number | undefined
+  const clearAll = body.clearAll as boolean | undefined
 
-  if (!ticker && !id) return NextResponse.json({ error: 'ticker or id required' }, { status: 400 })
+  if (!ticker && !id && !clearAll) return NextResponse.json({ error: 'ticker, id, or clearAll required' }, { status: 400 })
 
   const supabase = createServerClient()
   const query    = supabase.from('portfolio').delete().eq('user_id', user.id)
-  const { error } = ticker
+  const { error } = clearAll
+    ? await query.gte('id', 0)
+    : ticker
     ? await query.eq('ticker', ticker.toUpperCase())
     : await query.eq('id', id!)
 

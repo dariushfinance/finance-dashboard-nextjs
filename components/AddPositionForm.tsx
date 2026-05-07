@@ -1,15 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import StockSearch from './StockSearch'
 import CsvImport from './CsvImport'
+import NeonImport from './NeonImport'
 
 interface Props {
   onAdded: () => void
   preFillTicker?: string
 }
 
-type Tab = 'manual' | 'csv'
+type Tab = 'manual' | 'csv' | 'neon'
+
+const SUPPORTED_CURRENCIES = ['USD', 'CHF', 'EUR', 'GBP', 'JPY', 'CAD', 'SGD', 'HKD', 'AUD'] as const
+type InputCurrency = typeof SUPPORTED_CURRENCIES[number]
 
 export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) {
   const [tab, setTab]           = useState<Tab>('manual')
@@ -18,10 +22,27 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
   const [ticker, setTicker]     = useState(preFillTicker)
   const [shares, setShares]     = useState('')
   const [buyPrice, setBuyPrice] = useState('')
+  const [currency, setCurrency] = useState<InputCurrency>('USD')
   const [buyDate, setBuyDate]   = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
+  const [fxRates, setFxRates]   = useState<Record<string, number>>({ USD: 1 })
+
+  useEffect(() => {
+    fetch('/api/fx')
+      .then(r => r.json())
+      .then(d => { if (d.rates) setFxRates(d.rates) })
+      .catch(() => {})
+  }, [])
+
+  // Convert local-currency price → USD for storage
+  const toUsd = (localPrice: number): number =>
+    currency === 'USD' ? localPrice : localPrice / (fxRates[currency] ?? 1)
+
+  const usdPreview = buyPrice && currency !== 'USD'
+    ? toUsd(parseFloat(buyPrice))
+    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,6 +52,8 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
     setError('')
     setSuccess('')
 
+    const usdPrice = toUsd(parseFloat(buyPrice))
+
     try {
       const res = await fetch('/api/portfolio', {
         method: 'POST',
@@ -38,7 +61,7 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
         body: JSON.stringify({
           ticker:    ticker.toUpperCase(),
           shares:    parseFloat(shares),
-          buy_price: parseFloat(buyPrice),
+          buy_price: usdPrice,
           buy_date:  buyDate,
         }),
       })
@@ -60,11 +83,13 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
     }
   }
 
+  const TAB_LABELS: Record<Tab, string> = { manual: 'Manual', csv: 'CSV Import', neon: 'Neon Bank' }
+
   return (
     <div className="space-y-4">
       {/* Tab switcher */}
       <div className="flex gap-1 p-1 bg-bg-elevated border border-bg-border rounded-lg">
-        {(['manual', 'csv'] as Tab[]).map((t) => (
+        {(['manual', 'csv', 'neon'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -75,7 +100,7 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
                 : 'text-text-muted hover:text-text-secondary'
             }`}
           >
-            {t === 'manual' ? 'Manual' : 'CSV Import'}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -105,17 +130,34 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
             />
           </div>
           <div>
-            <label className="text-xs text-text-muted block mb-1">Buy Price ($)</label>
-            <input
-              className="fin-input"
-              type="number"
-              placeholder="150.00"
-              min="0.01"
-              step="any"
-              value={buyPrice}
-              onChange={(e) => setBuyPrice(e.target.value)}
-              disabled={loading}
-            />
+            <label className="text-xs text-text-muted block mb-1">Buy Price</label>
+            <div className="flex gap-2">
+              <select
+                className="fin-input w-24 flex-shrink-0"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as InputCurrency)}
+                disabled={loading}
+              >
+                {SUPPORTED_CURRENCIES.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <input
+                className="fin-input flex-1"
+                type="number"
+                placeholder="150.00"
+                min="0.01"
+                step="any"
+                value={buyPrice}
+                onChange={(e) => setBuyPrice(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            {usdPreview != null && (
+              <div className="text-xs text-text-muted mt-1">
+                ≈ ${usdPreview.toFixed(2)} USD stored
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs text-text-muted block mb-1">Buy Date</label>
@@ -140,6 +182,11 @@ export default function AddPositionForm({ onAdded, preFillTicker = '' }: Props) 
       {/* ── CSV import ────────────────────────────────────────────────────── */}
       {tab === 'csv' && (
         <CsvImport onDone={onAdded} />
+      )}
+
+      {/* ── Neon Bank import ──────────────────────────────────────────────── */}
+      {tab === 'neon' && (
+        <NeonImport onDone={onAdded} />
       )}
     </div>
   )

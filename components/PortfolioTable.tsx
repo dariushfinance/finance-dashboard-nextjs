@@ -9,6 +9,7 @@ import { getTickerMeta } from '@/lib/ticker-meta'
 interface Props {
   positions: Position[]
   onDelete: (ticker: string) => void
+  onClearAll?: () => void
   ccy: CurrencyConfig
 }
 
@@ -21,7 +22,7 @@ function tickerColor(sym: string) {
   return TICKER_COLORS[sym] ?? 'var(--ink-3)'
 }
 
-export default function PortfolioTable({ positions, onDelete, ccy }: Props) {
+export default function PortfolioTable({ positions, onDelete, onClearAll, ccy }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const handleDelete = async (ticker: string, lotCount = 1) => {
@@ -55,11 +56,36 @@ export default function PortfolioTable({ positions, onDelete, ccy }: Props) {
             )}
           </div>
         </div>
-        {ccy.code !== 'USD' && (
-          <div className="fx-badge">
-            Values in {ccy.code} · 1 USD = {ccy.rate.toFixed(ccy.code === 'JPY' ? 2 : 4)} {ccy.code}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {ccy.code !== 'USD' && (
+            <div className="fx-badge">
+              Values in {ccy.code} · 1 USD = {ccy.rate.toFixed(ccy.code === 'JPY' ? 2 : 4)} {ccy.code}
+            </div>
+          )}
+          {onClearAll && (
+            <button
+              onClick={onClearAll}
+              style={{
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 600,
+                color: 'var(--neg)',
+                background: 'none',
+                border: '1px solid var(--neg)',
+                borderRadius: 5,
+                padding: '3px 9px',
+                cursor: 'pointer',
+                opacity: 0.7,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
+              title="Remove all positions"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
       <div className="tbl-wrap">
         <table className="tbl">

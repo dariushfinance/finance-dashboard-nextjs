@@ -238,6 +238,16 @@ export default function Dashboard() {
     fetchPortfolio()
   }
 
+  const handleClearAll = async () => {
+    if (!confirm(`Remove all ${positions.length} positions? This cannot be undone.`)) return
+    await fetch('/api/portfolio', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clearAll: true }),
+    })
+    fetchPortfolio()
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -443,7 +453,7 @@ export default function Dashboard() {
                     ccy={ccy}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <PortfolioTable positions={positions} onDelete={handleDelete} ccy={ccy} />
+                    <PortfolioTable positions={positions} onDelete={handleDelete} onClearAll={handleClearAll} ccy={ccy} />
                     <AllocationChart positions={positions} ccy={ccy} />
                   </div>
                 </>
