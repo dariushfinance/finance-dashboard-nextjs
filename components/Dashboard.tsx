@@ -389,15 +389,26 @@ export default function Dashboard() {
         </nav>
 
         <div className="side__foot">
-          {userTier === 'free' && (
-            <button
-              className="btn btn--primary"
-              style={{ width: '100%', justifyContent: 'center', marginBottom: 10, fontSize: 12 }}
-              onClick={() => setUpgradeOpen(true)}
-            >
-              Upgrade to Pro
-            </button>
-          )}
+          <button
+            className="btn"
+            style={{
+              width:           '100%',
+              justifyContent:  'center',
+              marginBottom:    10,
+              fontSize:        12,
+              fontWeight:      700,
+              background:      userTier === 'pro_max'
+                ? '#8B5CF6'
+                : userTier === 'pro'
+                ? '#C89B3C'
+                : 'var(--brand-a)',
+              color:           userTier === 'pro_max' ? '#fff' : userTier === 'pro' ? '#000' : '#fff',
+              border:          'none',
+            }}
+            onClick={() => setUpgradeOpen(true)}
+          >
+            {userTier === 'free' ? 'Upgrade to Pro' : userTier === 'pro' ? '✦ Pro — Manage plan' : '✦ Pro Max — Manage plan'}
+          </button>
           <div className="user-card">
             <div className="user-card__avatar">{initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -671,7 +682,7 @@ export default function Dashboard() {
       {upgradeOpen && (
         <UpgradeModal
           onClose={() => setUpgradeOpen(false)}
-          hasSubscription={hasSubscription}
+          userTier={userTier}
         />
       )}
 
