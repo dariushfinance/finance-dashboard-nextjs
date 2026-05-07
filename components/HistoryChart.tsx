@@ -36,10 +36,7 @@ export default function HistoryChart({ positions }: Props) {
   useEffect(() => {
     if (!positions.length) return
     setLoading(true); setError('')
-    fetch('/api/history', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ positions: positions.map(p => ({ ticker: p.ticker, shares: p.shares, buy_date: p.buy_date })) }),
-    })
+    fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       .then(r => r.json()).then(setData)
       .catch(() => setError('Failed to load history'))
       .finally(() => setLoading(false))

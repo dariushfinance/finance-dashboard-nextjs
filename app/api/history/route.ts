@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices, calcSharpeAndVol, calcTWRReturns, calcMaxDrawdown, calcSortino, calcVaR, calcCVaR } from '@/lib/yahoo'
-import { getAuthUser } from '@/lib/supabase'
+import { getAuthUser, createServerClient } from '@/lib/supabase'
 import type { HistoryResult } from '@/types'
 
-interface PositionInput {
-  ticker: string
-  shares: number
-  buy_date: string
-}
-
 // POST /api/history
-// Body: { positions: [{ ticker, shares, buy_date }] }
-// Returns: { history: [{date, value}], twrReturns: [{date, ret}], sharpe, volatility }
-export async function POST(req: NextRequest) {
-  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+// Fetches raw lots directly from DB — never uses consolidated client positions.
+// Consolidated positions assign ALL shares to the earliest buy_date, which
+// inflates TWR whenever a second (larger) lot is added later.
+export async function POST(_req: NextRequest) {
+  const user = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
-  const positions: PositionInput[] = body.positions ?? []
+  const supabase = createServerClient()
+  const { data: lots, error: dbError } = await supabase
+    .from('portfolio')
+    .select('ticker, shares, buy_date')
+    .eq('user_id', user.id)
+    .order('buy_date', { ascending: true })
+
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+
+  const positions = (lots ?? []) as { ticker: string; shares: number; buy_date: string }[]
   if (!positions.length) return NextResponse.json({ history: [], twrReturns: [], sharpe: null, volatility: null, sortino: null, maxDrawdown: null, var95: null, cvar95: null })
 
   const earliestDate = positions.map((p) => p.buy_date).sort()[0]

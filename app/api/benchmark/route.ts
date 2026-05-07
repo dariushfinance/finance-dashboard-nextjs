@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices, calcBetaAlpha, calcTWRReturns, calcRollingBeta } from '@/lib/yahoo'
-import { getAuthUser } from '@/lib/supabase'
+import { getAuthUser, createServerClient } from '@/lib/supabase'
 import type { BenchmarkResult } from '@/types'
 
-interface PositionInput {
-  ticker: string
-  shares: number
-  buy_date: string
-}
+// POST /api/benchmark — fetches raw lots from DB, same reason as /api/history:
+// consolidated positions assign all shares to the earliest buy_date, distorting TWR.
+export async function POST(_req: NextRequest) {
+  const user = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-// POST /api/benchmark
-// Body: { positions: [{ ticker, shares, buy_date }] }
-// Returns: { data: [{date, portfolio, sp500}], beta, alpha }
-export async function POST(req: NextRequest) {
-  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = createServerClient()
+  const { data: lots, error: dbError } = await supabase
+    .from('portfolio')
+    .select('ticker, shares, buy_date')
+    .eq('user_id', user.id)
+    .order('buy_date', { ascending: true })
 
-  const body = await req.json()
-  const positions: PositionInput[] = body.positions ?? []
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+
+  const positions = (lots ?? []) as { ticker: string; shares: number; buy_date: string }[]
   if (!positions.length) return NextResponse.json({ data: [], beta: null, alpha: null, informationRatio: null, rollingBeta: [] })
 
   const earliestDate = positions.map((p) => p.buy_date).sort()[0]
