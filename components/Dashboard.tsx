@@ -58,6 +58,8 @@ import CommandPalette from './CommandPalette'
 import CsvImport from './CsvImport'
 import YuhImport from './YuhImport'
 import NeonImport from './NeonImport'
+import UpgradeModal from './UpgradeModal'
+import ProGate from './ProGate'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
@@ -202,6 +204,9 @@ export default function Dashboard() {
   const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
+  const [userTier, setUserTier]           = useState<'free' | 'pro' | 'pro_max'>('free')
+  const [hasSubscription, setHasSubscription] = useState(false)
+  const [upgradeOpen, setUpgradeOpen]     = useState(false)
   const [theme, setTheme]                 = useState<'dark' | 'light'>('dark')
   const [currencyCode, setCurrencyCode]   = useState<CurrencyCode>('USD')
   const [fxRates, setFxRates]             = useState<Record<string, number>>({ USD: 1 })
@@ -238,6 +243,24 @@ export default function Dashboard() {
     })
     return () => subscription.unsubscribe()
   }, [supabase, router])
+
+  // Fetch tier (also handles ?upgraded=1 redirect from Stripe)
+  useEffect(() => {
+    fetch('/api/stripe/tier')
+      .then(r => r.json())
+      .then(d => {
+        setUserTier(d.tier ?? 'free')
+        setHasSubscription(d.hasCustomer ?? false)
+      })
+      .catch(() => {})
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('upgraded') === '1') {
+        window.history.replaceState({}, '', '/')
+      }
+    }
+  }, [])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -353,13 +376,24 @@ export default function Dashboard() {
         </nav>
 
         <div className="side__foot">
+          {userTier === 'free' && (
+            <button
+              className="btn btn--primary"
+              style={{ width: '100%', justifyContent: 'center', marginBottom: 10, fontSize: 12 }}
+              onClick={() => setUpgradeOpen(true)}
+            >
+              Upgrade to Pro
+            </button>
+          )}
           <div className="user-card">
             <div className="user-card__avatar">{initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="user-card__name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {displayName}
               </div>
-              <div className="user-card__plan">Pro · HSG &#39;26</div>
+              <div className="user-card__plan">
+                {userTier === 'free' ? 'Free' : userTier === 'pro' ? 'Pro · HSG \'26' : 'Pro Max · HSG \'26'}
+              </div>
             </div>
           </div>
           <button
@@ -504,10 +538,26 @@ export default function Dashboard() {
               {activeTab === 'history'      && <HistoryChart positions={positions} />}
               {activeTab === 'benchmark'    && <BenchmarkChart positions={positions} />}
               {activeTab === 'dividends'    && <DividendsTab positions={positions} ccy={ccy} />}
-              {activeTab === 'fundamentals' && <FundamentalsTable positions={positions} />}
-              {activeTab === 'risk'         && <RiskTab positions={positions} />}
-              {activeTab === 'stress'       && <StressTest positions={positions} />}
-              {activeTab === 'frontier'     && <FrontierChart positions={positions} />}
+              {activeTab === 'fundamentals' && (
+                userTier === 'free'
+                  ? <ProGate featureName="Fundamentals" onUpgrade={() => setUpgradeOpen(true)}><FundamentalsTable positions={positions} /></ProGate>
+                  : <FundamentalsTable positions={positions} />
+              )}
+              {activeTab === 'risk' && (
+                userTier === 'free'
+                  ? <ProGate featureName="Risk Analytics" onUpgrade={() => setUpgradeOpen(true)}><RiskTab positions={positions} /></ProGate>
+                  : <RiskTab positions={positions} />
+              )}
+              {activeTab === 'stress' && (
+                userTier === 'free'
+                  ? <ProGate featureName="Stress Testing" onUpgrade={() => setUpgradeOpen(true)}><StressTest positions={positions} /></ProGate>
+                  : <StressTest positions={positions} />
+              )}
+              {activeTab === 'frontier' && (
+                userTier === 'free'
+                  ? <ProGate featureName="Efficient Frontier" onUpgrade={() => setUpgradeOpen(true)}><FrontierChart positions={positions} /></ProGate>
+                  : <FrontierChart positions={positions} />
+              )}
               {activeTab === 'hedging'      && <HedgingTab positions={positions} />}
               {activeTab === 'cashflows'    && <CashflowsTab positions={positions} ccy={ccy} />}
             </>
@@ -603,6 +653,14 @@ export default function Dashboard() {
         onClose={() => setPaletteOpen(false)}
         onSelect={handlePaletteSelect}
       />
+
+      {/* Upgrade modal */}
+      {upgradeOpen && (
+        <UpgradeModal
+          onClose={() => setUpgradeOpen(false)}
+          hasSubscription={hasSubscription}
+        />
+      )}
 
       {/* Mobile menu visibility */}
       <style>{`
