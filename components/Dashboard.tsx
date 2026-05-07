@@ -246,19 +246,32 @@ export default function Dashboard() {
 
   // Fetch tier (also handles ?upgraded=1 redirect from Stripe)
   useEffect(() => {
-    fetch('/api/stripe/tier')
-      .then(r => r.json())
-      .then(d => {
-        setUserTier(d.tier ?? 'free')
-        setHasSubscription(d.hasCustomer ?? false)
-      })
-      .catch(() => {})
+    const fetchTier = () =>
+      fetch('/api/stripe/tier')
+        .then(r => r.json())
+        .then(d => {
+          setUserTier(d.tier ?? 'free')
+          setHasSubscription(d.hasCustomer ?? false)
+          return d.tier ?? 'free'
+        })
+        .catch(() => 'free')
 
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get('upgraded') === '1') {
-        window.history.replaceState({}, '', '/')
+    const params = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search)
+      : null
+
+    if (params?.get('upgraded') === '1') {
+      window.history.replaceState({}, '', '/')
+      // Webhook may not have fired yet — poll up to 8x with 1.5s delay
+      let attempts = 0
+      const poll = async () => {
+        const tier = await fetchTier()
+        if (tier !== 'free' || ++attempts >= 8) return
+        setTimeout(poll, 1500)
       }
+      poll()
+    } else {
+      fetchTier()
     }
   }, [])
 
