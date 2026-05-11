@@ -36,7 +36,7 @@ export default function ProGate({ children, onUpgrade, featureName }: Props) {
         zIndex:         10,
       }}>
         <div style={{
-          background:   'var(--surface)',
+          background:   'var(--bg-1)',
           border:       '1px solid var(--line-soft)',
           borderRadius: 16,
           padding:      '32px 40px',

@@ -522,8 +522,12 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Markets tab works without positions */}
-          {activeTab === 'markets' && <MarketsTab />}
+          {/* Markets tab — gated until live data API is connected */}
+          {activeTab === 'markets' && (
+            userTier === 'free'
+              ? <ProGate featureName="Markets" onUpgrade={() => setUpgradeOpen(true)}><MarketsTab /></ProGate>
+              : <MarketsTab />
+          )}
 
           {/* Empty state — applies to all other tabs */}
           {activeTab !== 'markets' && positions.length === 0 && !loading ? (
