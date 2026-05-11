@@ -3,12 +3,13 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Portfolio Intelligence',
-  description: 'Professional portfolio tracking · Real-time P&L · S&P 500 Benchmark · Fundamentals',
+  title: 'Quantfoli',
+  description: 'Quant-grade portfolio analytics for self-directed investors · Sharpe · Frontier · Stress Testing',
   openGraph: {
-    title: 'Portfolio Intelligence Tool',
-    description: 'Track your portfolio with professional finance analytics.',
+    title: 'Quantfoli',
+    description: 'Quant-grade portfolio analytics for self-directed investors.',
     type: 'website',
+    url: 'https://quantfoli.com',
   },
 }
 
