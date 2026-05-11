@@ -46,20 +46,49 @@ export async function GET(_req: NextRequest) {
       if (current_price === 0) {
         return { ...row, current_price: null, invested, current_value: null, pnl: null, return_pct: null, price_error: true }
       }
-      const current_value = row.shares * current_price
-      const pnl           = current_value - invested
 
-      // If buy_fx_rate is set (ZKB import), compute return in CHF so currency drag is included.
-      // Use EUR/CHF for EUR-exchange tickers (.AS, .DE, etc.), USD/CHF for everything else.
+      // For ZKB-imported positions (buy_fx_rate set), all prices are in CHF.
+      // Normalize everything to USD so the frontend's USD→CHF conversion works correctly.
+      // buy_price_chf  = buy_price × buy_fx_rate (e.g. 52.69 CHF × 1.0)
+      // current_chf    = current_price × tickerChfRate (EUR→CHF for .DE/.AS, USD→CHF for others)
+      // Express as USD by dividing by currentChfPerUsd so frontend ×rate gives correct CHF.
       const tickerChfRate = isEurTicker(row.ticker) ? currentChfPerEur : currentChfPerUsd
-      const return_pct =
-        row.buy_fx_rate && tickerChfRate > 0
-          ? ((current_price * tickerChfRate - row.buy_price * row.buy_fx_rate) / (row.buy_price * row.buy_fx_rate)) * 100
-          : row.buy_price > 0
-            ? ((current_price - row.buy_price) / row.buy_price) * 100
-            : 0
 
-      return { ...row, current_price, invested, current_value, pnl, return_pct, price_error: false }
+      let current_value: number
+      let pnl:           number
+      let return_pct:    number
+      let effective_buy_price:     number
+      let effective_current_price: number
+
+      if (row.buy_fx_rate && tickerChfRate > 0 && currentChfPerUsd > 0) {
+        const buy_chf     = row.buy_price * row.buy_fx_rate
+        const current_chf = current_price * tickerChfRate
+        const buy_usd     = buy_chf     / currentChfPerUsd
+        const cur_usd     = current_chf / currentChfPerUsd
+
+        effective_buy_price     = buy_usd
+        effective_current_price = cur_usd
+        current_value           = row.shares * cur_usd
+        pnl                     = row.shares * (cur_usd - buy_usd)
+        return_pct              = buy_chf > 0 ? ((current_chf - buy_chf) / buy_chf) * 100 : 0
+      } else {
+        effective_buy_price     = row.buy_price
+        effective_current_price = current_price
+        current_value           = row.shares * current_price
+        pnl                     = current_value - invested
+        return_pct              = row.buy_price > 0 ? ((current_price - row.buy_price) / row.buy_price) * 100 : 0
+      }
+
+      return {
+        ...row,
+        buy_price:     effective_buy_price,
+        current_price: effective_current_price,
+        invested:      row.shares * effective_buy_price,
+        current_value,
+        pnl,
+        return_pct,
+        price_error: false,
+      }
     })
   )
 
