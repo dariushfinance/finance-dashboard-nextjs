@@ -25,6 +25,12 @@ const fmtY = (v: number) =>
   : v >= 1_000   ? `$${(v / 1_000).toFixed(0)}K`
   : `$${v}`
 
+// Parse YYYY-MM-DD as local time (avoids UTC midnight → previous day in negative-offset zones)
+const fmtDate = (dateStr: string) => {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 interface Props { positions: Position[] }
 
 export default function HistoryChart({ positions }: Props) {
@@ -42,11 +48,12 @@ export default function HistoryChart({ positions }: Props) {
       .finally(() => setLoading(false))
   }, [positions])
 
-  const series = data ? filterByRange(data.history, range) : []
+  const series    = data ? filterByRange(data.history, range) : []
+  const twrSeries = data ? filterByRange(data.twrReturns, range) : []
 
-  // Compute range performance
-  const perf = series.length >= 2
-    ? ((series[series.length - 1].value - series[0].value) / series[0].value) * 100
+  // True TWR: chain-link daily returns that already exclude capital injections
+  const perf = twrSeries.length
+    ? (twrSeries.reduce((acc, d) => acc * (1 + d.ret), 1) - 1) * 100
     : null
 
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
@@ -126,6 +133,7 @@ export default function HistoryChart({ positions }: Props) {
                 <CartesianGrid strokeDasharray="2 4" stroke="var(--line-soft)" vertical={false} />
                 <XAxis
                   dataKey="date" interval="preserveStartEnd"
+                  tickFormatter={fmtDate}
                   tick={{ fontSize: 11, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}
                   tickLine={false} axisLine={false}
                 />
@@ -170,7 +178,7 @@ export default function HistoryChart({ positions }: Props) {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke="var(--line-soft)" vertical={false} />
-                  <XAxis dataKey="date" interval="preserveStartEnd" tick={{ fontSize: 10, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="date" interval="preserveStartEnd" tickFormatter={fmtDate} tick={{ fontSize: 10, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} />
                   <YAxis width={52} tickFormatter={v => `${v.toFixed(1)}%`} tick={{ fontSize: 10, fill: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} />
                   <ReferenceLine y={0} stroke="var(--line)" />
                   <Tooltip
