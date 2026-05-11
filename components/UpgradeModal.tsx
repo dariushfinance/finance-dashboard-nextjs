@@ -5,13 +5,12 @@ import { PLANS, type PlanKey } from '@/lib/stripe'
 
 interface Props {
   onClose:     () => void
-  userTier?:   'free' | 'pro' | 'pro_max'
+  userTier?:   'free' | 'pro'
 }
 
 const TIER_STYLE = {
-  free:    { border: 'var(--line-soft)', bg: 'transparent',                     accent: 'var(--ink-3)',   glow: 'none' },
-  pro:     { border: '#C89B3C',          bg: 'oklch(0.84 0.148 80 / 0.06)',     accent: '#C89B3C',        glow: '0 0 32px oklch(0.84 0.148 80 / 0.18)' },
-  pro_max: { border: '#8B5CF6',          bg: 'oklch(0.62 0.21 290 / 0.07)',     accent: '#8B5CF6',        glow: '0 0 40px oklch(0.62 0.21 290 / 0.22)' },
+  free: { border: 'var(--line-soft)', bg: 'transparent',                 accent: 'var(--ink-3)', glow: 'none' },
+  pro:  { border: '#C89B3C',          bg: 'oklch(0.84 0.148 80 / 0.06)', accent: '#C89B3C',      glow: '0 0 32px oklch(0.84 0.148 80 / 0.18)' },
 } as const
 
 function CheckIcon() {
@@ -72,8 +71,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
 
   const cards: { key: 'free' | PlanKey; badge?: string }[] = [
     { key: 'free' },
-    { key: 'pro',     badge: 'Most Popular' },
-    { key: 'pro_max', badge: 'AI-Powered' },
+    { key: 'pro', badge: 'Most Popular' },
   ]
 
   return (
@@ -81,7 +79,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
       <div
         className="modal"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 780, width: '95vw' }}
+        style={{ maxWidth: 520, width: '95vw' }}
       >
         <div className="modal__head">
           <div>
@@ -94,7 +92,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
         </div>
 
         <div className="modal__body" style={{ paddingTop: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             {cards.map(({ key, badge }) => {
               const plan      = PLANS[key]
               const style     = TIER_STYLE[key]
@@ -125,7 +123,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
                       left:          '50%',
                       transform:     'translateX(-50%)',
                       background:    style.accent,
-                      color:         key === 'pro_max' ? '#fff' : '#000',
+                      color:         '#000',
                       fontSize:      10,
                       fontWeight:    700,
                       padding:       '2px 10px',
@@ -228,7 +226,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
                         width:           '100%',
                         justifyContent:  'center',
                         background:      style.accent,
-                        color:           key === 'pro_max' ? '#fff' : '#000',
+                        color:           '#000',
                         border:          'none',
                         fontWeight:      700,
                       }}

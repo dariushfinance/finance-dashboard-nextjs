@@ -204,7 +204,7 @@ export default function Dashboard() {
   const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
-  const [userTier, setUserTier]           = useState<'free' | 'pro' | 'pro_max'>('free')
+  const [userTier, setUserTier]           = useState<'free' | 'pro'>('free')
   const [hasSubscription, setHasSubscription] = useState(false)
   const [upgradeOpen, setUpgradeOpen]     = useState(false)
   const [theme, setTheme]                 = useState<'dark' | 'light'>('dark')
@@ -397,17 +397,13 @@ export default function Dashboard() {
               marginBottom:    10,
               fontSize:        12,
               fontWeight:      700,
-              background:      userTier === 'pro_max'
-                ? '#8B5CF6'
-                : userTier === 'pro'
-                ? '#C89B3C'
-                : 'var(--brand-a)',
-              color:           userTier === 'pro_max' ? '#fff' : userTier === 'pro' ? '#000' : '#fff',
+              background:      userTier === 'pro' ? '#C89B3C' : 'var(--brand-a)',
+              color:           userTier === 'pro' ? '#000' : '#fff',
               border:          'none',
             }}
             onClick={() => setUpgradeOpen(true)}
           >
-            {userTier === 'free' ? 'Upgrade to Pro' : userTier === 'pro' ? '✦ Pro — Manage plan' : '✦ Pro Max — Manage plan'}
+            {userTier === 'free' ? 'Upgrade to Pro' : '✦ Pro — Manage plan'}
           </button>
           <div className="user-card">
             <div className="user-card__avatar">{initials}</div>
