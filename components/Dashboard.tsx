@@ -508,22 +508,6 @@ export default function Dashboard() {
 
         {/* Page */}
         <div className="page">
-          {/* Tab bar */}
-          <div className="tabbar">
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                className={`tabbar__btn ${activeTab === t.id ? 'tabbar__btn--active' : ''}`}
-                onClick={() => setActiveTab(t.id)}
-              >
-                {t.label}
-                {t.id === 'overview' && positions.length > 0 && (
-                  <span className="count">{positions.length}</span>
-                )}
-              </button>
-            ))}
-          </div>
-
           {/* Markets tab — gated until live data API is connected */}
           {activeTab === 'markets' && (
             userTier === 'free'
