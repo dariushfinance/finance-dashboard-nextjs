@@ -31,7 +31,7 @@ export const PLANS = {
   },
   pro: {
     name: 'Pro',
-    price: 'CHF 12',
+    price: 'CHF 15',
     period: '/mo',
     features: [
       'Everything in Free',

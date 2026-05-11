@@ -207,6 +207,7 @@ export default function Dashboard() {
   const [userTier, setUserTier]           = useState<'free' | 'pro'>('free')
   const [hasSubscription, setHasSubscription] = useState(false)
   const [upgradeOpen, setUpgradeOpen]     = useState(false)
+  const [welcomeOpen, setWelcomeOpen]     = useState(false)
   const [theme, setTheme]                 = useState<'dark' | 'light'>('dark')
   const [currencyCode, setCurrencyCode]   = useState<CurrencyCode>('USD')
   const [fxRates, setFxRates]             = useState<Record<string, number>>({ USD: 1 })
@@ -266,7 +267,8 @@ export default function Dashboard() {
       let attempts = 0
       const poll = async () => {
         const tier = await fetchTier()
-        if (tier !== 'free' || ++attempts >= 8) return
+        if (tier !== 'free') { setWelcomeOpen(true); return }
+        if (++attempts >= 8) return
         setTimeout(poll, 1500)
       }
       poll()
@@ -684,6 +686,45 @@ export default function Dashboard() {
           onClose={() => setUpgradeOpen(false)}
           userTier={userTier}
         />
+      )}
+
+      {/* Welcome modal — shown once after successful Pro upgrade */}
+      {welcomeOpen && (
+        <div className="modal-backdrop" onClick={() => setWelcomeOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, width: '95vw' }}>
+            <div className="modal__head" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '28px 28px 20px' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>✦</div>
+              <div className="modal__head-title" style={{ fontSize: 20 }}>Welcome aboard, Pro</div>
+              <div className="modal__head-sub" style={{ marginTop: 6, fontSize: 13, lineHeight: 1.6 }}>
+                You now have full access to every feature on Quantfoli.
+              </div>
+            </div>
+            <div className="modal__body" style={{ paddingTop: 4 }}>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  'Sharpe · Sortino · Beta · Alpha',
+                  'Efficient Frontier (Markowitz MPT)',
+                  'Historical Stress Testing',
+                  'Full Fundamentals — P/E, EV/EBITDA, ROE',
+                  'Risk Tab — Vol Regime, Correlation Matrix',
+                  'Markets Overview',
+                ].map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-2)' }}>
+                    <span style={{ color: 'var(--pos)', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="btn btn--primary"
+                style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: '11px 0', fontSize: 13 }}
+                onClick={() => setWelcomeOpen(false)}
+              >
+                Let&apos;s go
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Mobile menu visibility */}

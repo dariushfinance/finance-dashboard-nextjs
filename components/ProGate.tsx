@@ -59,7 +59,7 @@ export default function ProGate({ children, onUpgrade, featureName }: Props) {
             style={{ marginTop: 4, padding: '10px 24px', fontSize: 13 }}
             onClick={onUpgrade}
           >
-            Upgrade to Pro — CHF 12/mo
+            Upgrade to Pro — CHF 15/mo
           </button>
         </div>
       </div>
