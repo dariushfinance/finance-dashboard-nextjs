@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ZAxis, ReferenceLine,
@@ -15,7 +15,7 @@ interface FrontierResult {
   minVol: OptimalPoint; maxSharpe: OptimalPoint; current: OptimalPoint
   tickerVols: Record<string, number>
 }
-interface Props { positions: Position[] }
+interface Props { positions: Position[]; userTier?: 'free' | 'pro' }
 
 const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`
 
@@ -157,25 +157,164 @@ function VolatilityInsights({ data, pricedPositions, totalValue }: RebalanceProp
   )
 }
 
-// ── RebalancePanel — kept for future use ─────────────────────
-// Commented out: displaying specific trade instructions could constitute Anlageberatung
-// under Swiss financial services law (FIDLEG/FINIG). Re-enable only after legal review.
-//
-// function RebalancePanel({ data, pricedPositions, totalValue }: RebalanceProps) {
-//   const [target, setTarget] = useState<'sharpe' | 'vol'>('sharpe')
-//   const opt = target === 'sharpe' ? data.maxSharpe : data.minVol
-//   const cur = data.current
-//   const currentWeights = useMemo(() => { ... }, [data.tickers, pricedPositions, totalValue])
-//   const trades = useMemo(() => [...], [data.tickers, opt.weights, currentWeights, pricedPositions, totalValue])
-//   const sectorShifts = useMemo(() => [...], [data.tickers, opt.weights, currentWeights])
-//   const totalTrades = trades.reduce((s, t) => s + Math.abs(t.valueChange), 0) / 2
-//   const turnoverPct = totalValue > 0 ? (totalTrades / totalValue) * 100 : 0
-//   return ( <div> ... sector shifts + trade table ... </div> )
-// }
+// ── Rebalancing Advisory (Pro only) ──────────────────────────
+// Framed as illustrative weight shifts, not personalised investment advice.
+
+function arrow(delta: number) {
+  if (delta >  0.015) return { sym: '↑', color: 'var(--pos)' }
+  if (delta < -0.015) return { sym: '↓', color: 'var(--neg)' }
+  return                     { sym: '→', color: 'var(--ink-4)' }
+}
+
+function RebalancePanel({ data, pricedPositions, totalValue }: RebalanceProps) {
+  const [target, setTarget] = useState<'sharpe' | 'vol'>('sharpe')
+  const opt = target === 'sharpe' ? data.maxSharpe : data.minVol
+
+  const currentWeights = useMemo(() => {
+    const w: Record<string, number> = {}
+    for (const t of data.tickers) {
+      const pos = pricedPositions.find(p => p.ticker === t)
+      w[t] = totalValue > 0 ? (pos?.current_value ?? 0) / totalValue : 0
+    }
+    return w
+  }, [data.tickers, pricedPositions, totalValue])
+
+  const trades = useMemo(() =>
+    data.tickers.map(t => {
+      const curW   = currentWeights[t] ?? 0
+      const tgtW   = opt.weights[t] ?? 0
+      const delta  = tgtW - curW
+      const pos    = pricedPositions.find(p => p.ticker === t)
+      const curVal = (pos?.current_value ?? 0)
+      const tgtVal = tgtW * totalValue
+      return { t, curW, tgtW, delta, curVal, tgtVal, valueChange: tgtVal - curVal }
+    }).sort((a, b) => Math.abs(b.valueChange) - Math.abs(a.valueChange)),
+  [data.tickers, opt.weights, currentWeights, pricedPositions, totalValue])
+
+  const sectorShifts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const { t, delta } of trades) {
+      const sector = getTickerMeta(t).sector
+      map[sector] = (map[sector] ?? 0) + delta
+    }
+    return Object.entries(map)
+      .map(([sector, delta]) => ({ sector, delta }))
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+  }, [trades])
+
+  const totalTurnover  = trades.reduce((s, t) => s + Math.abs(t.valueChange), 0) / 2
+  const turnoverPct    = totalValue > 0 ? (totalTurnover / totalValue) * 100 : 0
+
+  const fmtChf = (v: number) => {
+    const abs = Math.abs(v)
+    const str = abs >= 10000
+      ? `${(abs / 1000).toFixed(1)}k`
+      : abs.toFixed(0)
+    return `${v < 0 ? '−' : '+'}Fr. ${str}`
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--line-soft)', padding: '28px 22px' }}>
+      {/* Header + toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            Rebalancing Advisory
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
+            Implied weight shifts to reach optimal allocation · illustrative only
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 3 }}>
+          {([['sharpe', 'Max Sharpe', '#f59e0b'], ['vol', 'Min Vol', '#60a5fa']] as const).map(([id, label, color]) => (
+            <button key={id} onClick={() => setTarget(id)} style={{
+              padding: '5px 14px', fontSize: 11.5, fontWeight: 600,
+              fontFamily: 'var(--font-mono)', borderRadius: 6, border: 'none',
+              cursor: 'pointer', transition: 'all 0.15s',
+              background: target === id ? color + '22' : 'transparent',
+              color:      target === id ? color        : 'var(--ink-4)',
+              outline:    target === id ? `1px solid ${color}44` : 'none',
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sector shifts */}
+      {sectorShifts.some(s => Math.abs(s.delta) > 0.005) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {sectorShifts.filter(s => Math.abs(s.delta) > 0.005).map(({ sector, delta }) => {
+            const a = arrow(delta)
+            const color = SECTOR_COLORS[sector] ?? 'var(--ink-3)'
+            return (
+              <div key={sector} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px', borderRadius: 20,
+                background: color + '18', border: `1px solid ${color}33`,
+                fontSize: 11.5, fontFamily: 'var(--font-mono)',
+              }}>
+                <span style={{ color }}>{sector}</span>
+                <span style={{ color: a.color, fontWeight: 700 }}>{a.sym} {Math.abs(delta * 100).toFixed(1)}%</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Trade table */}
+      <div style={{ borderRadius: 10, border: '1px solid var(--line-soft)', overflow: 'hidden', marginBottom: 16 }}>
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th className="num">Current</th>
+              <th className="num">Target</th>
+              <th className="num">Δ Weight</th>
+              <th className="num">Implied Shift</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.map(({ t, curW, tgtW, delta, valueChange }) => {
+              const a    = arrow(delta)
+              const meta = getTickerMeta(t)
+              const color = SECTOR_COLORS[meta.sector] ?? 'var(--ink-3)'
+              return (
+                <tr key={t}>
+                  <td>
+                    <div className="sym">
+                      <div className="sym__logo" style={{ background: color + '22', color, borderColor: color + '44', fontSize: 9 }}>
+                        {t.slice(0, 2)}
+                      </div>
+                      <div className="sym__ticker">{t}</div>
+                    </div>
+                  </td>
+                  <td className="num" style={{ color: 'var(--ink-3)' }}>{(curW * 100).toFixed(1)}%</td>
+                  <td className="num" style={{ color: target === 'sharpe' ? '#f59e0b' : '#60a5fa' }}>{(tgtW * 100).toFixed(1)}%</td>
+                  <td className="num" style={{ color: a.color, fontWeight: 600 }}>
+                    {a.sym} {Math.abs(delta * 100).toFixed(1)}%
+                  </td>
+                  <td className="num" style={{ color: valueChange >= 0 ? 'var(--pos)' : 'var(--neg)', fontFamily: 'var(--font-mono)' }}>
+                    {fmtChf(valueChange)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Turnover summary */}
+      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+        <span>Estimated turnover: <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>Fr. {totalTurnover.toFixed(0)}</span></span>
+        <span>({turnoverPct.toFixed(1)}% of portfolio)</span>
+        <span style={{ color: 'var(--ink-5)' }}>· Illustrative — excludes taxes, fees, bid-ask spread · not personalised advice</span>
+      </div>
+    </div>
+  )
+}
 
 // ── Main component ────────────────────────────────────────────
 
-export default function FrontierChart({ positions }: Props) {
+export default function FrontierChart({ positions, userTier }: Props) {
   const [data, setData]       = useState<FrontierResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -368,6 +507,15 @@ export default function FrontierChart({ positions }: Props) {
               pricedPositions={pricedPositions}
               totalValue={totalValue}
             />
+
+            {/* Rebalancing Advisory — Pro only */}
+            {userTier === 'pro' && (
+              <RebalancePanel
+                data={data}
+                pricedPositions={pricedPositions}
+                totalValue={totalValue}
+              />
+            )}
 
             <div style={{ padding: '14px 22px', fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', borderTop: '1px solid var(--line-soft)' }}>
               Based on 2 years of historical returns. Past covariance does not guarantee future correlations.

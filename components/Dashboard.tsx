@@ -566,7 +566,7 @@ export default function Dashboard() {
               {activeTab === 'frontier' && (
                 userTier === 'free'
                   ? <ProGate featureName="Efficient Frontier" onUpgrade={() => setUpgradeOpen(true)}><FrontierChart positions={positions} /></ProGate>
-                  : <FrontierChart positions={positions} />
+                  : <FrontierChart positions={positions} userTier={userTier} />
               )}
               {activeTab === 'hedging'      && <HedgingTab positions={positions} />}
               {activeTab === 'cashflows'    && <CashflowsTab positions={positions} ccy={ccy} />}
