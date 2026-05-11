@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
 import { getCurrentPrice } from '@/lib/yahoo'
-import { getCHFperUSD } from '@/lib/fx'
+import { getCHFperUSD, getCHFperEUR } from '@/lib/fx'
 
 // GET /api/portfolio — fetch the authenticated user's positions with live prices
 export async function GET(_req: NextRequest) {
@@ -18,8 +18,12 @@ export async function GET(_req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data || data.length === 0) return NextResponse.json([])
 
-  // Fetch current CHF/USD once for all FX-aware positions (cached 15 min)
-  const currentChfPerUsd = await getCHFperUSD()
+  // Fetch FX rates once (cached 15 min each)
+  const [currentChfPerUsd, currentChfPerEur] = await Promise.all([getCHFperUSD(), getCHFperEUR()])
+
+  // EUR-exchange suffixes: Yahoo returns EUR prices for these
+  const EUR_SUFFIXES = ['.AS', '.DE', '.PA', '.BR', '.MI', '.MC']
+  const isEurTicker  = (t: string) => EUR_SUFFIXES.some(s => t.toUpperCase().endsWith(s))
 
   const enriched = await Promise.all(
     data.map(async (row) => {
@@ -46,11 +50,11 @@ export async function GET(_req: NextRequest) {
       const pnl           = current_value - invested
 
       // If buy_fx_rate is set (ZKB import), compute return in CHF so currency drag is included.
-      // buy_price is in original currency (USD); buy_fx_rate is CHF/USD at purchase time.
-      // return = (current_usd × current_chf_rate − buy_usd × historical_chf_rate) / (buy_usd × historical_chf_rate)
+      // Use EUR/CHF for EUR-exchange tickers (.AS, .DE, etc.), USD/CHF for everything else.
+      const tickerChfRate = isEurTicker(row.ticker) ? currentChfPerEur : currentChfPerUsd
       const return_pct =
-        row.buy_fx_rate && currentChfPerUsd > 0
-          ? ((current_price * currentChfPerUsd - row.buy_price * row.buy_fx_rate) / (row.buy_price * row.buy_fx_rate)) * 100
+        row.buy_fx_rate && tickerChfRate > 0
+          ? ((current_price * tickerChfRate - row.buy_price * row.buy_fx_rate) / (row.buy_price * row.buy_fx_rate)) * 100
           : row.buy_price > 0
             ? ((current_price - row.buy_price) / row.buy_price) * 100
             : 0

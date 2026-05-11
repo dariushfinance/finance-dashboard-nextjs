@@ -105,9 +105,10 @@ export default function PortfolioTable({ positions, onDelete, onClearAll, ccy }:
           </thead>
           <tbody>
             {positions.map((pos) => {
-              const pnl    = pos.pnl ?? null
-              const ret    = pos.return_pct ?? null
-              const isPos  = (pnl ?? 0) >= 0
+              const pnl      = pos.pnl ?? null
+              const ret      = pos.return_pct ?? null
+              const isPos    = (pnl ?? 0) >= 0
+              const isRetPos = (ret ?? 0) >= 0
               const color  = tickerColor(pos.ticker)
               const isCash = pos.ticker === 'CASH' || pos.ticker === 'USD'
               const meta   = getTickerMeta(pos.ticker)
@@ -147,8 +148,8 @@ export default function PortfolioTable({ positions, onDelete, onClearAll, ccy }:
                   <td className={`num ${pnl == null ? '' : isPos ? 'pos' : 'neg'}`}>
                     {pnl == null ? '—' : fmtCcy(pnl, ccy, true)}
                   </td>
-                  <td className={`num ${ret == null ? '' : isPos ? 'pos' : 'neg'}`}>
-                    {ret == null ? '—' : `${isPos ? '+' : ''}${ret.toFixed(2)}%`}
+                  <td className={`num ${ret == null ? '' : isRetPos ? 'pos' : 'neg'}`}>
+                    {ret == null ? '—' : `${isRetPos ? '+' : ''}${ret.toFixed(2)}%`}
                   </td>
                   <td className="num" style={{ color: 'var(--ink-4)', fontSize: 11 }}>{pos.buy_date}</td>
                   <td>
