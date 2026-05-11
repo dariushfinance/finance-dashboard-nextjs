@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
 import { getCurrentPrice } from '@/lib/yahoo'
+import { getCHFperUSD } from '@/lib/fx'
 
 // GET /api/portfolio — fetch the authenticated user's positions with live prices
 export async function GET(_req: NextRequest) {
@@ -16,6 +17,9 @@ export async function GET(_req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data || data.length === 0) return NextResponse.json([])
+
+  // Fetch current CHF/USD once for all FX-aware positions (cached 15 min)
+  const currentChfPerUsd = await getCHFperUSD()
 
   const enriched = await Promise.all(
     data.map(async (row) => {
@@ -36,15 +40,21 @@ export async function GET(_req: NextRequest) {
 
       const current_price = await getCurrentPrice(row.ticker)
       if (current_price === 0) {
-        // Price fetch failed — flag the row so the UI can warn the user
-        // rather than silently showing a 100% loss
         return { ...row, current_price: null, invested, current_value: null, pnl: null, return_pct: null, price_error: true }
       }
       const current_value = row.shares * current_price
       const pnl           = current_value - invested
-      const return_pct    = row.buy_price > 0
-        ? ((current_price - row.buy_price) / row.buy_price) * 100
-        : 0
+
+      // If buy_fx_rate is set (ZKB import), compute return in CHF so currency drag is included.
+      // buy_price is in original currency (USD); buy_fx_rate is CHF/USD at purchase time.
+      // return = (current_usd × current_chf_rate − buy_usd × historical_chf_rate) / (buy_usd × historical_chf_rate)
+      const return_pct =
+        row.buy_fx_rate && currentChfPerUsd > 0
+          ? ((current_price * currentChfPerUsd - row.buy_price * row.buy_fx_rate) / (row.buy_price * row.buy_fx_rate)) * 100
+          : row.buy_price > 0
+            ? ((current_price - row.buy_price) / row.buy_price) * 100
+            : 0
+
       return { ...row, current_price, invested, current_value, pnl, return_pct, price_error: false }
     })
   )
@@ -88,11 +98,12 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { ticker, shares, buy_price, buy_date } = body
+  const { ticker, shares, buy_price, buy_date, buy_fx_rate } = body
 
-  const sharesNum = Number(shares)
-  const priceNum  = Number(buy_price)
-  const dateStr   = String(buy_date ?? '')
+  const sharesNum  = Number(shares)
+  const priceNum   = Number(buy_price)
+  const fxRateNum  = buy_fx_rate != null ? Number(buy_fx_rate) : null
+  const dateStr    = String(buy_date ?? '')
   const errors: string[] = []
   if (!ticker || typeof ticker !== 'string' || !ticker.trim())
     errors.push('ticker is required')
@@ -105,16 +116,20 @@ export async function POST(req: NextRequest) {
   if (errors.length)
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
 
+  const insertRow: Record<string, unknown> = {
+    user_id:   user.id,
+    ticker:    ticker.toUpperCase(),
+    shares:    sharesNum,
+    buy_price: priceNum,
+    buy_date:  dateStr,
+  }
+  if (fxRateNum != null && Number.isFinite(fxRateNum) && fxRateNum > 0)
+    insertRow.buy_fx_rate = fxRateNum
+
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('portfolio')
-    .insert({
-      user_id:   user.id,
-      ticker:    ticker.toUpperCase(),
-      shares:    Number(shares),
-      buy_price: Number(buy_price),
-      buy_date:  String(buy_date),
-    })
+    .insert(insertRow)
     .select()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

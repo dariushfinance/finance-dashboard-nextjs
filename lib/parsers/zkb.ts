@@ -4,13 +4,14 @@
 // Number format: apostrophe thousands + dot decimal ("21'859.24") or comma thousands ("1,689.23")
 
 export interface ZkbPosition {
-  isin:      string
-  name:      string
-  shares:    number
-  buy_price: number  // Einstandskurs, in original currency
-  buy_date:  string  // YYYY-MM-DD from Datum column (snapshot date, not actual trade date)
-  currency:  string
-  fees_chf:  number
+  isin:        string
+  name:        string
+  shares:      number
+  buy_price:   number  // Einstandskurs in original currency (USD for US stocks)
+  buy_fx_rate: number  // CHF per 1 USD at purchase time, derived from Einstandswert / (shares × Einstandskurs)
+  buy_date:    string  // YYYY-MM-DD from Datum column (snapshot date, not actual trade date)
+  currency:    string
+  fees_chf:    number
 }
 
 export interface ZkbParseResult {
@@ -74,8 +75,9 @@ export function parseZkbCsv(text: string): ZkbParseResult {
     shares:   col('Anz. Nom'),      // "Anz. Nom." — safe prefix match
     currency: headers.findIndex(h => h.startsWith('W') && h.includes('hrung')), // Währung with possible umlaut corruption
     date:     headers.indexOf('Datum'),
-    fees:     headers.indexOf('Spesen CHF'),
-    buyPrice: headers.indexOf('Einstandskurs'),
+    fees:       headers.indexOf('Spesen CHF'),
+    buyPrice:   headers.indexOf('Einstandskurs'),
+    costBasis:  headers.indexOf('Einstandswert'),  // total CHF cost — used to derive historical FX rate
   }
 
   const positions: ZkbPosition[] = []
@@ -89,18 +91,27 @@ export function parseZkbCsv(text: string): ZkbParseResult {
     // Valid ISIN: 2 letters + 10 alphanumeric = 12 chars
     if (!isin || !/^[A-Z]{2}[A-Z0-9]{10}$/.test(isin)) { skipped++; continue }
 
-    const shares    = parseNum(get(I.shares))
-    const buy_price = parseNum(get(I.buyPrice))
-    const dateRaw   = get(I.date)
+    const shares     = parseNum(get(I.shares))
+    const buy_price  = parseNum(get(I.buyPrice))
+    const cost_basis = parseNum(get(I.costBasis))  // Einstandswert in CHF
+    const dateRaw    = get(I.date)
 
     if (!Number.isFinite(shares)    || shares    <= 0) { skipped++; continue }
     if (!Number.isFinite(buy_price) || buy_price <= 0) { skipped++; continue }
+
+    // Historical CHF/USD rate at purchase: total CHF cost ÷ total USD cost
+    // Only meaningful for USD positions; for CHF positions this equals ~1
+    const buy_fx_rate =
+      Number.isFinite(cost_basis) && cost_basis > 0 && buy_price > 0
+        ? cost_basis / (shares * buy_price)
+        : 0
 
     positions.push({
       isin,
       name:     get(I.name),
       shares,
       buy_price,
+      buy_fx_rate,
       buy_date:  dateRaw ? parseDateDMY(dateRaw) : new Date().toISOString().split('T')[0],
       currency:  get(I.currency) || 'CHF',
       fees_chf:  parseNum(get(I.fees)) || 0,

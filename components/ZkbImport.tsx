@@ -120,10 +120,11 @@ export default function ZkbImport({ onDone }: Props) {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
-            ticker:    rows[i].ticker,
-            shares:    rows[i].shares,
-            buy_price: rows[i].buy_price,
-            buy_date:  rows[i].buy_date,
+            ticker:       rows[i].ticker,
+            shares:       rows[i].shares,
+            buy_price:    rows[i].buy_price,
+            buy_date:     rows[i].buy_date,
+            buy_fx_rate:  rows[i].buy_fx_rate > 0 ? rows[i].buy_fx_rate : undefined,
           }),
         })
         const data = await res.json()
