@@ -29,66 +29,77 @@ function ScenarioCard({ s }: { s: ScenarioResult }) {
   const excess = s.portReturn - s.spReturn
 
   return (
-    <div className="fin-card space-y-3">
-      <div className="flex items-start justify-between">
+    <div className="fin-card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div>
-          <div className="font-semibold text-text-primary">{s.name}</div>
-          <div className="text-xs text-text-muted">{s.start} → {s.end}</div>
+          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{s.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>{s.start} → {s.end}</div>
         </div>
-        <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
-          outperformed ? 'text-brand-green bg-brand-green/10' : 'text-brand-red bg-brand-red/10'
-        }`}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '4px 9px', borderRadius: 7, flexShrink: 0,
+          color:       outperformed ? 'var(--pos)'      : 'var(--neg)',
+          background:  outperformed ? 'var(--pos-soft)' : 'var(--neg-soft)',
+          border:      `1px solid ${outperformed ? 'var(--pos-line)' : 'var(--neg-line)'}`,
+          fontFamily:  'var(--font-mono)',
+        }}>
           {outperformed ? '▲' : '▼'} {fmt(excess)} vs index
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-bg-elevated rounded-lg p-2.5">
-          <div className="text-xs text-text-muted mb-0.5">Your Portfolio</div>
-          <div className={`font-mono font-semibold text-lg ${s.portReturn >= 0 ? 'pos' : 'neg'}`}>
-            {fmt(s.portReturn)}
+      {/* Portfolio vs S&P boxes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {[
+          { label: 'Your Portfolio', ret: s.portReturn, dd: s.portMaxDD },
+          { label: 'S&P 500',        ret: s.spReturn,   dd: s.spMaxDD   },
+        ].map(({ label, ret, dd }) => (
+          <div key={label} style={{ background: 'var(--bg-2)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--line-soft)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 5 }}>
+              {label}
+            </div>
+            <div className={`${ret >= 0 ? 'pos' : 'neg'}`} style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 18 }}>
+              {fmt(ret)}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 5 }}>
+              Max DD: <span style={{ color: 'var(--neg)' }}>{fmt(-dd)}</span>
+            </div>
           </div>
-          <div className="text-xs text-text-muted mt-0.5">
-            Max DD: <span className="text-brand-red">{fmt(-s.portMaxDD)}</span>
-          </div>
-        </div>
-        <div className="bg-bg-elevated rounded-lg p-2.5">
-          <div className="text-xs text-text-muted mb-0.5">S&P 500</div>
-          <div className={`font-mono font-semibold text-lg ${s.spReturn >= 0 ? 'pos' : 'neg'}`}>
-            {fmt(s.spReturn)}
-          </div>
-          <div className="text-xs text-text-muted mt-0.5">
-            Max DD: <span className="text-brand-red">{fmt(-s.spMaxDD)}</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="h-28">
+      {/* Mini chart */}
+      <div style={{ height: 112 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={s.data} margin={{ top: 2, right: 4, bottom: 0, left: 4 }}>
             <XAxis dataKey="date" hide />
             <YAxis hide domain={['auto', 'auto']} />
-            <ReferenceLine y={100} stroke="#475569" strokeDasharray="3 3" strokeOpacity={0.5} />
+            <ReferenceLine y={100} stroke="var(--line)" strokeDasharray="3 3" strokeOpacity={0.6} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
                 return (
-                  <div className="bg-bg-elevated border border-bg-border rounded px-2 py-1.5 text-xs font-mono space-y-0.5">
-                    <div className="text-text-muted">{label}</div>
-                    <div className="text-brand-green">Portfolio: {(payload[0]?.value as number)?.toFixed(1)}</div>
-                    <div className="text-text-secondary">S&P 500: {(payload[1]?.value as number)?.toFixed(1)}</div>
+                  <div style={{
+                    background: 'var(--bg-2)', border: '1px solid var(--line)',
+                    borderRadius: 9, padding: '8px 11px',
+                    fontSize: 11, fontFamily: 'var(--font-mono)',
+                    display: 'flex', flexDirection: 'column', gap: 3,
+                    boxShadow: 'var(--shadow-hi)',
+                  }}>
+                    <div style={{ color: 'var(--ink-4)' }}>{label}</div>
+                    <div style={{ color: 'var(--pos)' }}>Portfolio: {(payload[0]?.value as number)?.toFixed(1)}</div>
+                    <div style={{ color: 'var(--ink-3)' }}>S&amp;P 500: {(payload[1]?.value as number)?.toFixed(1)}</div>
                   </div>
                 )
               }}
             />
-            <Line type="monotone" dataKey="portfolio" stroke="#22c55e" strokeWidth={1.5} dot={false} />
-            <Line type="monotone" dataKey="sp500"     stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 2" dot={false} />
+            <Line type="monotone" dataKey="portfolio" stroke="var(--pos)" strokeWidth={1.5} dot={false} />
+            <Line type="monotone" dataKey="sp500"     stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="3 2" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {s.missingTickers.length > 0 && (
-        <div className="text-xs text-text-muted border-t border-bg-border pt-2">
+        <div style={{ fontSize: 11, color: 'var(--ink-4)', borderTop: '1px solid var(--line-soft)', paddingTop: 8 }}>
           ⚠ {s.missingTickers.join(', ')} had no data for this period — treated as cash
         </div>
       )}
@@ -127,31 +138,33 @@ export default function StressTest({ positions }: Props) {
   if (!pricedPositions.length) return null
 
   return (
-    <div className="space-y-4 animate-slide-up">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className="animate-slide-up">
       <div className="fin-card">
-        <div className="flex items-start justify-between gap-4">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div>
-            <h2 className="font-semibold text-text-primary">Historical Stress Test</h2>
-            <p className="text-xs text-text-muted mt-0.5">
+            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>
+              Historical Stress Test
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.55 }}>
               Current portfolio weights applied to four historical crises · shows how your holdings
               <em> would have</em> performed · not a prediction
-            </p>
+            </div>
           </div>
-          {loading && <span className="spinner flex-shrink-0 mt-1" />}
+          {loading && <span className="spinner" style={{ flexShrink: 0, marginTop: 2 }} />}
         </div>
-        {error && <div className="text-brand-red text-sm mt-3">{error}</div>}
+        {error && <div style={{ color: 'var(--neg)', fontSize: 13, marginTop: 12 }}>{error}</div>}
       </div>
 
       {loading && scenarios.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="fin-card h-64 animate-pulse bg-bg-elevated rounded-xl" />
+            <div key={i} className="fin-card shimmer" style={{ height: 256 }} />
           ))}
         </div>
       )}
 
       {scenarios.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           {scenarios.map((s) => <ScenarioCard key={s.name} s={s} />)}
         </div>
       )}

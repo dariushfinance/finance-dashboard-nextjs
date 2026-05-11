@@ -119,8 +119,12 @@ export async function POST(req: NextRequest) {
     return v / totalValue
   })
 
+  // Individual annualised volatility per ticker (sqrt of diagonal covariance)
+  const tickerVols = Object.fromEntries(uniqueTickers.map((t, i) => [t, +Math.sqrt(cov[i][i]).toFixed(4)]))
+
   return NextResponse.json({
     tickers: uniqueTickers,
+    tickerVols,
     // Send every 4th portfolio (500 points) for chart rendering
     portfolios: mc
       .filter((_, i) => i % 4 === 0)
