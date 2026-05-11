@@ -55,9 +55,9 @@ import MarketsTab from './MarketsTab'
 import CashflowsTab from './CashflowsTab'
 import TickerTape from './TickerTape'
 import CommandPalette from './CommandPalette'
-import CsvImport from './CsvImport'
 import YuhImport from './YuhImport'
 import NeonImport from './NeonImport'
+import ZkbImport from './ZkbImport'
 import UpgradeModal from './UpgradeModal'
 import ProGate from './ProGate'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
@@ -200,7 +200,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false)
   const [addModalOpen, setAddModalOpen]       = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [importBroker, setImportBroker]       = useState<'csv' | 'yuh' | 'neon'>('yuh')
+  const [importBroker, setImportBroker]       = useState<'yuh' | 'neon' | 'zkb'>('yuh')
   const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
@@ -625,7 +625,7 @@ export default function Dashboard() {
 
             {/* Broker tab selector */}
             <div style={{ display: 'flex', gap: 4, padding: '0 20px 0', borderBottom: '1px solid var(--line-soft)' }}>
-              {(['yuh', 'neon', 'csv'] as const).map(broker => (
+              {(['yuh', 'neon', 'zkb'] as const).map(broker => (
                 <button
                   key={broker}
                   onClick={() => setImportBroker(broker)}
@@ -643,7 +643,7 @@ export default function Dashboard() {
                     transition: 'color 0.15s',
                   }}
                 >
-                  {broker === 'csv' ? 'Generic CSV' : broker === 'yuh' ? 'Yuh' : 'Neon'}
+                  {broker === 'yuh' ? 'Yuh' : broker === 'neon' ? 'Neon' : 'ZKB'}
                 </button>
               ))}
             </div>
@@ -651,7 +651,7 @@ export default function Dashboard() {
             <div className="modal__body">
               {importBroker === 'yuh'  && <YuhImport  onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
               {importBroker === 'neon' && <NeonImport onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
-              {importBroker === 'csv'  && <CsvImport  onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
+              {importBroker === 'zkb'  && <ZkbImport  onDone={() => { fetchPortfolio(); setImportModalOpen(false) }} />}
             </div>
           </div>
         </div>
