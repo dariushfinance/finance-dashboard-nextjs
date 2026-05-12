@@ -1,89 +1,97 @@
-# Handoff — Quantfoli Dev Session 2026-05-11/12
+# Handoff — Quantfoli Dev Sessions 2026-05-11/12
 
 ## The Mission
 
-Building **Quantfoli** (quantfoli.com) — a Swiss portfolio analytics SaaS for self-directed investors.
+Building **Quantfoli** (quantfoli.com) — a Swiss portfolio analytics SaaS for self-directed investors.  
 Stack: Next.js 14 · TypeScript · Tailwind · Supabase · Vercel.
 
-**The founder trigger:** Mom imports her ZKB portfolio, pays CHF 15 via Stripe → `tier = pro` fires via webhook → Founder title goes on LinkedIn. That's the north star for every decision this session.
+**The founder trigger:** Mom imports her ZKB portfolio, pays CHF 15 via Stripe → `tier = pro` fires via webhook → LinkedIn title: "Founder & Developer — Quantfoli". That's the north star.
 
-Repo: https://github.com/dariushfinance/finance-dashboard-nextjs  
-Live: https://finance-dashboard-nextjs-one.vercel.app/ (will move to quantfoli.com)
+- Repo: https://github.com/dariushfinance/finance-dashboard-nextjs
+- Live: **https://quantfoli.com** (domain live and on Vercel since 2026-05-11)
+- Supabase: https://supabase.com/dashboard/project/hegdcutlpciaplhgzemm
 
 ---
 
-## What This Session Built (5 commits)
+## Current State (after all sessions)
+
+### Infrastructure ✅
+- Auth: Supabase Auth (since 2026-04-18)
+- Stripe Checkout: integrated, webhook live (`/api/webhooks/stripe` → `tier = 'pro'`)
+- Domain: quantfoli.com → Vercel (A `76.76.21.21` + CNAME `www → cname.vercel-dns.com`) — done 2026-05-11
+- Supabase + Stripe URLs updated to quantfoli.com in codebase
+- Pro Max tier: removed. Two tiers only: Free / Pro CHF 15/mo
+
+### ⚠️ ACTUAL BLOCKER FOR MOM TEST
+**Stripe live keys are NOT in Vercel env vars yet.**  
+The webhook and checkout work in test mode but not production.  
+Before Mom can pay, go to Vercel Dashboard → Settings → Environment Variables and set:
+```
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_live_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+```
+Then trigger a redeploy. This is the only remaining blocker.
+
+### Features Live
+- P&L with real-time prices (Yahoo Finance + Alpha Vantage fallback)
+- S&P 500 benchmark (normalised)
+- Sharpe, Beta, Alpha, annualised vol
+- TWR history chart (chain-linked daily, not simple arithmetic — fixed 2026-05-11)
+- Stress testing vs historical crashes
+- Efficient Frontier (MPT, now with 30% per-asset cap — see below)
+- Risk Tab: Rolling Vol Regime, Correlation Matrix, Monthly Returns Heatmap
+- Multi-currency: USD, CHF, EUR, GBP, JPY — FX-aware returns for ZKB positions
+- Broker parsers: Yuh, Neon, ZKB Depotauszug (ZKB added 2026-05-11)
+- ISIN resolution via `/api/isin`
+- Stock search with debounce
+- Welcome modal fires once on upgrade (`?upgraded=1`)
+
+### Pricing
+```
+FREE    CHF 0      Portfolio Tracker · P&L · EOD Prices · S&P Benchmark · All broker parsers
+PRO     CHF 15/mo  Sharpe · Beta · Alpha · Efficient Frontier · Stress Testing
+                   Full Fundamentals · Real-time Data · Multi-Currency · Risk Tab
+```
+Broker parsers deliberately free — they're the acquisition hook. Paywall activates after the first wow moment.
+
+---
+
+## What Was Built — Session 2026-05-11/12 (7 commits)
 
 ### 1. ZKB Depotauszug CSV Parser (`e16fbcd`)
+- `lib/parsers/zkb.ts` — pure parser, semicolon-delimited, Windows-1252 encoding
+- `components/ZkbImport.tsx` — ISIN resolution, per-row status, progress bar
+- `components/Dashboard.tsx` — broker tabs changed to `['yuh', 'neon', 'zkb']`
 
-**Files created:**
-- `lib/parsers/zkb.ts` — pure parser for ZKB's semicolon-delimited portfolio export
-- `components/ZkbImport.tsx` — UI component with ISIN resolution, per-row status, progress bar
-
-**Files modified:**
-- `components/Dashboard.tsx` — replaced `['yuh', 'neon', 'csv']` broker tabs with `['yuh', 'neon', 'zkb']`, removed generic CSV import entirely
-
-**ZKB CSV format handled:**
+**ZKB CSV format:**
 ```
 "Bezeichnung";"ISIN";"Anz. Nom.";"Währung";"Datum";"Spesen CHF";"Marktkurs";"Einstandskurs";"Diff T";"Marktwert";"Einstandswert";"Bucherfolg CHF";"Gesamtrendite"
 ```
-- Encoding: Windows-1252 (tries latin1 first, falls back to UTF-8)
-- Numbers: Swiss apostrophe thousands `21'859.24` and comma thousands `1,689.23` — both stripped
-- Dates: `DD.MM.YYYY` → `YYYY-MM-DD`
-- ISINs resolved via existing `/api/isin` endpoint (Yahoo Finance search)
-- Export path: ZKB eBanking → Depot → Depotauszug → CSV
+Export path: ZKB eBanking → Depot → Depotauszug → CSV herunterladen
 
----
+### 2. CHF/USD FX-Aware Returns (`912482a`, `8e02c85`, `ce47cf2`)
 
-### 2. CHF/USD FX-Aware Return Calculation (`912482a`, `8e02c85`, `ce47cf2`)
+**The problem:** ZKB shows AAPL at 8.39% (CHF-adjusted, USD depreciation baked in). Tool was showing 11.68% (pure USD return, FX drag invisible).
 
-**The problem:** ZKB shows AAPL return as 8.39% (CHF-adjusted, includes USD depreciation). The tool was showing 11.68% (pure USD price change, FX cancels out because both buy and current price use the same current rate).
+**Fix:** `buy_fx_rate` = historical CHF per USD at purchase = `Einstandswert / (shares × Einstandskurs)`
 
-**Root cause:** ZKB stores `Einstandswert` (total CHF cost). The tool was storing `Einstandskurs` (USD buy price) and comparing to current USD price — FX drag invisible.
-
-**Solution:**
-
-New column in Supabase `portfolio` table:
+Required Supabase migration (run once):
 ```sql
 ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS buy_fx_rate NUMERIC;
 ```
-**⚠️ CRITICAL: This SQL must be run in Supabase dashboard if not already done.**
 
-`buy_fx_rate` = historical CHF per USD at time of purchase = `Einstandswert / (shares × Einstandskurs)`
-- AAPL example: `20170 / (96 × 262.08) = 0.8018`
-- CHF positions (DFEN.DE, VUSD.L, etc.): `buy_fx_rate ≈ 1.0`
+**Files:** `lib/fx.ts` (getCHFperUSD/EUR, 15-min cache), `lib/parsers/zkb.ts`, `components/ZkbImport.tsx`, `app/api/portfolio/route.ts`
 
-**Files created:**
-- `lib/fx.ts` — exports `getCHFperUSD()` and `getCHFperEUR()` with 15-min module-level cache, Yahoo Finance USDCHF=X / EURCHF=X
-
-**Files modified:**
-- `lib/parsers/zkb.ts` — now parses `Einstandswert`, computes and exports `buy_fx_rate`
-- `components/ZkbImport.tsx` — passes `buy_fx_rate` in POST body
-- `app/api/portfolio/route.ts` — full FX-aware return/P&L logic (see below)
-- `components/PortfolioTable.tsx` — fixed `isPos` sign bug (was using `pnl` sign for return % display → `+-16.81%`)
-
-**Portfolio route return logic (the core formula):**
+**Return formula (core):**
 ```typescript
-// EUR-exchange tickers (.AS Amsterdam, .DE Xetra) → use EUR/CHF
-// Everything else (US, London) → use USD/CHF
-const tickerChfRate = isEurTicker(row.ticker) ? currentChfPerEur : currentChfPerUsd
-
-if (row.buy_fx_rate && tickerChfRate > 0 && currentChfPerUsd > 0) {
-  const buy_chf     = row.buy_price * row.buy_fx_rate      // e.g. 262.08 × 0.8018 = 210.10 CHF
-  const current_chf = current_price * tickerChfRate        // e.g. 292.68 × 0.778  = 227.7 CHF
-  const buy_usd     = buy_chf / currentChfPerUsd           // normalise to USD for frontend
-  const cur_usd     = current_chf / currentChfPerUsd
-
-  effective_buy_price     = buy_usd
-  effective_current_price = cur_usd
-  current_value           = shares * cur_usd
-  pnl                     = shares * (cur_usd - buy_usd)
-  return_pct              = ((current_chf - buy_chf) / buy_chf) * 100  // CHF return
-}
+const buy_chf     = row.buy_price * row.buy_fx_rate
+const current_chf = current_price * tickerChfRate   // EUR/CHF for .AS/.DE, USD/CHF otherwise
+const return_pct  = ((current_chf - buy_chf) / buy_chf) * 100
 ```
 
-**Result (verified against ZKB):**
-| Position | ZKB | Tool (after fix) |
+**Verified vs ZKB:**
+| Position | ZKB | Tool |
 |---|---|---|
 | AAPL | 8.39% | 8.36% ✓ |
 | IMAE.AS | -2.22% | -2.05% ✓ |
@@ -91,142 +99,148 @@ if (row.buy_fx_rate && tickerChfRate > 0 && currentChfPerUsd > 0) {
 | IWDA.L | 2.55% | 2.50% ✓ |
 | LMT | -17.43% | -17.45% ✓ |
 
-Remaining ~0.2% deviation = live Yahoo price vs ZKB snapshot timing. Normal.
+~0.2% residual = live Yahoo price vs ZKB snapshot timing. Normal.
+
+### 3. Frontier 30% Weight Cap + FIDLEG Compliance (session 2, `c1c5cde`)
+
+**Optimizer fix:** `randomWeights()` now projects Dirichlet samples onto `[0, 0.30]^n ∩ simplex` via iterative clipping. `effectiveCap = max(0.30, 1/n)` handles small portfolios. No more "sell MSCI World 43%, pile 28% into defense ETF."
+
+**Legal context (important):** The `RebalancePanel` component (trade table showing current% → target%, Δ weight, implied CHF shifts) was **commented out in a prior session** for CH FIDLEG/FINIG compliance — it was producing specific buy/sell instructions which constitutes investment advice. The Frontier tab now shows **Position Volatility Overview** (per-ticker annualised vol, factual observations only). The `RebalancePanel` code remains in `FrontierChart.tsx` but is commented with a legal note. Do not re-enable without legal review.
+
+### 4. UTC Date Bug Fix (`c1c5cde`)
+
+`buy_date` server validation used `new Date('2026-05-12') > new Date()` — TRUE before UTC midnight, causing all ZKB imports to fail for Swiss users exporting after 22:00 local time (before UTC midnight). Fixed: ISO string comparison with +1-day buffer.
 
 ---
 
-### 3. Rebalancing Advisory Panel (`3dde925`)
-
-**Files modified:**
-- `components/FrontierChart.tsx` — added full `RebalancePanel` component + `userTier` prop
-- `components/Dashboard.tsx` — passes `userTier` to `FrontierChart`
-
-**What it shows (Pro users only):**
-- Toggle: Max Sharpe | Min Vol target
-- Sector shift chips (e.g. "Technology ↑ 10.8%")
-- Trade table: current % → target %, Δ weight, implied CHF shift
-- Turnover summary: total CHF + % of portfolio
-- Disclaimer: illustrative, not personalised advice
-
-**Known limitation flagged this session:** The unconstrained Markowitz optimizer produces absurd outputs — suggests reducing MSCI World by 43% and piling 28% into a defense ETF. This is the classic "error maximization" problem: historical returns as expected return inputs + no position constraints = concentrated garbage recommendations.
-
-**Next step identified but NOT built yet:** Add max_weight constraint (e.g. 30% cap per position) to the frontier API optimizer. One parameter change in `app/api/frontier/route.ts`.
-
----
-
-## Current Architecture — Key Files
+## Architecture — Key Files
 
 ```
 app/
   api/
-    portfolio/route.ts   ← Full FX-aware P&L + return logic. buy_fx_rate column required.
-    frontier/route.ts    ← Markowitz optimizer. NEEDS max_weight constraint added.
-    isin/route.ts        ← ISIN → ticker via Yahoo Finance search
-    fx/route.ts          ← Multi-currency FX rates (USD base)
-    stripe/              ← checkout, portal, tier
-    webhooks/stripe/     ← tier update via Supabase on payment
+    portfolio/route.ts    ← GET: FX-aware P&L + returns, lot consolidation
+                            POST: insert with buy_fx_rate, +1d UTC date fix
+                            DELETE: by ticker / id / clearAll
+    frontier/route.ts     ← Markowitz MC, 30% cap, tickerVols in response
+    isin/route.ts         ← ISIN → ticker via Yahoo Finance search
+    fx/route.ts           ← Multi-currency FX rates (USD base)
+    stripe/               ← checkout, portal, tier
+    webhooks/stripe/      ← tier update via Supabase on payment
 
 lib/
-  fx.ts                  ← getCHFperUSD(), getCHFperEUR() — 15-min cached
+  fx.ts                   ← getCHFperUSD(), getCHFperEUR() — 15-min module cache
   parsers/
-    zkb.ts               ← ZKB Depotauszug parser (NEW this session)
-    yuh.ts               ← Yuh Bank parser (existing)
-  yahoo.ts               ← getCurrentPrice(), getHistoricalPrices(), TWR, Sharpe, etc.
-  stripe.ts              ← STRIPE_PRICE_PRO constant, tier helpers
-  supabase.ts            ← server client + getAuthUser()
+    zkb.ts                ← ZKB Depotauszug parser
+    yuh.ts                ← Yuh Bank parser
+    neon.ts               ← Neon Bank parser (check if /api/neon route exists — may be missing)
+  yahoo.ts                ← getCurrentPrice(), getHistoricalPrices(), TWR, Sharpe, etc. STABLE
+  stripe.ts               ← STRIPE_PRICE_PRO constant, tier helpers
+  supabase.ts             ← server client + getAuthUser()
 
 components/
-  ZkbImport.tsx          ← NEW this session. ISIN resolution + row-by-row import UI.
-  FrontierChart.tsx      ← RebalancePanel added (Pro only). userTier prop added.
-  PortfolioTable.tsx     ← isRetPos fix for return sign display
-  Dashboard.tsx          ← userTier flows down to FrontierChart. Broker tabs: yuh/neon/zkb.
-  YuhImport.tsx          ← existing
-  NeonImport.tsx         ← existing
+  ZkbImport.tsx           ← ISIN resolution + row-by-row import UI
+  FrontierChart.tsx       ← Position Volatility Overview (RebalancePanel commented out — FIDLEG)
+  PortfolioTable.tsx      ← isRetPos uses ret >= 0 (not pnl)
+  Dashboard.tsx           ← userTier flows down. Broker tabs: yuh/neon/zkb
+  YuhImport.tsx / NeonImport.tsx
+  UpgradeModal.tsx        ← 2-tier only (Free / Pro CHF 15). Do not add Pro Max back.
 ```
 
 ---
 
-## Supabase Schema — Required
+## Supabase Schema
 
-`portfolio` table must have:
 ```sql
+-- Required (may already exist — check before running)
 ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS buy_fx_rate NUMERIC;
-```
-**If this column doesn't exist, all ZKB imports will fail silently (Supabase rejects unknown columns on insert).**
 
-Existing columns (pre-session): `id`, `user_id`, `ticker`, `shares`, `buy_price`, `buy_date`
-
----
-
-## Bugs & Blockers
-
-### Solved this session
-- **`+-16.81%` display bug** — `PortfolioTable` was using `pnl >= 0` to set the sign prefix on `return_pct`. Fixed to `ret >= 0`.
-- **EUR tickers wrong return** — IMAE.AS (.AS = Amsterdam EUR) and DFEN.DE (.DE = Xetra EUR) were having `current_price_EUR × USD/CHF` applied. Fixed: detect EUR suffix tickers, use `getCHFperEUR()` instead.
-- **P&L positive / return negative** — pnl used raw Yahoo EUR price vs CHF buy_price (different currencies). Fixed: normalize everything through CHF → back to USD so frontend conversion is consistent.
-
-### Solved 2026-05-12 (session 2)
-- **Frontier unconstrained weights** — Iterative Dirichlet projection onto `[0, 0.30]^n ∩ simplex`. No more "sell MSCI World 43%, pile 28% into defense ETF." `effectiveCap = max(0.30, 1/n)` handles small portfolios. `c1c5cde`.
-- **ZKB import UTC date bug** — `new Date('2026-05-12') > new Date()` was TRUE before UTC midnight, so Swiss users exporting after 22:00 local time saw all ✗ (every row failed date validation). Fixed: ISO string comparison with +1-day buffer. `c1c5cde`.
-
-### Open / Not Yet Fixed
-1. **Markowitz expected returns = historical returns** — Using 2-year trailing returns as forward estimates is garbage. Proper fix: shrinkage toward CAPM or equal-weight prior. Medium-term, not urgent.
-2. **`buy_fx_rate` for non-ZKB positions** — Yuh/Neon/manual entries don't set `buy_fx_rate`. FX drag not reflected. Acceptable for now.
-3. **Supabase RLS** — Risk Tab + Fundamentals gated only in frontend. A motivated user can call the APIs directly. Fix: RLS policy on `portfolio` requiring `tier = pro` for those reads.
-
----
-
-## Normalised Schema from ZKB Parser
-
-```typescript
-interface ZkbPosition {
-  isin:        string   // "US0378331005"
-  name:        string   // "Apple Inc. Registered Shares..."
-  shares:      number   // 96
-  buy_price:   number   // 262.08 (Einstandskurs, original currency)
-  buy_fx_rate: number   // 0.8018 (CHF/USD at purchase = Einstandswert / shares / Einstandskurs)
-  buy_date:    string   // "2026-01-16" (snapshot date, not actual trade date)
-  currency:    string   // "USD" or "CHF" per ZKB
-  fees_chf:    number   // 0.00
-}
+-- Full schema
+CREATE TABLE IF NOT EXISTS portfolio (
+  id          BIGSERIAL PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  ticker      TEXT NOT NULL,
+  shares      REAL NOT NULL,
+  buy_price   REAL NOT NULL,
+  buy_date    TEXT NOT NULL,
+  buy_fx_rate NUMERIC   -- NULL for Yuh/Neon/manual positions
+);
 ```
 
 ---
 
-## Next Concrete Steps (Priority Order)
+## Bugs & Known Limitations
 
-### 1. Mom test — Founder trigger ← NEXT
-Once ZKB import is clean:
-- Mom uploads her ZKB CSV
-- She imports her positions
-- She pays CHF 15 via Stripe
-- Webhook fires → `tier = pro`
+### Resolved
+- `+-16.81%` display bug — `isRetPos` was using `pnl` sign instead of `ret` sign
+- EUR tickers wrong return — `.AS`/`.DE` tickers now use `getCHFperEUR()` not `getCHFperUSD()`
+- P&L positive / return negative — fixed by normalising through CHF → USD
+- Frontier unconstrained weights — 30% cap via iterative projection
+- ZKB import UTC date rejection — ISO string comparison with +1d buffer
+
+### Open
+1. **Markowitz expected returns = historical returns** — 2-year trailing returns as forward estimates is classic error maximisation. Fix: shrinkage toward equal-weight or CAPM prior. Medium-term.
+2. **`buy_fx_rate` for non-ZKB positions** — Yuh/Neon/manual entries show FX-unadjusted returns. Acceptable since those brokers are mostly CHF-denominated.
+3. **Supabase RLS not hardened** — Pro features gated in frontend only. A determined user can call `/api/frontier`, `/api/fundamentals` directly. Fix when user count justifies it.
+4. **Fundamentals unreliable** — Alpha Vantage free tier (25 req/day) breaks at 3+ positions. Fix: Financial Modeling Prep ($14/mo) for Pro users. Sprint 2 item.
+5. **Neon `/api/neon` route** — parser exists but API route may be missing. Verify before Mom test if she uses Neon.
+
+---
+
+## Next Steps — Priority Order
+
+### 1. ⚡ Stripe Live Keys → Vercel (30 min) — DO THIS FIRST
+Add `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (live variants) to Vercel env vars. Redeploy. Without this, no one can pay.
+
+### 2. Mom Test — Founder Trigger
+- Mom goes to quantfoli.com, signs up
+- Imports ZKB CSV (Export: ZKB eBanking → Depot → Depotauszug → CSV)
+- Stripe Checkout → CHF 15 → webhook fires → `tier = pro`
+- If she gets through without help: UX passes the canary test
 - **LinkedIn: "Founder & Developer — Quantfoli"**
 
-### 4. Supabase RLS
-Risk Tab + Fundamentals behind `tier = pro` at the DB level (currently gated only in frontend). Without RLS, a determined user can hit the APIs directly.
+### 3. Sprint 2 — Data Layer (1 week after Founder trigger)
+- Financial Modeling Prep API for Pro fundamentals (replaces broken AV free tier)
+- Polygon.io Starter for real-time prices ($29/mo)
+- Cache layer: Vercel KV — expensive API calls 1x/hr max
+- Free tier stays on Yahoo Finance EOD
 
-### 5. Domain DNS
-quantfoli.com → Vercel (A record `76.76.21.21` + CNAME `www → cname.vercel-dns.com`). Stripe + Supabase URLs already updated to quantfoli.com in the codebase.
+### 4. Sprint 3 — More Broker Parsers (2–3 weeks)
+Priority: Swissquote (largest Swiss userbase) → Saxo → Trade Republic → DEGIRO  
+Each parser = one LinkedIn post + organic acquisition. "Why Swiss portfolio apps fail — and what I built instead."
+
+### 5. Sprint 4 — LinkedIn Momentum
+- Post #4: Data Quality Problem (draft ready in Obsidian `_Meine LinkedIn Posts`)
+- Post #5 after v2/Founder: "3 weeks after 1700 views — what changed"
+- Warm network (Lars Lang/Rothschild, Philipp Baumann/BofA, Nicola Peter/BCG, Frederick von Dobbeler/PE, Ronny Oberholzer/UBS + 3 others) already knows the tool. They're first-mover Pro candidates or multipliers.
+
+### 6. Supabase RLS (after first 10 paying users)
+Gate Risk Tab + Fundamentals at DB level. Current frontend-only gate is sufficient for MVP but not production-hardened.
+
+### 7. Post-Matura / Pre-HSG
+- What-if simulator ("if I add 100 NVDA, how does Sharpe change?") — strongest retention feature, no competitor has it
+- VaR / CVaR implementation (already designed in Obsidian `Risk_Metrics`)
+- Max Drawdown with duration + recovery time + underwater equity curve
+- Product Hunt launch (when Free tier is polished and auth is solid)
+- HSG Finance Club demo — warm room of 80 exactly-right users beats 10k Reddit impressions
 
 ---
 
 ## Context That Matters
 
-- Dariush is 18, Matura 2026, starting HSG St. Gallen in 2026. This tool is the proof of competence for the LinkedIn network already built (1700 views post, 8 IB/PE/BCG contacts from it).
-- **Founder title requires 1 paying user.** Not before. Mom is the first tester by design — honest feedback + easy ZKB account = perfect canary.
-- The ZKB parser is the **acquisition hook** — Swiss broker CSV import is broken everywhere. Quantfoli doing it right is the differentiator that gets organic distribution.
-- Competitor gap: Parqet has no AI advisor, no What-if, no GARCH/vol regime. That's the moat.
-- Free tier stays free forever (P&L, EOD prices, broker parsers). Paywall activates after the first Wow moment.
+- **Dariush, 18, Matura 2026, HSG St. Gallen start 2026.** Tool = proof of competence for the LinkedIn network. Founder title requires 1 paying user — not before, not after. Mom is the designed first user.
+- **Competitor gap:** Parqet has no GARCH/vol regime, no AI advisor, no What-if simulator. Quantfoli's quant layer is real differentiation. The gap is distribution — fix via CH broker parsers + LinkedIn + HSG Finance Club.
+- **Revenue model:** Break-even at 3–4 paying users (covers $43/mo data costs). 200 Pro users = CHF 3,000/mo. Realistic 18-month target post-HSG.
+- **Free tier is permanent.** P&L, EOD prices, broker parsers always free. Paywall activates after the first wow moment — don't gate the acquisition hook.
 
 ---
 
 ## What NOT to Touch
 
-- `lib/yahoo.ts` — TWR, Sharpe, Beta, Alpha, Sortino, VaR, CVaR helpers. Stable.
-- `app/api/webhooks/stripe/route.ts` — Stripe webhook is working. Live Stripe keys need to be in Vercel env vars (not yet done as of this session).
-- `components/UpgradeModal.tsx` — Pro-only, 2-tier (Free / Pro), CHF 15/mo. Pro Max was removed in a prior session.
+- `lib/yahoo.ts` — TWR, Sharpe, Beta, Alpha, Sortino, VaR, CVaR helpers. Stable. Do not refactor.
+- `app/api/webhooks/stripe/route.ts` — webhook logic is working. Only risk is missing live env vars (see blocker above).
+- `components/UpgradeModal.tsx` — 2-tier only. Do not re-add Pro Max.
+- `FrontierChart.tsx` RebalancePanel comments — leave commented. FIDLEG.
 
 ---
 
-*Session ended 2026-05-12. All 5 commits pushed to main. Vercel auto-deploys on push.*
+*Last updated: 2026-05-12. Commits pushed to main. Vercel auto-deploys on push.*
