@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/supabase'
 
 const N_PORTFOLIOS = 2000
 const LOOKBACK_MS  = Math.round(504 * 1.4 * 24 * 60 * 60 * 1000)  // ~2 trading years
+const MAX_WEIGHT   = 0.30  // per-asset cap — prevents concentrated garbage recommendations
 
 interface PositionInput {
   ticker: string
@@ -11,11 +12,27 @@ interface PositionInput {
   current_price: number
 }
 
-// Uniform distribution on the simplex via Dirichlet (exponential trick)
-function randomWeights(n: number): number[] {
+// Dirichlet sample projected onto [0, cap]^n ∩ simplex via iterative clipping.
+// cap is raised to 1/n when n is large enough to make the constraint infeasible.
+function randomWeights(n: number, cap = MAX_WEIGHT): number[] {
+  const effectiveCap = Math.max(cap, 1 / n)
   const raw = Array.from({ length: n }, () => -Math.log(Math.random()))
   const sum = raw.reduce((a, b) => a + b, 0)
-  return raw.map((v) => v / sum)
+  const w = raw.map((v) => v / sum)
+
+  // At most n iterations: each pass caps ≥1 new weight or terminates
+  for (let iter = 0; iter < n; iter++) {
+    let excess = 0
+    let uncapped = 0
+    for (let i = 0; i < n; i++) {
+      if (w[i] > effectiveCap) { excess += w[i] - effectiveCap; w[i] = effectiveCap }
+      else uncapped++
+    }
+    if (excess < 1e-10 || uncapped === 0) break
+    const bump = excess / uncapped
+    for (let i = 0; i < n; i++) if (w[i] < effectiveCap) w[i] += bump
+  }
+  return w
 }
 
 // POST /api/frontier

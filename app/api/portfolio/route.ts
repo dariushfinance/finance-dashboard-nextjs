@@ -144,8 +144,10 @@ export async function POST(req: NextRequest) {
     errors.push('shares must be a positive number')
   if (!Number.isFinite(priceNum) || priceNum <= 0)
     errors.push('buy_price must be a positive number')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || new Date(dateStr) > new Date())
-    errors.push('buy_date must be a valid past date (YYYY-MM-DD)')
+  // Allow up to 1 day ahead so Swiss users exporting after 22:00 local (= before UTC midnight) don't hit a false-future error
+  const maxDateStr = new Date(Date.now() + 86_400_000).toISOString().split('T')[0]
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || dateStr > maxDateStr)
+    errors.push('buy_date must be a valid date (YYYY-MM-DD)')
   if (errors.length)
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
 
