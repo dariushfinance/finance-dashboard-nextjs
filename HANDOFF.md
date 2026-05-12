@@ -165,11 +165,14 @@ Existing columns (pre-session): `id`, `user_id`, `ticker`, `shares`, `buy_price`
 - **EUR tickers wrong return** — IMAE.AS (.AS = Amsterdam EUR) and DFEN.DE (.DE = Xetra EUR) were having `current_price_EUR × USD/CHF` applied. Fixed: detect EUR suffix tickers, use `getCHFperEUR()` instead.
 - **P&L positive / return negative** — pnl used raw Yahoo EUR price vs CHF buy_price (different currencies). Fixed: normalize everything through CHF → back to USD so frontend conversion is consistent.
 
+### Solved 2026-05-12 (session 2)
+- **Frontier unconstrained weights** — Iterative Dirichlet projection onto `[0, 0.30]^n ∩ simplex`. No more "sell MSCI World 43%, pile 28% into defense ETF." `effectiveCap = max(0.30, 1/n)` handles small portfolios. `c1c5cde`.
+- **ZKB import UTC date bug** — `new Date('2026-05-12') > new Date()` was TRUE before UTC midnight, so Swiss users exporting after 22:00 local time saw all ✗ (every row failed date validation). Fixed: ISO string comparison with +1-day buffer. `c1c5cde`.
+
 ### Open / Not Yet Fixed
-1. **Frontier optimizer: unconstrained weights** — Max Sharpe currently outputs "sell MSCI World 43%, buy defense ETF 28%". Needs `max_weight = 0.30` constraint in `app/api/frontier/route.ts`. This is the next immediate coding task.
-2. **ZKB import UI showed all ✗** — Despite the SQL column being added and inserts succeeding, the ZkbImport component may have shown errors due to response parsing or a race condition. Needs investigation. The actual DB inserts appear to have worked (returns now match ZKB).
-3. **Markowitz expected returns = historical returns** — Using 2-year trailing returns as forward estimates is garbage. Proper fix: shrinkage toward CAPM or equal-weight prior. Medium-term improvement, not urgent.
-4. **`buy_fx_rate` for non-ZKB positions** — Yuh/Neon/manual entries don't set `buy_fx_rate`. Their returns use the old USD formula (FX drag not reflected). Acceptable for now since those importers deal mostly in CHF anyway.
+1. **Markowitz expected returns = historical returns** — Using 2-year trailing returns as forward estimates is garbage. Proper fix: shrinkage toward CAPM or equal-weight prior. Medium-term, not urgent.
+2. **`buy_fx_rate` for non-ZKB positions** — Yuh/Neon/manual entries don't set `buy_fx_rate`. FX drag not reflected. Acceptable for now.
+3. **Supabase RLS** — Risk Tab + Fundamentals gated only in frontend. A motivated user can call the APIs directly. Fix: RLS policy on `portfolio` requiring `tier = pro` for those reads.
 
 ---
 
@@ -192,13 +195,7 @@ interface ZkbPosition {
 
 ## Next Concrete Steps (Priority Order)
 
-### 1. Frontier constraint — 30 min
-Add `max_weight` cap to optimizer in `app/api/frontier/route.ts`. The unconstrained output is misleading and makes the product look broken. Cap at 25–30% per position. This is a one-liner in the optimization loop.
-
-### 2. ZKB import error investigation — 15 min
-Check what error the ZkbImport rows show on ✗ hover. If it's a Supabase column error, the SQL migration wasn't run. If it's a CORS or auth error, different issue. The data seems to be in the DB (returns match ZKB), so this might be a UI-only false negative.
-
-### 3. Mom test — Founder trigger
+### 1. Mom test — Founder trigger ← NEXT
 Once ZKB import is clean:
 - Mom uploads her ZKB CSV
 - She imports her positions
@@ -216,7 +213,7 @@ quantfoli.com → Vercel (A record `76.76.21.21` + CNAME `www → cname.vercel-d
 
 ## Context That Matters
 
-- Dariush is 18, Matura 2026, starting HSG St. Gallen after. This tool is the proof of competence for the LinkedIn network already built (1700 views post, 8 IB/PE/BCG contacts from it).
+- Dariush is 18, Matura 2026, starting HSG St. Gallen in 2026. This tool is the proof of competence for the LinkedIn network already built (1700 views post, 8 IB/PE/BCG contacts from it).
 - **Founder title requires 1 paying user.** Not before. Mom is the first tester by design — honest feedback + easy ZKB account = perfect canary.
 - The ZKB parser is the **acquisition hook** — Swiss broker CSV import is broken everywhere. Quantfoli doing it right is the differentiator that gets organic distribution.
 - Competitor gap: Parqet has no AI advisor, no What-if, no GARCH/vol regime. That's the moat.
