@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <p style={{ fontSize: 13, color: '#64748b', marginBottom: 40 }}>Last updated: 12 May 2026</p>
 
       <Section title="1. Who We Are">
-        <p>Quantfoli ("we", "us", "our") is a portfolio analytics platform operated by Dariush Tahajomi, Switzerland. Contact: <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a></p>
+        <p>Quantfoli ("we", "us", "our") is a portfolio analytics platform operated by Dariush Tahajomi, Switzerland. Contact: <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a></p>
       </Section>
 
       <Section title="2. Data We Collect">
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="5. Data Retention">
-        <p>We retain your data as long as your account is active. You may request deletion of your account and all associated data at any time by emailing <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a>. We will process deletion requests within 30 days.</p>
+        <p>We retain your data as long as your account is active. You may request deletion of your account and all associated data at any time by emailing <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a>. We will process deletion requests within 30 days.</p>
       </Section>
 
       <Section title="6. Your Rights (GDPR)">
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
           <li>Object to or restrict processing</li>
           <li>Data portability</li>
         </ul>
-        <p>To exercise any of these rights, contact <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a>.</p>
+        <p>To exercise any of these rights, contact <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a>.</p>
       </Section>
 
       <Section title="7. Security">
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="10. Contact">
-        <p>Questions about this policy? Email <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a>.</p>
+        <p>Questions about this policy? Email <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a>.</p>
       </Section>
     </div>
   )

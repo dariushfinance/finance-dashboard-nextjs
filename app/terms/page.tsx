@@ -33,7 +33,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="5. User Accounts">
-        <p>You are responsible for maintaining the confidentiality of your account credentials. You are responsible for all activity that occurs under your account. Notify us immediately at <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a> if you suspect unauthorised access.</p>
+        <p>You are responsible for maintaining the confidentiality of your account credentials. You are responsible for all activity that occurs under your account. Notify us immediately at <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a> if you suspect unauthorised access.</p>
       </Section>
 
       <Section title="6. Subscriptions and Payments">
@@ -78,7 +78,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="13. Contact">
-        <p>Questions about these Terms? Email <a href="mailto:support@quantfoli.com" style={{ color: '#818cf8' }}>support@quantfoli.com</a>.</p>
+        <p>Questions about these Terms? Email <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: '#818cf8' }}>dariush.tahajomi@gmail.com</a>.</p>
       </Section>
     </div>
   )
