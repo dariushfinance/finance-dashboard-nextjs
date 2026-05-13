@@ -22,7 +22,11 @@ export default function LoginPage() {
       if (error) setError(error.message)
       else { router.push('/'); router.refresh() }
     } else {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/` },
+      })
       if (error) setError(error.message)
       else setMessage('Check your email to confirm, then sign in.')
     }
