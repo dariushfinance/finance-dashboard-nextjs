@@ -22,16 +22,15 @@ Stack: Next.js 14 · TypeScript · Tailwind · Supabase · Vercel.
 - Supabase + Stripe URLs updated to quantfoli.com in codebase
 - Pro Max tier: removed. Two tiers only: Free / Pro CHF 15/mo
 
-### ⚠️ ACTUAL BLOCKER FOR MOM TEST
-**Stripe live keys are NOT in Vercel env vars yet.**  
-The webhook and checkout work in test mode but not production.  
-Before Mom can pay, go to Vercel Dashboard → Settings → Environment Variables and set:
-```
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_live_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-```
-Then trigger a redeploy. This is the only remaining blocker.
+### Stripe Live Mode ✅ (done 2026-05-12)
+- Live keys set in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRO_PRICE_ID`
+- Live webhook endpoint: `https://www.quantfoli.com/api/webhooks/stripe`
+- Customer portal configured in live mode
+- Stripe public business info: name "Portfolio Intelligence", descriptor `QUANTFOLI.COM`, website `quantfoli.com`
+- Privacy + Terms pages live at `/privacy` and `/terms` — linked in Stripe dashboard
+- Support email: `dariush.tahajomi@gmail.com`
+- Test payment of CHF 1 completed successfully with real card ✅
+- Price ID in use: `price_1TWJ2gGqej9WyHe3OCKpuXnk` (CHF 1 test price — **change to CHF 15 before Mom test**)
 
 ### Features Live
 - P&L with real-time prices (Yahoo Finance + Alpha Vantage fallback)
@@ -46,6 +45,7 @@ Then trigger a redeploy. This is the only remaining blocker.
 - ISIN resolution via `/api/isin`
 - Stock search with debounce
 - Welcome modal fires once on upgrade (`?upgraded=1`)
+- `/privacy` and `/terms` pages live (Swiss law, GDPR, no-investment-advice disclaimer)
 
 ### Pricing
 ```
@@ -188,8 +188,11 @@ CREATE TABLE IF NOT EXISTS portfolio (
 
 ## Next Steps — Priority Order
 
-### 1. ⚡ Stripe Live Keys → Vercel (30 min) — DO THIS FIRST
-Add `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (live variants) to Vercel env vars. Redeploy. Without this, no one can pay.
+### 1. ⚡ Switch price to CHF 15 — DO THIS FIRST
+The current live price is CHF 1 (test). Before Mom pays:
+1. Stripe → Products → Pro → Add price → CHF 15/mo recurring
+2. Copy the new `price_live_...` ID
+3. Update `STRIPE_PRO_PRICE_ID` in Vercel env vars → redeploy
 
 ### 2. Mom Test — Founder Trigger
 - Mom goes to quantfoli.com, signs up
