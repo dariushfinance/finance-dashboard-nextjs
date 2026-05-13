@@ -380,6 +380,7 @@ export default function Dashboard() {
               key={t.id}
               className={`nav__item ${activeTab === t.id ? 'nav__item--active' : ''}`}
               onClick={() => { setActiveTab(t.id); setSidebarOpen(false) }}
+              style={t.tag ? { opacity: 0.55 } : undefined}
             >
               <span style={{ color: activeTab === t.id ? 'var(--ink)' : 'var(--ink-3)', display: 'inline-flex' }}>
                 {t.icon}
@@ -523,11 +524,27 @@ export default function Dashboard() {
 
         {/* Page */}
         <div className="page">
-          {/* Markets tab — gated until live data API is connected */}
+          {/* Markets tab — coming soon */}
           {activeTab === 'markets' && (
-            userTier === 'free'
-              ? <ProGate featureName="Markets" onUpgrade={() => setUpgradeOpen(true)}><MarketsTab /></ProGate>
-              : <MarketsTab />
+            <div className="card" style={{ padding: '72px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Markets — Coming Soon</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-3)', maxWidth: 320, lineHeight: 1.6 }}>
+                Live market data, indices, sector heatmaps, and macro indicators are in development.
+              </div>
+              <div style={{
+                marginTop: 4, fontSize: 11, fontFamily: 'var(--font-mono)',
+                padding: '6px 14px', borderRadius: 6,
+                background: 'oklch(0.84 0.148 80 / 0.10)',
+                color: 'oklch(0.84 0.148 80)',
+                border: '1px solid oklch(0.84 0.148 80 / 0.25)',
+              }}>
+                Work in progress
+              </div>
+            </div>
           )}
 
           {/* Empty state — applies to all other tabs */}
