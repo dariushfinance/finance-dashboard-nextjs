@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     line_items:           [{ price: PRICE_IDS[plan], quantity: 1 }],
     success_url:          `${origin}/?upgraded=1`,
     cancel_url:           `${origin}/`,
-    payment_method_types: ['card'],
+
     metadata:             { user_id: user.id, plan },
     subscription_data:    { metadata: { user_id: user.id, plan } },
   })
