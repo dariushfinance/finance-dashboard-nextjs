@@ -188,11 +188,13 @@ CREATE TABLE IF NOT EXISTS portfolio (
 
 ## Next Steps — Priority Order
 
-### 1. ⚡ Switch price to CHF 15 — DO THIS FIRST
+### 1. ⚡ Switch price to CHF 15 — MANUAL ACTION REQUIRED
 The current live price is CHF 1 (test). Before Mom pays:
 1. Stripe → Products → Pro → Add price → CHF 15/mo recurring
 2. Copy the new `price_live_...` ID
-3. Update `STRIPE_PRO_PRICE_ID` in Vercel env vars → redeploy
+3. Vercel → Project → Settings → Environment Variables → update `STRIPE_PRO_PRICE_ID`
+4. Redeploy (or push any commit to trigger Vercel rebuild)
+> Code is ready. Only the env var and Stripe price need to be set.
 
 ### 2. Mom Test — Founder Trigger
 - Mom goes to quantfoli.com, signs up
@@ -246,4 +248,20 @@ Gate Risk Tab + Fundamentals at DB level. Current frontend-only gate is sufficie
 
 ---
 
-*Last updated: 2026-05-12. Commits pushed to main. Vercel auto-deploys on push.*
+---
+
+## Session 2026-05-13 — Founder Readiness (commit `8fd1a89`)
+
+### Changes Made
+- **Branding**: "Portfolio Intelligence" → "Quantfoli" everywhere (sidebar, login page, footer, brand mark P→Q)
+- **`brand__tag`**: Now shows actual user tier dynamically (Free/Pro · v1.0), not hardcoded "Pro · v4.2"
+- **Empty state**: Added "Import ZKB / Yuh / Neon" button directly on the empty portfolio screen — Mom will see this immediately on first login
+- **Default import tab**: Changed from Yuh → ZKB (primary Swiss broker for target users)
+- **ProGate bug**: Lock icon was invisible — `var(--brand-green)` doesn't exist as CSS var, fixed to `var(--pos)`
+- **`middleware.ts`**: `/privacy` and `/terms` now publicly accessible without auth (Stripe requires these URLs to be accessible to non-logged-in visitors)
+
+### Remaining Manual Action
+Only one thing blocks the founder trigger from firing:
+- **CHF 15 Stripe price** (see Step 1 in Next Steps above)
+
+*Last updated: 2026-05-13. Commits pushed to main. Vercel auto-deploys on push.*
