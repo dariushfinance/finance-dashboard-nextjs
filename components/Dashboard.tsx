@@ -375,7 +375,7 @@ export default function Dashboard() {
 
         <nav className="nav">
           <div className="nav__label">Workspace</div>
-          {TABS.map((t, i) => (
+          {TABS.map(t => (
             <button
               key={t.id}
               className={`nav__item ${activeTab === t.id ? 'nav__item--active' : ''}`}
@@ -385,7 +385,6 @@ export default function Dashboard() {
                 {t.icon}
               </span>
               {t.label}
-              <span className="kbd">{i + 1}</span>
             </button>
           ))}
         </nav>

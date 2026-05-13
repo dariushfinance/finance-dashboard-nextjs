@@ -508,14 +508,16 @@ export default function FrontierChart({ positions, userTier }: Props) {
               totalValue={totalValue}
             />
 
-            {/* Rebalancing Advisory — Pro only */}
+            {/* Rebalancing Advisory — commented out, CH FIDLEG/FINIG compliance.
+                Showing specific implied CHF trade sizes constitutes investment advice under Swiss law.
+                Do not re-enable without legal review.
             {userTier === 'pro' && (
               <RebalancePanel
                 data={data}
                 pricedPositions={pricedPositions}
                 totalValue={totalValue}
               />
-            )}
+            )} */}
 
             <div style={{ padding: '14px 22px', fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', borderTop: '1px solid var(--line-soft)' }}>
               Based on 2 years of historical returns. Past covariance does not guarantee future correlations.
