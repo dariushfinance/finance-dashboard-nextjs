@@ -47,7 +47,7 @@ export default function ProGate({ children, onUpgrade, featureName }: Props) {
           gap:          12,
           boxShadow:    '0 8px 32px rgba(0,0,0,0.3)',
         }}>
-          <div style={{ color: 'var(--brand-green)' }}><LockIcon /></div>
+          <div style={{ color: 'var(--pos)' }}><LockIcon /></div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
             {featureName} — Pro only
           </div>

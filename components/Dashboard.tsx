@@ -200,7 +200,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false)
   const [addModalOpen, setAddModalOpen]       = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [importBroker, setImportBroker]       = useState<'yuh' | 'neon' | 'zkb'>('yuh')
+  const [importBroker, setImportBroker]       = useState<'yuh' | 'neon' | 'zkb'>('zkb')
   const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
@@ -366,10 +366,10 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className={`side ${sidebarOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand__mark">P</div>
+          <div className="brand__mark">Q</div>
           <div>
-            <div className="brand__name">Portfolio<br />Intelligence</div>
-            <div className="brand__tag">Pro · v4.2</div>
+            <div className="brand__name">Quantfoli</div>
+            <div className="brand__tag">{userTier === 'pro' ? 'Pro' : 'Free'} · v1.0</div>
           </div>
         </div>
 
@@ -521,10 +521,15 @@ export default function Dashboard() {
               <div className="empty-state">
                 <div className="empty-state__icon">📊</div>
                 <div className="empty-state__title">No positions yet</div>
-                <div className="empty-state__sub">Add your first holding to get started tracking your portfolio.</div>
-                <button className="btn btn--primary" style={{ marginTop: 20 }} onClick={() => setAddModalOpen(true)}>
-                  <IconPlus /><span>Add position</span>
-                </button>
+                <div className="empty-state__sub">Import your broker CSV or add positions manually to start tracking your portfolio.</div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button className="btn btn--primary" onClick={() => { setImportBroker('zkb'); setImportModalOpen(true) }}>
+                    <IconUpload /><span>Import ZKB / Yuh / Neon</span>
+                  </button>
+                  <button className="btn btn--ghost" onClick={() => { setPreFillTicker(''); setAddModalOpen(true) }}>
+                    <IconPlus /><span>Add manually</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : activeTab === 'markets' ? null : (
@@ -579,7 +584,7 @@ export default function Dashboard() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)',
           }}>
-            <span>Portfolio Intelligence · Built by Dariush Tahajomi</span>
+            <span>Quantfoli · Built by Dariush Tahajomi</span>
             <span>Alpha Vantage · Yahoo Finance · Supabase</span>
           </div>
         </div>

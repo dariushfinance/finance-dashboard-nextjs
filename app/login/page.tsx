@@ -55,13 +55,13 @@ export default function LoginPage() {
             fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'oklch(0.97 0 0)',
             letterSpacing: '-0.03em',
             boxShadow: '0 0 32px oklch(0.68 0.18 258 / 0.45), 0 4px 16px oklch(0 0 0 / 0.35)',
-          }}>P</div>
+          }}>Q</div>
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-              Portfolio Intelligence
+              Quantfoli
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 2, letterSpacing: '0.04em' }}>
-              Professional finance analytics
+              Quant-grade portfolio analytics
             </div>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function LoginPage() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-4)', marginTop: 20, fontFamily: 'var(--font-mono)' }}>
-          Portfolio Intelligence · Dariush Tahajomi · HSG &#39;26
+          Quantfoli · Dariush Tahajomi · HSG &#39;26
         </p>
       </div>
     </div>
