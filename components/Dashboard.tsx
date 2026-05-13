@@ -66,7 +66,7 @@ import type { User } from '@supabase/supabase-js'
 
 type TabId = 'overview' | 'holdings' | 'history' | 'benchmark' | 'dividends' | 'fundamentals' | 'risk' | 'stress' | 'frontier' | 'hedging' | 'markets' | 'cashflows'
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const TABS: { id: TabId; label: string; icon: React.ReactNode; tag?: string }[] = [
   { id: 'overview',     label: 'Overview',      icon: <IconGrid /> },
   { id: 'holdings',     label: 'Holdings',      icon: <IconPie /> },
   { id: 'history',      label: 'History',       icon: <IconHistory /> },
@@ -77,7 +77,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'stress',       label: 'Stress Test',   icon: <IconActivity /> },
   { id: 'frontier',     label: 'Frontier',      icon: <IconScatter /> },
   { id: 'hedging',      label: 'Hedging',       icon: <IconShield /> },
-  { id: 'markets',      label: 'Markets',       icon: <IconGlobe /> },
+  { id: 'markets',      label: 'Markets',       icon: <IconGlobe />, tag: 'soon' },
   { id: 'cashflows',    label: 'Cashflows',     icon: <IconCash /> },
 ]
 
@@ -385,6 +385,22 @@ export default function Dashboard() {
                 {t.icon}
               </span>
               {t.label}
+              {t.tag && (
+                <span style={{
+                  marginLeft: 'auto',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: 'oklch(0.84 0.148 80 / 0.12)',
+                  color: 'oklch(0.84 0.148 80)',
+                  border: '1px solid oklch(0.84 0.148 80 / 0.25)',
+                }}>
+                  {t.tag}
+                </span>
+              )}
             </button>
           ))}
         </nav>
