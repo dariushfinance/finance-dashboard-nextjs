@@ -261,7 +261,11 @@ export default function Dashboard() {
       ? new URLSearchParams(window.location.search)
       : null
 
-    if (params?.get('upgraded') === '1') {
+    if (params?.get('welcome') === '1') {
+      window.history.replaceState({}, '', '/')
+      fetchTier()
+      setWelcomeOpen(true)
+    } else if (params?.get('upgraded') === '1') {
       window.history.replaceState({}, '', '/')
       // Webhook may not have fired yet — poll up to 8x with 1.5s delay
       let attempts = 0
