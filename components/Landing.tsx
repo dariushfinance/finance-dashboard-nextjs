@@ -1,0 +1,515 @@
+import Link from 'next/link'
+
+const FEATURES = [
+  {
+    title: 'Markowitz Efficient Frontier',
+    desc: 'See the optimal risk/return curve for your actual holdings. 5,000-portfolio Monte Carlo with per-asset weight caps.',
+    accent: 'a',
+  },
+  {
+    title: 'Historical Stress Testing',
+    desc: 'Simulate dot-com, 2008, COVID and 2022 drawdowns against your live positions. Know what you actually own.',
+    accent: 'b',
+  },
+  {
+    title: 'Sharpe · Sortino · Beta · Alpha',
+    desc: 'Annualised risk-adjusted returns, downside deviation, and regression-based market sensitivity vs. S&P 500.',
+    accent: 'a',
+  },
+  {
+    title: 'Swiss Broker CSV Import',
+    desc: 'One-click import for ZKB, Yuh and Neon. FX-aware to ±0.2% versus your bank statement.',
+    accent: 'b',
+  },
+  {
+    title: 'Multi-Currency · FX-Aware',
+    desc: 'Display in CHF, USD, EUR, GBP, JPY, CAD or SGD. Returns normalised by historical purchase-day exchange rates.',
+    accent: 'a',
+  },
+  {
+    title: 'Risk Tab',
+    desc: 'Correlation matrix, rolling volatility regime, VaR and CVaR. Built for investors who want signal, not narrative.',
+    accent: 'b',
+  },
+]
+
+const STATS = [
+  { value: '6+',     label: 'Risk metrics' },
+  { value: '3',      label: 'Swiss brokers' },
+  { value: '7',      label: 'Currencies' },
+  { value: '±0.2%',  label: 'FX accuracy' },
+]
+
+export default function Landing() {
+  return (
+    <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* Ambient background blobs */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <div style={{
+          position: 'absolute', top: '-15%', left: '-10%', width: '55%', height: '60%',
+          background: 'radial-gradient(ellipse, oklch(0.68 0.18 258 / 0.18) 0%, transparent 65%)',
+          borderRadius: '50%', filter: 'blur(20px)',
+        }} />
+        <div style={{
+          position: 'absolute', top: '20%', right: '-10%', width: '50%', height: '55%',
+          background: 'radial-gradient(ellipse, oklch(0.64 0.19 285 / 0.14) 0%, transparent 65%)',
+          borderRadius: '50%', filter: 'blur(20px)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-10%', left: '15%', width: '60%', height: '50%',
+          background: 'radial-gradient(ellipse, oklch(0.82 0.156 162 / 0.06) 0%, transparent 65%)',
+          borderRadius: '50%', filter: 'blur(20px)',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.02) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }} />
+      </div>
+
+      {/* Nav */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backdropFilter: 'blur(16px)',
+        background: 'oklch(from var(--bg) l c h / 0.70)',
+        borderBottom: '1px solid var(--line-soft)',
+      }}>
+        <div style={{
+          maxWidth: 1180, margin: '0 auto',
+          padding: '14px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: 'var(--grad-brand)',
+              display: 'grid', placeItems: 'center',
+              fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15,
+              color: 'oklch(0.97 0 0)', letterSpacing: '-0.03em',
+              boxShadow: '0 0 20px oklch(0.68 0.18 258 / 0.40)',
+            }}>Q</div>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em' }}>
+              Quantfoli
+            </span>
+          </div>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a href="#features" style={navLink}>Features</a>
+            <a href="#pricing" style={navLink}>Pricing</a>
+            <Link href="/login" style={{
+              ...navLink,
+              padding: '8px 16px', borderRadius: 9,
+              background: 'var(--grad-brand)',
+              color: 'oklch(0.97 0 0)', fontWeight: 600,
+              boxShadow: '0 0 24px oklch(0.68 0.18 258 / 0.30), 0 2px 8px oklch(0 0 0 / 0.20)',
+            }}>
+              Sign in
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section style={{ position: 'relative', zIndex: 1, padding: '88px 24px 64px' }}>
+        <div style={{ maxWidth: 920, margin: '0 auto', textAlign: 'center', animation: 'fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 14px', marginBottom: 28,
+            borderRadius: 100,
+            background: 'oklch(0.68 0.18 258 / 0.08)',
+            border: '1px solid oklch(0.68 0.18 258 / 0.20)',
+            fontSize: 12, fontFamily: 'var(--font-mono)',
+            color: 'oklch(0.78 0.15 258)',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'oklch(0.82 0.156 162)', boxShadow: '0 0 8px oklch(0.82 0.156 162)' }} />
+            Built in Switzerland · for self-directed investors
+          </div>
+
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(40px, 6vw, 72px)',
+            fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.05,
+            margin: 0, color: 'var(--ink)',
+          }}>
+            Institutional-grade<br />
+            portfolio analytics.{' '}
+            <span style={{
+              background: 'var(--grad-brand)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Retail price.
+            </span>
+          </h1>
+
+          <p style={{
+            marginTop: 28, fontSize: 'clamp(15px, 1.8vw, 19px)',
+            lineHeight: 1.6, color: 'var(--ink-2)',
+            maxWidth: 640, margin: '28px auto 0',
+          }}>
+            Markowitz frontier, stress tests, Sharpe, Sortino, Beta, Alpha — on top of your
+            real ZKB, Yuh or Neon portfolio. FX-aware to ±0.2%. From CHF&nbsp;0.
+          </p>
+
+          <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/login" style={ctaPrimary}>
+              Start free
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <a href="#features" style={ctaGhost}>
+              See features
+            </a>
+          </div>
+
+          <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+            Free tier · No credit card · Cancel Pro anytime
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{
+          maxWidth: 920, margin: '72px auto 0',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1,
+          background: 'var(--line-soft)',
+          border: '1px solid var(--line-soft)',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+        }}>
+          {STATS.map(s => (
+            <div key={s.label} style={{
+              background: 'oklch(from var(--bg-1) l c h / 0.85)',
+              padding: '24px 16px', textAlign: 'center',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30,
+                letterSpacing: '-0.02em',
+                background: 'var(--grad-brand)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                {s.value}
+              </div>
+              <div style={{
+                marginTop: 4, fontSize: 11, color: 'var(--ink-4)',
+                fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" style={{ position: 'relative', zIndex: 1, padding: '88px 24px 64px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <div style={sectionEyebrow}>What you get</div>
+            <h2 style={sectionTitle}>The toolkit your bank never built.</h2>
+            <p style={sectionSub}>
+              Six modules that actually move the needle on portfolio decisions — not vanity charts.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid', gap: 16,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          }}>
+            {FEATURES.map(f => (
+              <div key={f.title} style={{
+                position: 'relative',
+                padding: '28px 24px',
+                background: 'oklch(from var(--bg-1) l c h / 0.80)',
+                border: '1px solid var(--line-soft)',
+                borderRadius: 'var(--radius-lg)',
+                backdropFilter: 'blur(12px)',
+                transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                  background: f.accent === 'a'
+                    ? 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.60), transparent)'
+                    : 'linear-gradient(90deg, transparent, oklch(0.64 0.19 285 / 0.60), transparent)',
+                }} />
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 700,
+                  fontSize: 17, letterSpacing: '-0.015em',
+                  color: 'var(--ink)', marginBottom: 10,
+                }}>
+                  {f.title}
+                </div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink-3)' }}>
+                  {f.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px' }}>
+        <div style={{ maxWidth: 920, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={sectionEyebrow}>How it works</div>
+            <h2 style={sectionTitle}>Sixty seconds to your first frontier.</h2>
+          </div>
+          <div style={{
+            display: 'grid', gap: 20,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          }}>
+            {[
+              { n: '01', t: 'Create an account', d: 'Email and password. No credit card.' },
+              { n: '02', t: 'Import or add positions', d: 'ZKB · Yuh · Neon CSV, or add manually by ticker.' },
+              { n: '03', t: 'See the math', d: 'Sharpe, frontier, stress test — instantly, on your actual book.' },
+            ].map(s => (
+              <div key={s.n} style={{
+                padding: '24px 22px',
+                background: 'oklch(from var(--bg-1) l c h / 0.60)',
+                border: '1px solid var(--line-soft)',
+                borderRadius: 'var(--radius)',
+                backdropFilter: 'blur(8px)',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 12,
+                  letterSpacing: '0.1em',
+                  color: 'oklch(0.68 0.18 258)',
+                  marginBottom: 14,
+                }}>{s.n}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
+                  {s.t}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+                  {s.d}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" style={{ position: 'relative', zIndex: 1, padding: '64px 24px 88px' }}>
+        <div style={{ maxWidth: 880, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={sectionEyebrow}>Pricing</div>
+            <h2 style={sectionTitle}>Simple. Honest. No fake tiers.</h2>
+          </div>
+
+          <div style={{
+            display: 'grid', gap: 16,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          }}>
+            {/* Free */}
+            <div style={pricingCard()}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-2)' }}>
+                Free
+              </div>
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em' }}>CHF 0</span>
+              </div>
+              <ul style={featureList}>
+                {[
+                  'Portfolio tracker & P&L',
+                  'EOD prices (Yahoo Finance)',
+                  'S&P 500 benchmark',
+                  'CSV + Swiss broker import',
+                  'Multi-currency display',
+                ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+              </ul>
+              <Link href="/login" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+                Start free
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div style={{ ...pricingCard(true), borderColor: 'oklch(0.68 0.18 258 / 0.50)' }}>
+              <div style={{
+                position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                background: 'var(--grad-brand)', color: 'oklch(0.97 0 0)',
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                padding: '3px 12px', borderRadius: 20,
+                boxShadow: '0 0 16px oklch(0.68 0.18 258 / 0.50)',
+              }}>
+                Most Popular
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.78 0.15 258)' }}>
+                Pro
+              </div>
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em' }}>CHF 15</span>
+                <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>/month</span>
+              </div>
+              <ul style={featureList}>
+                {[
+                  'Everything in Free',
+                  'Sharpe · Sortino · Beta · Alpha',
+                  'Efficient Frontier (Markowitz MPT)',
+                  'Historical Stress Testing',
+                  'Risk Tab — VaR, CVaR, correlation matrix',
+                  'Rolling volatility regime',
+                ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+              </ul>
+              <Link href="/login" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+                Get Pro
+              </Link>
+            </div>
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-4)', marginTop: 24, fontFamily: 'var(--font-mono)' }}>
+            Cancel anytime from your Stripe customer portal · No refunds on partial periods
+          </p>
+        </div>
+      </section>
+
+      {/* Founder note */}
+      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px' }}>
+        <div style={{
+          maxWidth: 720, margin: '0 auto',
+          padding: '40px 32px',
+          background: 'oklch(from var(--bg-1) l c h / 0.70)',
+          border: '1px solid var(--line-soft)',
+          borderRadius: 'var(--radius-lg)',
+          backdropFilter: 'blur(12px)',
+          textAlign: 'center',
+        }}>
+          <div style={sectionEyebrow}>Why this exists</div>
+          <p style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(18px, 2.4vw, 24px)',
+            lineHeight: 1.5, letterSpacing: '-0.015em',
+            color: 'var(--ink)', margin: '8px 0 24px',
+            fontWeight: 500,
+          }}>
+            &ldquo;Swiss banks give you a static PDF and call it reporting.
+            I wanted Bloomberg-style analytics on my own portfolio —
+            so I built one.&rdquo;
+          </p>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+            Dariush Tahajomi · HSG St. Gallen &rsquo;26
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px 96px' }}>
+        <div style={{
+          maxWidth: 720, margin: '0 auto', textAlign: 'center',
+        }}>
+          <h2 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(28px, 4.5vw, 48px)',
+            fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1,
+            margin: 0,
+          }}>
+            Stop guessing.<br />
+            <span style={{
+              background: 'var(--grad-brand)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Start measuring.
+            </span>
+          </h2>
+          <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/login" style={ctaPrimary}>
+              Create your account
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+// ── inline style helpers ────────────────────────────────────────────────────
+
+const navLink: React.CSSProperties = {
+  fontSize: 13, fontWeight: 500, color: 'var(--ink-2)',
+  textDecoration: 'none', padding: '8px 12px', borderRadius: 8,
+  transition: 'color 0.15s, background 0.15s',
+}
+
+const ctaPrimary: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '13px 22px', fontFamily: 'var(--font-ui)',
+  fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
+  background: 'var(--grad-brand)',
+  color: 'oklch(0.97 0 0)',
+  border: 'none', borderRadius: 11, textDecoration: 'none',
+  boxShadow: '0 0 32px oklch(0.68 0.18 258 / 0.45), 0 6px 20px oklch(0 0 0 / 0.30)',
+  transition: 'transform 0.15s, box-shadow 0.15s',
+  cursor: 'pointer',
+}
+
+const ctaGhost: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '13px 22px', fontFamily: 'var(--font-ui)',
+  fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em',
+  background: 'oklch(from var(--bg-2) l c h / 0.60)',
+  color: 'var(--ink-2)',
+  border: '1px solid var(--line)', borderRadius: 11,
+  textDecoration: 'none',
+  backdropFilter: 'blur(8px)',
+  transition: 'background 0.15s, border-color 0.15s',
+  cursor: 'pointer',
+}
+
+const sectionEyebrow: React.CSSProperties = {
+  fontSize: 11, fontFamily: 'var(--font-mono)',
+  letterSpacing: '0.14em', textTransform: 'uppercase',
+  color: 'oklch(0.68 0.18 258)', marginBottom: 14,
+  fontWeight: 600,
+}
+
+const sectionTitle: React.CSSProperties = {
+  fontFamily: 'var(--font-display)',
+  fontSize: 'clamp(28px, 4vw, 44px)',
+  fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.15,
+  margin: 0, color: 'var(--ink)',
+}
+
+const sectionSub: React.CSSProperties = {
+  marginTop: 16, fontSize: 15, lineHeight: 1.6,
+  color: 'var(--ink-3)', maxWidth: 560, margin: '16px auto 0',
+}
+
+const featureList: React.CSSProperties = {
+  listStyle: 'none', padding: 0, margin: '20px 0 24px',
+  display: 'flex', flexDirection: 'column', gap: 9,
+  flex: 1,
+}
+
+function pricingCard(highlighted = false): React.CSSProperties {
+  return {
+    position: 'relative',
+    display: 'flex', flexDirection: 'column',
+    padding: '32px 28px',
+    background: highlighted
+      ? 'oklch(from var(--bg-1) l c h / 0.90)'
+      : 'oklch(from var(--bg-1) l c h / 0.65)',
+    border: '1.5px solid var(--line-soft)',
+    borderRadius: 'var(--radius-lg)',
+    backdropFilter: 'blur(12px)',
+    boxShadow: highlighted ? '0 0 48px oklch(0.68 0.18 258 / 0.18)' : 'none',
+  }
+}
+
+function FeatureLi({ children }: { children: React.ReactNode }) {
+  return (
+    <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+      <span style={{ color: 'oklch(0.82 0.156 162)', marginTop: 2, flexShrink: 0 }}>
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      </span>
+      {children}
+    </li>
+  )
+}
