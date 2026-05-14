@@ -1,35 +1,36 @@
 import Link from 'next/link'
+import { HeroChart, FeatureCard, Reveal } from './LandingClient'
 
 const FEATURES = [
   {
     title: 'Markowitz Efficient Frontier',
     desc: 'See the optimal risk/return curve for your actual holdings. 5,000-portfolio Monte Carlo with per-asset weight caps.',
-    accent: 'a',
+    accent: 'a' as const,
   },
   {
     title: 'Historical Stress Testing',
     desc: 'Simulate dot-com, 2008, COVID and 2022 drawdowns against your live positions. Know what you actually own.',
-    accent: 'b',
+    accent: 'b' as const,
   },
   {
     title: 'Sharpe · Sortino · Beta · Alpha',
     desc: 'Annualised risk-adjusted returns, downside deviation, and regression-based market sensitivity vs. S&P 500.',
-    accent: 'a',
+    accent: 'a' as const,
   },
   {
     title: 'Swiss Broker CSV Import',
     desc: 'One-click import for ZKB, Yuh and Neon. FX-aware to ±0.2% versus your bank statement.',
-    accent: 'b',
+    accent: 'b' as const,
   },
   {
     title: 'Multi-Currency · FX-Aware',
     desc: 'Display in CHF, USD, EUR, GBP, JPY, CAD or SGD. Returns normalised by historical purchase-day exchange rates.',
-    accent: 'a',
+    accent: 'a' as const,
   },
   {
     title: 'Risk Tab',
     desc: 'Correlation matrix, rolling volatility regime, VaR and CVaR. Built for investors who want signal, not narrative.',
-    accent: 'b',
+    accent: 'b' as const,
   },
 ]
 
@@ -43,35 +44,37 @@ const STATS = [
 export default function Landing() {
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      {/* Ambient background blobs */}
+      {/* Ambient background — floating blobs + dot grid */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{
+        <div className="lp-blob" style={{
           position: 'absolute', top: '-15%', left: '-10%', width: '55%', height: '60%',
-          background: 'radial-gradient(ellipse, oklch(0.68 0.18 258 / 0.18) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse, oklch(0.68 0.18 258 / 0.20) 0%, transparent 65%)',
           borderRadius: '50%', filter: 'blur(20px)',
         }} />
-        <div style={{
+        <div className="lp-blob--b" style={{
           position: 'absolute', top: '20%', right: '-10%', width: '50%', height: '55%',
-          background: 'radial-gradient(ellipse, oklch(0.64 0.19 285 / 0.14) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse, oklch(0.64 0.19 285 / 0.18) 0%, transparent 65%)',
           borderRadius: '50%', filter: 'blur(20px)',
         }} />
-        <div style={{
+        <div className="lp-blob--c" style={{
           position: 'absolute', bottom: '-10%', left: '15%', width: '60%', height: '50%',
-          background: 'radial-gradient(ellipse, oklch(0.82 0.156 162 / 0.06) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse, oklch(0.82 0.156 162 / 0.08) 0%, transparent 65%)',
           borderRadius: '50%', filter: 'blur(20px)',
         }} />
         <div style={{
           position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.02) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.025) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
+          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
         }} />
       </div>
 
       {/* Nav */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
-        backdropFilter: 'blur(16px)',
-        background: 'oklch(from var(--bg) l c h / 0.70)',
+        backdropFilter: 'blur(20px)',
+        background: 'oklch(from var(--bg) l c h / 0.65)',
         borderBottom: '1px solid var(--line-soft)',
       }}>
         <div style={{
@@ -79,28 +82,28 @@ export default function Landing() {
           padding: '14px 24px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
             <div style={{
               width: 32, height: 32, borderRadius: 9,
               background: 'var(--grad-brand)',
               display: 'grid', placeItems: 'center',
               fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15,
               color: 'oklch(0.97 0 0)', letterSpacing: '-0.03em',
-              boxShadow: '0 0 20px oklch(0.68 0.18 258 / 0.40)',
+              boxShadow: '0 0 20px oklch(0.68 0.18 258 / 0.45)',
             }}>Q</div>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
               Quantfoli
             </span>
-          </div>
+          </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#features" style={navLink}>Features</a>
-            <a href="#pricing" style={navLink}>Pricing</a>
-            <Link href="/login" style={{
+            <a href="#pricing"  style={navLink}>Pricing</a>
+            <Link href="/login" className="lp-cta" style={{
               ...navLink,
               padding: '8px 16px', borderRadius: 9,
               background: 'var(--grad-brand)',
               color: 'oklch(0.97 0 0)', fontWeight: 600,
-              boxShadow: '0 0 24px oklch(0.68 0.18 258 / 0.30), 0 2px 8px oklch(0 0 0 / 0.20)',
+              boxShadow: '0 0 24px oklch(0.68 0.18 258 / 0.32), 0 2px 8px oklch(0 0 0 / 0.20)',
             }}>
               Sign in
             </Link>
@@ -109,36 +112,30 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '88px 24px 64px' }}>
-        <div style={{ maxWidth: 920, margin: '0 auto', textAlign: 'center', animation: 'fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both' }}>
+      <section style={{ position: 'relative', zIndex: 1, padding: '96px 24px 56px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', textAlign: 'center', animation: 'fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both' }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '6px 14px', marginBottom: 28,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            padding: '6px 14px', marginBottom: 32,
             borderRadius: 100,
             background: 'oklch(0.68 0.18 258 / 0.08)',
-            border: '1px solid oklch(0.68 0.18 258 / 0.20)',
+            border: '1px solid oklch(0.68 0.18 258 / 0.22)',
             fontSize: 12, fontFamily: 'var(--font-mono)',
-            color: 'oklch(0.78 0.15 258)',
+            color: 'oklch(0.80 0.14 258)',
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'oklch(0.82 0.156 162)', boxShadow: '0 0 8px oklch(0.82 0.156 162)' }} />
+            <span className="lp-status-dot" />
             Built in Switzerland · for self-directed investors
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(40px, 6vw, 72px)',
-            fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.05,
+            fontSize: 'clamp(42px, 6.5vw, 78px)',
+            fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.02,
             margin: 0, color: 'var(--ink)',
           }}>
             Institutional-grade<br />
             portfolio analytics.{' '}
-            <span style={{
-              background: 'var(--grad-brand)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>
-              Retail price.
-            </span>
+            <span className="lp-grad-text">Retail price.</span>
           </h1>
 
           <p style={{
@@ -151,215 +148,216 @@ export default function Landing() {
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" style={ctaPrimary}>
+            <Link href="/login" className="lp-cta" style={ctaPrimary}>
               Start free
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </Link>
-            <a href="#features" style={ctaGhost}>
+            <a href="#features" className="lp-ghost" style={ctaGhost}>
               See features
             </a>
           </div>
 
-          <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ marginTop: 20, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
             Free tier · No credit card · Cancel Pro anytime
           </div>
         </div>
 
+        {/* Hero visual */}
+        <HeroChart />
+
         {/* Stats strip */}
-        <div style={{
-          maxWidth: 920, margin: '72px auto 0',
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1,
-          background: 'var(--line-soft)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
-        }}>
-          {STATS.map(s => (
-            <div key={s.label} style={{
-              background: 'oklch(from var(--bg-1) l c h / 0.85)',
-              padding: '24px 16px', textAlign: 'center',
-              backdropFilter: 'blur(8px)',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30,
-                letterSpacing: '-0.02em',
-                background: 'var(--grad-brand)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+        <Reveal>
+          <div style={{
+            maxWidth: 880, margin: '56px auto 0',
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1,
+            background: 'var(--line-soft)',
+            border: '1px solid var(--line-soft)',
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+          }}>
+            {STATS.map(s => (
+              <div key={s.label} style={{
+                background: 'oklch(from var(--bg-1) l c h / 0.85)',
+                padding: '26px 16px', textAlign: 'center',
+                backdropFilter: 'blur(8px)',
               }}>
-                {s.value}
+                <div className="lp-grad-text" style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32,
+                  letterSpacing: '-0.025em',
+                }}>
+                  {s.value}
+                </div>
+                <div style={{
+                  marginTop: 4, fontSize: 11, color: 'var(--ink-4)',
+                  fontFamily: 'var(--font-mono)', letterSpacing: '0.10em', textTransform: 'uppercase',
+                }}>
+                  {s.label}
+                </div>
               </div>
-              <div style={{
-                marginTop: 4, fontSize: 11, color: 'var(--ink-4)',
-                fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase',
-              }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Reveal>
       </section>
 
       {/* Features */}
-      <section id="features" style={{ position: 'relative', zIndex: 1, padding: '88px 24px 64px' }}>
+      <section id="features" style={{ position: 'relative', zIndex: 1, padding: '96px 24px 72px' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <div style={sectionEyebrow}>What you get</div>
-            <h2 style={sectionTitle}>The toolkit your bank never built.</h2>
-            <p style={sectionSub}>
-              Six modules that actually move the needle on portfolio decisions — not vanity charts.
-            </p>
-          </div>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 64 }}>
+              <div style={sectionEyebrow}>What you get</div>
+              <h2 style={sectionTitle}>The toolkit your bank never built.</h2>
+              <p style={sectionSub}>
+                Six modules that actually move the needle on portfolio decisions — not vanity charts.
+              </p>
+            </div>
+          </Reveal>
 
           <div style={{
             display: 'grid', gap: 16,
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           }}>
-            {FEATURES.map(f => (
-              <div key={f.title} style={{
-                position: 'relative',
-                padding: '28px 24px',
-                background: 'oklch(from var(--bg-1) l c h / 0.80)',
-                border: '1px solid var(--line-soft)',
-                borderRadius: 'var(--radius-lg)',
-                backdropFilter: 'blur(12px)',
-                transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                  background: f.accent === 'a'
-                    ? 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.60), transparent)'
-                    : 'linear-gradient(90deg, transparent, oklch(0.64 0.19 285 / 0.60), transparent)',
-                }} />
-                <div style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 700,
-                  fontSize: 17, letterSpacing: '-0.015em',
-                  color: 'var(--ink)', marginBottom: 10,
-                }}>
-                  {f.title}
-                </div>
-                <div style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink-3)' }}>
-                  {f.desc}
-                </div>
-              </div>
+            {FEATURES.map((f, i) => (
+              <FeatureCard
+                key={f.title}
+                title={f.title}
+                desc={f.desc}
+                accent={f.accent}
+                delay={i * 60}
+              />
             ))}
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px' }}>
-        <div style={{ maxWidth: 920, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={sectionEyebrow}>How it works</div>
-            <h2 style={sectionTitle}>Sixty seconds to your first frontier.</h2>
-          </div>
+      <section style={{ position: 'relative', zIndex: 1, padding: '72px 24px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <div style={sectionEyebrow}>How it works</div>
+              <h2 style={sectionTitle}>Sixty seconds to your first frontier.</h2>
+            </div>
+          </Reveal>
           <div style={{
-            display: 'grid', gap: 20,
+            display: 'grid', gap: 16,
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           }}>
             {[
               { n: '01', t: 'Create an account', d: 'Email and password. No credit card.' },
               { n: '02', t: 'Import or add positions', d: 'ZKB · Yuh · Neon CSV, or add manually by ticker.' },
               { n: '03', t: 'See the math', d: 'Sharpe, frontier, stress test — instantly, on your actual book.' },
-            ].map(s => (
-              <div key={s.n} style={{
-                padding: '24px 22px',
-                background: 'oklch(from var(--bg-1) l c h / 0.60)',
-                border: '1px solid var(--line-soft)',
-                borderRadius: 'var(--radius)',
-                backdropFilter: 'blur(8px)',
-              }}>
+            ].map((s, i) => (
+              <Reveal key={s.n} delay={i * 100}>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 12,
-                  letterSpacing: '0.1em',
-                  color: 'oklch(0.68 0.18 258)',
-                  marginBottom: 14,
-                }}>{s.n}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
-                  {s.t}
+                  padding: '26px 22px', height: '100%',
+                  background: 'oklch(from var(--bg-1) l c h / 0.60)',
+                  border: '1px solid var(--line-soft)',
+                  borderRadius: 'var(--radius)',
+                  backdropFilter: 'blur(8px)',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    position: 'absolute', top: 14, right: 18,
+                    fontFamily: 'var(--font-display)', fontWeight: 700,
+                    fontSize: 56, lineHeight: 1, letterSpacing: '-0.04em',
+                    color: 'oklch(0.68 0.18 258 / 0.10)',
+                  }}>{s.n}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    letterSpacing: '0.12em',
+                    color: 'oklch(0.78 0.15 258)',
+                    marginBottom: 16,
+                  }}>STEP {s.n}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, marginBottom: 8, position: 'relative' }}>
+                    {s.t}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, position: 'relative' }}>
+                    {s.d}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-                  {s.d}
-                </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ position: 'relative', zIndex: 1, padding: '64px 24px 88px' }}>
+      <section id="pricing" style={{ position: 'relative', zIndex: 1, padding: '72px 24px 96px' }}>
         <div style={{ maxWidth: 880, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={sectionEyebrow}>Pricing</div>
-            <h2 style={sectionTitle}>Simple. Honest. No fake tiers.</h2>
-          </div>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <div style={sectionEyebrow}>Pricing</div>
+              <h2 style={sectionTitle}>Simple. Honest. No fake tiers.</h2>
+            </div>
+          </Reveal>
 
           <div style={{
             display: 'grid', gap: 16,
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           }}>
             {/* Free */}
-            <div style={pricingCard()}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-2)' }}>
-                Free
+            <Reveal>
+              <div style={pricingCard()}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-2)' }}>
+                  Free
+                </div>
+                <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em' }}>CHF 0</span>
+                </div>
+                <ul style={featureList}>
+                  {[
+                    'Portfolio tracker & P&L',
+                    'EOD prices (Yahoo Finance)',
+                    'S&P 500 benchmark',
+                    'CSV + Swiss broker import',
+                    'Multi-currency display',
+                  ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+                </ul>
+                <Link href="/login" className="lp-ghost" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+                  Start free
+                </Link>
               </div>
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em' }}>CHF 0</span>
-              </div>
-              <ul style={featureList}>
-                {[
-                  'Portfolio tracker & P&L',
-                  'EOD prices (Yahoo Finance)',
-                  'S&P 500 benchmark',
-                  'CSV + Swiss broker import',
-                  'Multi-currency display',
-                ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
-              </ul>
-              <Link href="/login" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
-                Start free
-              </Link>
-            </div>
+            </Reveal>
 
             {/* Pro */}
-            <div style={{ ...pricingCard(true), borderColor: 'oklch(0.68 0.18 258 / 0.50)' }}>
-              <div style={{
-                position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
-                background: 'var(--grad-brand)', color: 'oklch(0.97 0 0)',
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                padding: '3px 12px', borderRadius: 20,
-                boxShadow: '0 0 16px oklch(0.68 0.18 258 / 0.50)',
-              }}>
-                Most Popular
+            <Reveal delay={120}>
+              <div className="lp-pro-card" style={{ ...pricingCard(true), borderRadius: 'var(--radius-lg)' }}>
+                <div style={{
+                  position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--grad-brand)', color: 'oklch(0.97 0 0)',
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  padding: '4px 12px', borderRadius: 20,
+                  boxShadow: '0 0 16px oklch(0.68 0.18 258 / 0.55)',
+                }}>
+                  Most Popular
+                </div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.80 0.15 258)' }}>
+                  Pro
+                </div>
+                <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em' }}>CHF 15</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>/month</span>
+                </div>
+                <ul style={featureList}>
+                  {[
+                    'Everything in Free',
+                    'Sharpe · Sortino · Beta · Alpha',
+                    'Efficient Frontier (Markowitz MPT)',
+                    'Historical Stress Testing',
+                    'Risk Tab — VaR, CVaR, correlation matrix',
+                    'Rolling volatility regime',
+                  ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+                </ul>
+                <Link href="/login" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+                  Get Pro
+                </Link>
               </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.78 0.15 258)' }}>
-                Pro
-              </div>
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em' }}>CHF 15</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>/month</span>
-              </div>
-              <ul style={featureList}>
-                {[
-                  'Everything in Free',
-                  'Sharpe · Sortino · Beta · Alpha',
-                  'Efficient Frontier (Markowitz MPT)',
-                  'Historical Stress Testing',
-                  'Risk Tab — VaR, CVaR, correlation matrix',
-                  'Rolling volatility regime',
-                ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
-              </ul>
-              <Link href="/login" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
-                Get Pro
-              </Link>
-            </div>
+            </Reveal>
           </div>
 
-          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-4)', marginTop: 24, fontFamily: 'var(--font-mono)' }}>
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-4)', marginTop: 28, fontFamily: 'var(--font-mono)' }}>
             Cancel anytime from your Stripe customer portal · No refunds on partial periods
           </p>
         </div>
@@ -367,62 +365,63 @@ export default function Landing() {
 
       {/* Founder note */}
       <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px' }}>
-        <div style={{
-          maxWidth: 720, margin: '0 auto',
-          padding: '40px 32px',
-          background: 'oklch(from var(--bg-1) l c h / 0.70)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: 'var(--radius-lg)',
-          backdropFilter: 'blur(12px)',
-          textAlign: 'center',
-        }}>
-          <div style={sectionEyebrow}>Why this exists</div>
-          <p style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(18px, 2.4vw, 24px)',
-            lineHeight: 1.5, letterSpacing: '-0.015em',
-            color: 'var(--ink)', margin: '8px 0 24px',
-            fontWeight: 500,
+        <Reveal>
+          <div style={{
+            maxWidth: 720, margin: '0 auto',
+            padding: '44px 36px',
+            background: 'oklch(from var(--bg-1) l c h / 0.75)',
+            border: '1px solid var(--line-soft)',
+            borderRadius: 'var(--radius-lg)',
+            backdropFilter: 'blur(14px)',
+            textAlign: 'center',
+            position: 'relative', overflow: 'hidden',
           }}>
-            &ldquo;Swiss banks give you a static PDF and call it reporting.
-            I wanted Bloomberg-style analytics on my own portfolio —
-            so I built one.&rdquo;
-          </p>
-          <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-            Dariush Tahajomi · HSG St. Gallen &rsquo;26
+            <div style={{
+              position: 'absolute', top: -1, left: '20%', right: '20%', height: 2,
+              background: 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.50), transparent)',
+            }} />
+            <div style={sectionEyebrow}>Why this exists</div>
+            <p style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(18px, 2.4vw, 26px)',
+              lineHeight: 1.45, letterSpacing: '-0.018em',
+              color: 'var(--ink)', margin: '8px 0 24px',
+              fontWeight: 500,
+            }}>
+              &ldquo;Swiss banks give you a static PDF and call it reporting.
+              I wanted Bloomberg-style analytics on my own portfolio —
+              so I built one.&rdquo;
+            </p>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+              Dariush Tahajomi · HSG St. Gallen &rsquo;26
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Final CTA */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px 96px' }}>
-        <div style={{
-          maxWidth: 720, margin: '0 auto', textAlign: 'center',
-        }}>
-          <h2 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(28px, 4.5vw, 48px)',
-            fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1,
-            margin: 0,
-          }}>
-            Stop guessing.<br />
-            <span style={{
-              background: 'var(--grad-brand)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+      <section style={{ position: 'relative', zIndex: 1, padding: '72px 24px 104px' }}>
+        <Reveal>
+          <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(32px, 5vw, 56px)',
+              fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.05,
+              margin: 0,
             }}>
-              Start measuring.
-            </span>
-          </h2>
-          <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" style={ctaPrimary}>
-              Create your account
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 5l7 7-7 7" />
-              </svg>
-            </Link>
+              Stop guessing.<br />
+              <span className="lp-grad-text">Start measuring.</span>
+            </h2>
+            <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/login" className="lp-cta" style={ctaPrimary}>
+                Create your account
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
     </div>
   )
@@ -444,7 +443,7 @@ const ctaPrimary: React.CSSProperties = {
   color: 'oklch(0.97 0 0)',
   border: 'none', borderRadius: 11, textDecoration: 'none',
   boxShadow: '0 0 32px oklch(0.68 0.18 258 / 0.45), 0 6px 20px oklch(0 0 0 / 0.30)',
-  transition: 'transform 0.15s, box-shadow 0.15s',
+  transition: 'transform 0.18s, box-shadow 0.18s',
   cursor: 'pointer',
 }
 
@@ -457,27 +456,27 @@ const ctaGhost: React.CSSProperties = {
   border: '1px solid var(--line)', borderRadius: 11,
   textDecoration: 'none',
   backdropFilter: 'blur(8px)',
-  transition: 'background 0.15s, border-color 0.15s',
+  transition: 'background 0.18s, border-color 0.18s, transform 0.18s',
   cursor: 'pointer',
 }
 
 const sectionEyebrow: React.CSSProperties = {
   fontSize: 11, fontFamily: 'var(--font-mono)',
-  letterSpacing: '0.14em', textTransform: 'uppercase',
-  color: 'oklch(0.68 0.18 258)', marginBottom: 14,
+  letterSpacing: '0.16em', textTransform: 'uppercase',
+  color: 'oklch(0.78 0.15 258)', marginBottom: 16,
   fontWeight: 600,
 }
 
 const sectionTitle: React.CSSProperties = {
   fontFamily: 'var(--font-display)',
-  fontSize: 'clamp(28px, 4vw, 44px)',
-  fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.15,
+  fontSize: 'clamp(30px, 4.2vw, 48px)',
+  fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1,
   margin: 0, color: 'var(--ink)',
 }
 
 const sectionSub: React.CSSProperties = {
-  marginTop: 16, fontSize: 15, lineHeight: 1.6,
-  color: 'var(--ink-3)', maxWidth: 560, margin: '16px auto 0',
+  marginTop: 18, fontSize: 15, lineHeight: 1.6,
+  color: 'var(--ink-3)', maxWidth: 580, margin: '18px auto 0',
 }
 
 const featureList: React.CSSProperties = {
@@ -490,14 +489,14 @@ function pricingCard(highlighted = false): React.CSSProperties {
   return {
     position: 'relative',
     display: 'flex', flexDirection: 'column',
-    padding: '32px 28px',
+    padding: '32px 28px', height: '100%',
     background: highlighted
-      ? 'oklch(from var(--bg-1) l c h / 0.90)'
+      ? 'oklch(from var(--bg-1) l c h / 0.92)'
       : 'oklch(from var(--bg-1) l c h / 0.65)',
     border: '1.5px solid var(--line-soft)',
     borderRadius: 'var(--radius-lg)',
     backdropFilter: 'blur(12px)',
-    boxShadow: highlighted ? '0 0 48px oklch(0.68 0.18 258 / 0.18)' : 'none',
+    boxShadow: highlighted ? '0 0 56px oklch(0.68 0.18 258 / 0.18)' : 'none',
   }
 }
 

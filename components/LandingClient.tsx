@@ -1,0 +1,236 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+
+// ── Animated frontier chart visual ──────────────────────────────────────────
+
+export function HeroChart() {
+  return (
+    <div style={{
+      maxWidth: 880, margin: '64px auto 0',
+      padding: 24,
+      background: 'oklch(from var(--bg-1) l c h / 0.50)',
+      border: '1px solid var(--line-soft)',
+      borderRadius: 'var(--radius-lg)',
+      backdropFilter: 'blur(16px)',
+      boxShadow: '0 24px 80px -16px oklch(0 0 0 / 0.70), 0 0 60px oklch(0.68 0.18 258 / 0.10)',
+      position: 'relative',
+    }}>
+      {/* Window chrome */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 16, paddingBottom: 12,
+        borderBottom: '1px solid var(--line-soft)',
+      }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span style={dotPill('#FF5F57')} />
+          <span style={dotPill('#FEBC2E')} />
+          <span style={dotPill('#28C840')} />
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11,
+          color: 'var(--ink-4)', letterSpacing: '0.08em',
+        }}>
+          quantfoli · efficient frontier
+        </div>
+        <div style={{ width: 60 }} />
+      </div>
+
+      <svg viewBox="0 0 800 320" style={{ width: '100%', display: 'block' }}>
+        <defs>
+          <linearGradient id="curveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stopColor="oklch(0.68 0.18 258)" />
+            <stop offset="100%" stopColor="oklch(0.64 0.19 285)" />
+          </linearGradient>
+          <linearGradient id="fillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"   stopColor="oklch(0.68 0.18 258 / 0.30)" />
+            <stop offset="100%" stopColor="oklch(0.68 0.18 258 / 0.00)" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid */}
+        {[0, 1, 2, 3, 4].map(i => (
+          <line key={`h${i}`}
+            x1="40" x2="780"
+            y1={40 + i * 60} y2={40 + i * 60}
+            stroke="oklch(0.260 0.013 255)" strokeWidth="0.6" strokeDasharray="2 4"
+          />
+        ))}
+        {[0, 1, 2, 3, 4, 5, 6].map(i => (
+          <line key={`v${i}`}
+            y1="40" y2="280"
+            x1={40 + i * 124} x2={40 + i * 124}
+            stroke="oklch(0.260 0.013 255)" strokeWidth="0.6" strokeDasharray="2 4"
+          />
+        ))}
+
+        {/* Axis labels */}
+        <text x="40"  y="305" fill="var(--ink-4)" fontSize="10" fontFamily="var(--font-mono)">Low risk</text>
+        <text x="700" y="305" fill="var(--ink-4)" fontSize="10" fontFamily="var(--font-mono)">High risk</text>
+        <text x="10"  y="50"  fill="var(--ink-4)" fontSize="10" fontFamily="var(--font-mono)" transform="rotate(-90, 10, 50)">Return</text>
+
+        {/* Scattered Monte Carlo portfolios */}
+        {SCATTER.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={2.5}
+            fill="oklch(0.570 0.014 255 / 0.5)"
+            style={{ animation: `scatter-in 0.5s ${0.4 + i * 0.025}s cubic-bezier(0.22,1,0.36,1) both` }}
+          />
+        ))}
+
+        {/* Frontier curve fill */}
+        <path
+          d={`${FRONTIER_PATH} L 780 280 L 40 280 Z`}
+          fill="url(#fillGrad)"
+          style={{ animation: 'fade-in 1.6s 1.4s both' }}
+        />
+
+        {/* Frontier curve */}
+        <path
+          d={FRONTIER_PATH}
+          stroke="url(#curveGrad)" strokeWidth="2.5" fill="none"
+          strokeLinecap="round" strokeLinejoin="round"
+          strokeDasharray="1200" strokeDashoffset="1200"
+          style={{ animation: 'dash-draw 1.8s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}
+        />
+
+        {/* "Your portfolio" star */}
+        <g style={{ animation: 'fade-in 0.6s 2.2s both, star-pulse 3s 2.4s ease-in-out infinite' }}>
+          <circle cx="430" cy="118" r="9" fill="oklch(0.82 0.156 162)" stroke="oklch(0.118 0.012 255)" strokeWidth="2.5" />
+          <circle cx="430" cy="118" r="9" fill="none" stroke="oklch(0.82 0.156 162 / 0.4)" strokeWidth="1">
+            <animate attributeName="r" from="9" to="20" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite" />
+          </circle>
+        </g>
+        <g style={{ animation: 'fade-up 0.6s 2.5s both' }}>
+          <rect x="448" y="98" width="118" height="40" rx="8"
+            fill="oklch(from var(--bg-1) l c h / 0.95)"
+            stroke="oklch(0.82 0.156 162 / 0.40)" strokeWidth="1"
+          />
+          <text x="458" y="115" fill="var(--ink)" fontSize="11" fontWeight="700" fontFamily="var(--font-display)">
+            Your portfolio
+          </text>
+          <text x="458" y="130" fill="var(--ink-3)" fontSize="10" fontFamily="var(--font-mono)">
+            σ 14.2% · μ 11.8%
+          </text>
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+// Pre-computed frontier curve (cubic curve, concave-down)
+const FRONTIER_PATH =
+  'M 60 240 ' +
+  'C 140 230, 200 190, 280 160 ' +
+  'S 440 100, 540 80 ' +
+  'S 720 60, 770 55'
+
+// Pre-computed scatter (deterministic, looks random)
+const SCATTER = [
+  { x: 100, y: 252 }, { x: 130, y: 245 }, { x: 170, y: 236 }, { x: 200, y: 228 },
+  { x: 230, y: 215 }, { x: 260, y: 207 }, { x: 280, y: 198 }, { x: 310, y: 188 },
+  { x: 340, y: 175 }, { x: 360, y: 168 }, { x: 380, y: 160 }, { x: 410, y: 148 },
+  { x: 440, y: 138 }, { x: 470, y: 128 }, { x: 500, y: 118 }, { x: 530, y: 108 },
+  { x: 560, y: 100 }, { x: 590, y: 92 },  { x: 620, y: 86 },  { x: 650, y: 82 },
+  { x: 680, y: 78 },  { x: 710, y: 74 },  { x: 740, y: 72 },
+  // noisier cloud above/below
+  { x: 200, y: 250 }, { x: 280, y: 220 }, { x: 360, y: 195 }, { x: 440, y: 170 },
+  { x: 520, y: 145 }, { x: 600, y: 125 }, { x: 680, y: 105 },
+  { x: 150, y: 270 }, { x: 220, y: 260 }, { x: 290, y: 245 }, { x: 370, y: 220 },
+  { x: 450, y: 195 }, { x: 530, y: 170 }, { x: 610, y: 150 }, { x: 690, y: 130 },
+  { x: 175, y: 222 }, { x: 255, y: 192 }, { x: 335, y: 162 }, { x: 415, y: 135 },
+  { x: 495, y: 110 }, { x: 575, y: 90 },  { x: 655, y: 76 },
+]
+
+function dotPill(color: string): React.CSSProperties {
+  return {
+    width: 11, height: 11, borderRadius: '50%',
+    background: color,
+    boxShadow: `0 0 4px ${color}`,
+  }
+}
+
+// ── Mouse-tracking feature card ─────────────────────────────────────────────
+
+export function FeatureCard({ title, desc, accent, delay = 0 }: {
+  title: string; desc: string; accent: 'a' | 'b'; delay?: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    el.style.setProperty('--mx', `${e.clientX - rect.left}px`)
+    el.style.setProperty('--my', `${e.clientY - rect.top}px`)
+  }
+
+  return (
+    <Reveal delay={delay}>
+      <div
+        ref={ref}
+        className="lp-feature-card"
+        onMouseMove={onMove}
+        style={{
+          position: 'relative',
+          padding: '28px 24px',
+          background: 'oklch(from var(--bg-1) l c h / 0.80)',
+          border: '1px solid var(--line-soft)',
+          borderRadius: 'var(--radius-lg)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: accent === 'a'
+            ? 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.70), transparent)'
+            : 'linear-gradient(90deg, transparent, oklch(0.64 0.19 285 / 0.70), transparent)',
+        }} />
+        <div style={{
+          position: 'relative', zIndex: 1,
+          fontFamily: 'var(--font-display)', fontWeight: 700,
+          fontSize: 17, letterSpacing: '-0.015em',
+          color: 'var(--ink)', marginBottom: 10,
+        }}>
+          {title}
+        </div>
+        <div style={{ position: 'relative', zIndex: 1, fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink-3)' }}>
+          {desc}
+        </div>
+      </div>
+    </Reveal>
+  )
+}
+
+// ── Scroll-triggered reveal wrapper ─────────────────────────────────────────
+
+export function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShown(true)
+          obs.disconnect()
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      className={`lp-reveal ${shown ? 'is-visible' : ''}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  )
+}

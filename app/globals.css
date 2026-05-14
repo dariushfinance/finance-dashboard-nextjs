@@ -149,6 +149,150 @@ a      { color: inherit; text-decoration: none; }
   to   { transform: scaleX(1); opacity: 1; }
 }
 
+/* Landing page animations */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(40px, -30px) scale(1.05); }
+  66%      { transform: translate(-30px, 20px) scale(0.97); }
+}
+@keyframes dash-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes scatter-in {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.4); opacity: 0.6; }
+}
+@keyframes gradient-pan {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+@keyframes border-rotate {
+  to { --angle: 360deg; }
+}
+@keyframes cta-shimmer {
+  0%   { transform: translateX(-100%) skewX(-20deg); }
+  100% { transform: translateX(250%)  skewX(-20deg); }
+}
+@keyframes star-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px oklch(0.82 0.156 162 / 0.6)); }
+  50%      { filter: drop-shadow(0 0 16px oklch(0.82 0.156 162 / 1)); }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.lp-blob       { animation: float-slow 22s ease-in-out infinite; }
+.lp-blob--b    { animation: float-slow 28s ease-in-out infinite reverse; }
+.lp-blob--c    { animation: float-slow 34s ease-in-out infinite; }
+
+.lp-grad-text {
+  background: linear-gradient(120deg, oklch(0.78 0.16 258), oklch(0.74 0.18 285), oklch(0.78 0.16 258));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-pan 8s ease-in-out infinite;
+}
+
+.lp-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.lp-cta::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.30), transparent);
+  transform: translateX(-100%) skewX(-20deg);
+  animation: cta-shimmer 3.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+  z-index: 1;
+}
+.lp-cta:hover { transform: translateY(-1.5px); box-shadow: 0 0 40px oklch(0.68 0.18 258 / 0.55), 0 8px 24px oklch(0 0 0 / 0.35); }
+.lp-ghost:hover { background: oklch(from var(--bg-3) l c h / 0.75); border-color: var(--ink-4); }
+
+.lp-pro-card {
+  position: relative;
+  background:
+    linear-gradient(oklch(from var(--bg-1) l c h / 0.92), oklch(from var(--bg-1) l c h / 0.92)) padding-box,
+    conic-gradient(from var(--angle),
+      oklch(0.68 0.18 258 / 0.0)   0deg,
+      oklch(0.68 0.18 258 / 0.85) 80deg,
+      oklch(0.64 0.19 285 / 0.85) 160deg,
+      oklch(0.68 0.18 258 / 0.0) 240deg,
+      oklch(0.68 0.18 258 / 0.0) 360deg
+    ) border-box;
+  border: 1.5px solid transparent;
+  animation: border-rotate 6s linear infinite;
+}
+
+.lp-feature-card {
+  position: relative;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+  overflow: hidden;
+}
+.lp-feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    400px circle at var(--mx, 50%) var(--my, 50%),
+    oklch(0.68 0.18 258 / 0.10),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.lp-feature-card:hover { transform: translateY(-3px); border-color: oklch(0.68 0.18 258 / 0.35); }
+.lp-feature-card:hover::before { opacity: 1; }
+
+.lp-status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: oklch(0.82 0.156 162);
+  box-shadow: 0 0 10px oklch(0.82 0.156 162);
+  position: relative;
+}
+.lp-status-dot::after {
+  content: '';
+  position: absolute; inset: -2px; border-radius: 50%;
+  background: oklch(0.82 0.156 162 / 0.4);
+  animation: pulse-soft 2.4s ease-in-out infinite;
+  z-index: -1;
+}
+
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+}
+.lp-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-blob, .lp-blob--b, .lp-blob--c,
+  .lp-grad-text, .lp-cta::after, .lp-pro-card { animation: none !important; }
+  .lp-reveal { opacity: 1; transform: none; transition: none; }
+}
+
 /* ── App shell ───────────────────────────────────────────────── */
 
 .app {
