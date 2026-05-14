@@ -22,7 +22,7 @@ export default function SupportPage() {
       })
       if (!r.ok) {
         const d = await r.json().catch(() => ({}))
-        throw new Error(d.error || 'Failed to send. Please email dariush.tahajomi@gmail.com directly.')
+        throw new Error(d.error || 'Failed to send. Please email dtahajomi2007@gmail.com directly.')
       }
       setSent(true)
     } catch (err) {
@@ -153,8 +153,8 @@ export default function SupportPage() {
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--ink-4)', marginTop: 20 }}>
           Or email us directly at{' '}
-          <a href="mailto:dariush.tahajomi@gmail.com" style={{ color: 'var(--ink-3)' }}>
-            dariush.tahajomi@gmail.com
+          <a href="mailto:dtahajomi2007@gmail.com" style={{ color: 'var(--ink-3)' }}>
+            dtahajomi2007@gmail.com
           </a>
         </p>
       </div>
