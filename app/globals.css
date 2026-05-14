@@ -1086,6 +1086,13 @@ a      { color: inherit; text-decoration: none; }
 /* ── Responsive: Mobile (≤768px) ────────────────────────────── */
 
 @media (max-width: 768px) {
+  /* Landing About section — stack avatar above bio */
+  .lp-about {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    padding: 32px 22px !important;
+  }
+
   .app {
     grid-template-columns: 1fr;
     grid-template-areas: "tape" "main";

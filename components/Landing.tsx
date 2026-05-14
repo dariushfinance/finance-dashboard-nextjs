@@ -98,6 +98,7 @@ export default function Landing() {
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#features" style={navLink}>Features</a>
             <a href="#pricing"  style={navLink}>Pricing</a>
+            <a href="#about"    style={navLink}>About</a>
             <Link href="/login" className="lp-cta" style={{
               ...navLink,
               padding: '8px 16px', borderRadius: 9,
@@ -301,40 +302,139 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Founder note */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '64px 24px' }}>
-        <Reveal>
-          <div style={{
-            maxWidth: 720, margin: '0 auto',
-            padding: '44px 36px',
-            background: 'oklch(from var(--bg-1) l c h / 0.75)',
-            border: '1px solid var(--line-soft)',
-            borderRadius: 'var(--radius-lg)',
-            backdropFilter: 'blur(14px)',
-            textAlign: 'center',
-            position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', top: -1, left: '20%', right: '20%', height: 2,
-              background: 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.50), transparent)',
-            }} />
-            <div style={sectionEyebrow}>Why this exists</div>
-            <p style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(18px, 2.4vw, 26px)',
-              lineHeight: 1.45, letterSpacing: '-0.018em',
-              color: 'var(--ink)', margin: '8px 0 24px',
-              fontWeight: 500,
-            }}>
-              &ldquo;Swiss banks give you a static PDF and call it reporting.
-              I wanted Bloomberg-style analytics on my own portfolio —
-              so I built one.&rdquo;
-            </p>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-              Dariush Tahajomi · HSG St. Gallen &rsquo;27
+      {/* About / The Team */}
+      <section id="about" style={{ position: 'relative', zIndex: 1, padding: '96px 24px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <div style={sectionEyebrow}>About · The team</div>
+              <h2 style={sectionTitle}>One operator. Skin in the game.</h2>
+              <p style={sectionSub}>
+                Quantfoli isn&rsquo;t a 20-person fintech. It&rsquo;s one person who got tired of paying
+                his bank for a PDF, and built the tool he wished existed.
+              </p>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+
+          <Reveal>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)',
+              gap: 40,
+              alignItems: 'start',
+              padding: '44px 40px',
+              background: 'oklch(from var(--bg-1) l c h / 0.75)',
+              border: '1px solid var(--line-soft)',
+              borderRadius: 'var(--radius-lg)',
+              backdropFilter: 'blur(14px)',
+              position: 'relative', overflow: 'hidden',
+            }} className="lp-about">
+              <div style={{
+                position: 'absolute', top: -1, left: '20%', right: '20%', height: 2,
+                background: 'linear-gradient(90deg, transparent, oklch(0.68 0.18 258 / 0.50), transparent)',
+              }} />
+
+              {/* Avatar block */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+                <div style={{
+                  width: 160, height: 160, borderRadius: '50%',
+                  background: 'var(--grad-brand)',
+                  display: 'grid', placeItems: 'center',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 56, fontWeight: 700, letterSpacing: '-0.04em',
+                  color: 'oklch(0.97 0 0)',
+                  boxShadow: '0 0 40px oklch(0.68 0.18 258 / 0.40), 0 8px 24px oklch(0 0 0 / 0.35)',
+                  border: '2px solid oklch(0.68 0.18 258 / 0.30)',
+                }}>
+                  DT
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
+                    Dariush Tahajomi
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+                    FOUNDER · BUILDER
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 13, color: 'var(--ink-3)' }}>
+                    HSG St. Gallen &rsquo;27 · Zurich
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio + mission */}
+              <div>
+                <blockquote style={{
+                  margin: '0 0 28px',
+                  paddingLeft: 20,
+                  borderLeft: '3px solid oklch(0.68 0.18 258 / 0.55)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(17px, 2.1vw, 22px)',
+                  lineHeight: 1.45, letterSpacing: '-0.018em',
+                  color: 'var(--ink)', fontWeight: 500,
+                }}>
+                  &ldquo;Swiss banks give you a static PDF and call it reporting.
+                  I wanted Bloomberg-style analytics on my own portfolio —
+                  so I built one.&rdquo;
+                </blockquote>
+
+                <div style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--ink-2)' }}>
+                  <p style={{ margin: '0 0 18px' }}>
+                    I&rsquo;m 18, finishing Matura in 2026, and starting at the University of St. Gallen in 2027.
+                    I trade my own book and got fed up with what Swiss banks send their retail clients:
+                    a static PDF, a vague pie chart, and a 45-minute advisor meeting that costs more than
+                    most people&rsquo;s monthly grocery bill.
+                  </p>
+                  <p style={{ margin: '0 0 18px' }}>
+                    So I built Quantfoli — the analytics layer my bank wouldn&rsquo;t give me. Markowitz frontier,
+                    stress tests, Sharpe, Sortino, Beta, Alpha — running on my actual ZKB and Yuh positions,
+                    FX-aware to ±0.2% versus the statement.
+                  </p>
+                </div>
+
+                <div style={{
+                  marginTop: 24, padding: '20px 22px',
+                  background: 'oklch(0.68 0.18 258 / 0.06)',
+                  border: '1px solid oklch(0.68 0.18 258 / 0.18)',
+                  borderRadius: 'var(--radius)',
+                }}>
+                  <div style={{
+                    fontSize: 11, fontFamily: 'var(--font-mono)',
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                    color: 'oklch(0.80 0.14 258)', fontWeight: 600, marginBottom: 10,
+                  }}>
+                    The mission
+                  </div>
+                  <p style={{
+                    margin: 0, fontFamily: 'var(--font-display)',
+                    fontSize: 'clamp(15px, 1.6vw, 18px)',
+                    lineHeight: 1.55, letterSpacing: '-0.012em',
+                    color: 'var(--ink)', fontWeight: 500,
+                  }}>
+                    Build something better than what banks usually give their clients —
+                    genuine, quantitative insight on your own portfolio. Not hundreds of francs
+                    per advisor meeting. <span className="lp-grad-text">CHF 15 a month.</span>
+                  </p>
+                </div>
+
+                <div style={{ marginTop: 28, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <Link href="/support" className="lp-cta" style={{ ...ctaPrimary, padding: '11px 18px', fontSize: 13 }}>
+                    Get in touch
+                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                  <a
+                    href="mailto:dtahajomi2007@gmail.com"
+                    className="lp-ghost"
+                    style={{ ...ctaGhost, padding: '11px 18px', fontSize: 13 }}
+                  >
+                    dtahajomi2007@gmail.com
+                  </a>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* Final CTA */}
