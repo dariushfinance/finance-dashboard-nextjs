@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { PRO_INTERVALS, type IntervalKey } from '@/lib/stripe'
 
 // ── Animated frontier chart visual ──────────────────────────────────────────
 
@@ -199,6 +201,205 @@ export function FeatureCard({ title, desc, accent, delay = 0 }: {
         </div>
       </div>
     </Reveal>
+  )
+}
+
+// ── Pricing cards with monthly/yearly toggle ────────────────────────────────
+
+export function PricingCards() {
+  const [interval, setInterval] = useState<IntervalKey>('yearly')
+  const meta = PRO_INTERVALS[interval]
+
+  return (
+    <>
+      {/* Toggle */}
+      <Reveal>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <div style={{
+            display: 'inline-flex', padding: 5,
+            background: 'oklch(from var(--bg-1) l c h / 0.70)',
+            border: '1px solid var(--line-soft)',
+            borderRadius: 999,
+            backdropFilter: 'blur(10px)',
+          }}>
+            {(['monthly', 'yearly'] as const).map(iv => {
+              const active = interval === iv
+              const m = PRO_INTERVALS[iv]
+              return (
+                <button
+                  key={iv}
+                  type="button"
+                  onClick={() => setInterval(iv)}
+                  style={{
+                    padding: '8px 20px', borderRadius: 999,
+                    fontSize: 13, fontWeight: 600,
+                    fontFamily: 'var(--font-ui)',
+                    background: active ? 'var(--grad-brand)' : 'transparent',
+                    color: active ? 'oklch(0.97 0 0)' : 'var(--ink-3)',
+                    boxShadow: active ? '0 0 20px oklch(0.68 0.18 258 / 0.40)' : 'none',
+                    transition: 'all 0.22s',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {m.label}
+                  {m.savings && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      padding: '2px 7px', borderRadius: 5,
+                      background: active ? 'oklch(0.97 0 0 / 0.22)' : 'oklch(0.82 0.156 162 / 0.16)',
+                      color: active ? 'oklch(0.97 0 0)' : 'oklch(0.82 0.156 162)',
+                      letterSpacing: '0.05em',
+                    }}>
+                      Save 17%
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </Reveal>
+
+      <div style={{
+        display: 'grid', gap: 16,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      }}>
+        {/* Free */}
+        <Reveal>
+          <div style={pricingCardBase()}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-2)' }}>
+              Free
+            </div>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em' }}>CHF 0</span>
+            </div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+              Forever free
+            </div>
+            <ul style={featureList}>
+              {[
+                'Portfolio tracker & P&L',
+                'EOD prices (Yahoo Finance)',
+                'S&P 500 benchmark',
+                'CSV + Swiss broker import',
+                'Multi-currency display',
+              ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+            </ul>
+            <Link href="/login" className="lp-ghost" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+              Start free
+            </Link>
+          </div>
+        </Reveal>
+
+        {/* Pro */}
+        <Reveal delay={120}>
+          <div className="lp-pro-card" style={{ ...pricingCardBase(true), borderRadius: 'var(--radius-lg)' }}>
+            <div style={{
+              position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+              background: 'var(--grad-brand)', color: 'oklch(0.97 0 0)',
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '4px 12px', borderRadius: 20,
+              boxShadow: '0 0 16px oklch(0.68 0.18 258 / 0.55)',
+              zIndex: 2,
+            }}>
+              Most Popular
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.80 0.15 258)' }}>
+              Pro
+            </div>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{
+                fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em',
+                transition: 'opacity 0.2s', display: 'inline-block',
+              }} key={meta.price}>
+                {meta.price}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>{meta.period}</span>
+            </div>
+            <div style={{
+              marginTop: 6, fontSize: 12, height: 18,
+              fontFamily: 'var(--font-mono)',
+              color: meta.savings ? 'oklch(0.82 0.156 162)' : 'var(--ink-4)',
+            }}>
+              {meta.savings ?? 'Billed monthly'}
+            </div>
+            <ul style={featureList}>
+              {[
+                'Everything in Free',
+                'Sharpe · Sortino · Beta · Alpha',
+                'Efficient Frontier (Markowitz MPT)',
+                'Historical Stress Testing',
+                'Risk Tab — VaR, CVaR, correlation matrix',
+                'Rolling volatility regime',
+              ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+            </ul>
+            <Link href="/login" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+              Get Pro {interval === 'yearly' ? '(yearly)' : '(monthly)'}
+            </Link>
+          </div>
+        </Reveal>
+      </div>
+    </>
+  )
+}
+
+const ctaPrimary: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '13px 22px', fontFamily: 'var(--font-ui)',
+  fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
+  background: 'var(--grad-brand)',
+  color: 'oklch(0.97 0 0)',
+  border: 'none', borderRadius: 11, textDecoration: 'none',
+  boxShadow: '0 0 32px oklch(0.68 0.18 258 / 0.45), 0 6px 20px oklch(0 0 0 / 0.30)',
+  transition: 'transform 0.18s, box-shadow 0.18s',
+  cursor: 'pointer',
+}
+
+const ctaGhost: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '13px 22px', fontFamily: 'var(--font-ui)',
+  fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em',
+  background: 'oklch(from var(--bg-2) l c h / 0.60)',
+  color: 'var(--ink-2)',
+  border: '1px solid var(--line)', borderRadius: 11,
+  textDecoration: 'none',
+  backdropFilter: 'blur(8px)',
+  transition: 'background 0.18s, border-color 0.18s, transform 0.18s',
+  cursor: 'pointer',
+}
+
+const featureList: React.CSSProperties = {
+  listStyle: 'none', padding: 0, margin: '20px 0 24px',
+  display: 'flex', flexDirection: 'column', gap: 9,
+  flex: 1,
+}
+
+function pricingCardBase(highlighted = false): React.CSSProperties {
+  return {
+    position: 'relative',
+    display: 'flex', flexDirection: 'column',
+    padding: '32px 28px', height: '100%',
+    background: highlighted
+      ? 'oklch(from var(--bg-1) l c h / 0.92)'
+      : 'oklch(from var(--bg-1) l c h / 0.65)',
+    border: '1.5px solid var(--line-soft)',
+    borderRadius: 'var(--radius-lg)',
+    backdropFilter: 'blur(12px)',
+    boxShadow: highlighted ? '0 0 56px oklch(0.68 0.18 258 / 0.18)' : 'none',
+  }
+}
+
+function FeatureLi({ children }: { children: React.ReactNode }) {
+  return (
+    <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+      <span style={{ color: 'oklch(0.82 0.156 162)', marginTop: 2, flexShrink: 0 }}>
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      </span>
+      {children}
+    </li>
   )
 }
 

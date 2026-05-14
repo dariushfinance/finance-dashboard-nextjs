@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { HeroChart, FeatureCard, Reveal } from './LandingClient'
+import { HeroChart, FeatureCard, Reveal, PricingCards } from './LandingClient'
 
 const FEATURES = [
   {
@@ -293,69 +293,7 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div style={{
-            display: 'grid', gap: 16,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          }}>
-            {/* Free */}
-            <Reveal>
-              <div style={pricingCard()}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-2)' }}>
-                  Free
-                </div>
-                <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em' }}>CHF 0</span>
-                </div>
-                <ul style={featureList}>
-                  {[
-                    'Portfolio tracker & P&L',
-                    'EOD prices (Yahoo Finance)',
-                    'S&P 500 benchmark',
-                    'CSV + Swiss broker import',
-                    'Multi-currency display',
-                  ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
-                </ul>
-                <Link href="/login" className="lp-ghost" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
-                  Start free
-                </Link>
-              </div>
-            </Reveal>
-
-            {/* Pro */}
-            <Reveal delay={120}>
-              <div className="lp-pro-card" style={{ ...pricingCard(true), borderRadius: 'var(--radius-lg)' }}>
-                <div style={{
-                  position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
-                  background: 'var(--grad-brand)', color: 'oklch(0.97 0 0)',
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  padding: '4px 12px', borderRadius: 20,
-                  boxShadow: '0 0 16px oklch(0.68 0.18 258 / 0.55)',
-                }}>
-                  Most Popular
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.80 0.15 258)' }}>
-                  Pro
-                </div>
-                <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em' }}>CHF 15</span>
-                  <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>/month</span>
-                </div>
-                <ul style={featureList}>
-                  {[
-                    'Everything in Free',
-                    'Sharpe · Sortino · Beta · Alpha',
-                    'Efficient Frontier (Markowitz MPT)',
-                    'Historical Stress Testing',
-                    'Risk Tab — VaR, CVaR, correlation matrix',
-                    'Rolling volatility regime',
-                  ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
-                </ul>
-                <Link href="/login" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
-                  Get Pro
-                </Link>
-              </div>
-            </Reveal>
-          </div>
+          <PricingCards />
 
           <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-4)', marginTop: 28, fontFamily: 'var(--font-mono)' }}>
             Cancel anytime from your Stripe customer portal · No refunds on partial periods
@@ -479,36 +417,3 @@ const sectionSub: React.CSSProperties = {
   color: 'var(--ink-3)', maxWidth: 580, margin: '18px auto 0',
 }
 
-const featureList: React.CSSProperties = {
-  listStyle: 'none', padding: 0, margin: '20px 0 24px',
-  display: 'flex', flexDirection: 'column', gap: 9,
-  flex: 1,
-}
-
-function pricingCard(highlighted = false): React.CSSProperties {
-  return {
-    position: 'relative',
-    display: 'flex', flexDirection: 'column',
-    padding: '32px 28px', height: '100%',
-    background: highlighted
-      ? 'oklch(from var(--bg-1) l c h / 0.92)'
-      : 'oklch(from var(--bg-1) l c h / 0.65)',
-    border: '1.5px solid var(--line-soft)',
-    borderRadius: 'var(--radius-lg)',
-    backdropFilter: 'blur(12px)',
-    boxShadow: highlighted ? '0 0 56px oklch(0.68 0.18 258 / 0.18)' : 'none',
-  }
-}
-
-function FeatureLi({ children }: { children: React.ReactNode }) {
-  return (
-    <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-      <span style={{ color: 'oklch(0.82 0.156 162)', marginTop: 2, flexShrink: 0 }}>
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
-      </span>
-      {children}
-    </li>
-  )
-}

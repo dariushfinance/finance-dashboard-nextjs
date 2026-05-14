@@ -4,7 +4,8 @@ import { createServerClient } from '@/lib/supabase'
 import type Stripe from 'stripe'
 
 const TIER_MAP: Record<string, string> = {
-  [process.env.STRIPE_PRO_PRICE_ID!]: 'pro',
+  [process.env.STRIPE_PRO_PRICE_ID!]:        'pro',
+  [process.env.STRIPE_PRO_YEARLY_PRICE_ID!]: 'pro',
 }
 
 async function upsertSubscription(sub: Stripe.Subscription, db: ReturnType<typeof createServerClient>) {
