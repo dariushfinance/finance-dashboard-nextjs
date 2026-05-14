@@ -1,6 +1,6 @@
 # Portfolio Intelligence Tool — Next.js
 
-> Professional finance dashboard for portfolio tracking, benchmarking, and fundamental analysis.  
+> Professional finance dashboard for portfolio tracking, benchmarking, and quantitative risk analysis.  
 > Migrated from Streamlit → **Next.js 14** · **Supabase** · **Vercel**
 
 ---
@@ -14,7 +14,6 @@
 | **Sharpe & Volatility** | Risk-adjusted return metrics, annualised |
 | **S&P 500 Benchmark** | Side-by-side comparison, normalised to 100 at first buy date |
 | **Beta & Alpha** | Market sensitivity and excess return vs. index |
-| **Company Fundamentals** | P/E, EV/EBITDA, P/S, Gross Margin, ROE, FCF Yield, D/E |
 | **Admin View** | Password-protected master database view |
 
 ## Stack

@@ -43,7 +43,6 @@ import PortfolioTable from './PortfolioTable'
 import AllocationChart from './AllocationChart'
 import HistoryChart from './HistoryChart'
 import BenchmarkChart from './BenchmarkChart'
-import FundamentalsTable from './FundamentalsTable'
 import AddPositionForm from './AddPositionForm'
 import RiskTab from './RiskTab'
 import StressTest from './StressTest'
@@ -64,7 +63,7 @@ import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
-type TabId = 'overview' | 'holdings' | 'history' | 'benchmark' | 'dividends' | 'fundamentals' | 'risk' | 'stress' | 'frontier' | 'hedging' | 'markets' | 'cashflows'
+type TabId = 'overview' | 'holdings' | 'history' | 'benchmark' | 'dividends' | 'risk' | 'stress' | 'frontier' | 'hedging' | 'markets' | 'cashflows'
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; tag?: string }[] = [
   { id: 'overview',     label: 'Overview',      icon: <IconGrid /> },
@@ -72,7 +71,6 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; tag?: string }[] 
   { id: 'history',      label: 'History',       icon: <IconHistory /> },
   { id: 'benchmark',    label: 'Benchmark',     icon: <IconTrend /> },
   { id: 'dividends',    label: 'Dividends',     icon: <IconCoins /> },
-  { id: 'fundamentals', label: 'Fundamentals',  icon: <IconTable /> },
   { id: 'risk',         label: 'Risk',          icon: <IconWarning /> },
   { id: 'stress',       label: 'Stress Test',   icon: <IconActivity /> },
   { id: 'frontier',     label: 'Frontier',      icon: <IconScatter /> },
@@ -589,11 +587,6 @@ export default function Dashboard() {
               {activeTab === 'history'      && <HistoryChart positions={positions} />}
               {activeTab === 'benchmark'    && <BenchmarkChart positions={positions} />}
               {activeTab === 'dividends'    && <DividendsTab positions={positions} ccy={ccy} />}
-              {activeTab === 'fundamentals' && (
-                userTier === 'free'
-                  ? <ProGate featureName="Fundamentals" onUpgrade={() => setUpgradeOpen(true)}><FundamentalsTable positions={positions} /></ProGate>
-                  : <FundamentalsTable positions={positions} />
-              )}
               {activeTab === 'risk' && (
                 userTier === 'free'
                   ? <ProGate featureName="Risk Analytics" onUpgrade={() => setUpgradeOpen(true)}><RiskTab positions={positions} /></ProGate>
@@ -730,7 +723,6 @@ export default function Dashboard() {
                   'Sharpe · Sortino · Beta · Alpha',
                   'Efficient Frontier (Markowitz MPT)',
                   'Historical Stress Testing',
-                  'Full Fundamentals — P/E, EV/EBITDA, ROE',
                   'Risk Tab — Vol Regime, Correlation Matrix',
                   'Markets Overview',
                 ].map(f => (

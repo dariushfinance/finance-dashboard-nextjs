@@ -38,7 +38,6 @@ export const PLANS = {
       'Sharpe · Beta · Alpha · Sortino',
       'Efficient Frontier (MPT)',
       'Stress Testing',
-      'Full Fundamentals (P/E, EV/EBITDA, FCF)',
       'Risk Diversification Score',
       'Rolling Vol Regime · Correlation Matrix',
     ],
