@@ -23,7 +23,7 @@ export const PLANS = {
     period: '',
     features: [
       'Portfolio tracker & P&L',
-      'EOD prices (Alpha Vantage)',
+      'EOD prices (Yahoo Finance)',
       'S&P 500 Benchmark',
       'CSV + Swiss Broker Import',
       'Multi-Currency display',

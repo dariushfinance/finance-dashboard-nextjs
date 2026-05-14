@@ -762,7 +762,6 @@ export default function Dashboard() {
                   'Efficient Frontier (Markowitz MPT)',
                   'Historical Stress Testing',
                   'Risk Tab — Vol Regime, Correlation Matrix',
-                  'Markets Overview',
                 ].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-2)' }}>
                     <span style={{ color: 'var(--pos)', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>✓</span>
