@@ -30,3 +30,7 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code — local-only state
+.claude/worktrees/
+.claude/settings.local.json
