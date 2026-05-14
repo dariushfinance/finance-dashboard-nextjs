@@ -198,7 +198,7 @@ export default function LoginPage() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-4)', marginTop: 20, fontFamily: 'var(--font-mono)' }}>
-          Quantfoli · Dariush Tahajomi · HSG &#39;26
+          Quantfoli · Dariush Tahajomi · HSG &#39;27
         </p>
       </div>
     </div>

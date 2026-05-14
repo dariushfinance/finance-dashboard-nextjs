@@ -393,7 +393,7 @@ export default function Landing() {
               so I built one.&rdquo;
             </p>
             <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-              Dariush Tahajomi · HSG St. Gallen &rsquo;26
+              Dariush Tahajomi · HSG St. Gallen &rsquo;27
             </div>
           </div>
         </Reveal>

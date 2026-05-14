@@ -469,7 +469,7 @@ export default function Dashboard() {
                 {displayName}
               </div>
               <div className="user-card__plan">
-                {userTier === 'free' ? 'Free' : userTier === 'pro' ? 'Pro · HSG \'26' : 'Pro Max · HSG \'26'}
+                {userTier === 'free' ? 'Free' : userTier === 'pro' ? 'Pro · HSG \'27' : 'Pro Max · HSG \'27'}
               </div>
             </div>
           </div>

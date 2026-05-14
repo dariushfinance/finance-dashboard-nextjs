@@ -74,4 +74,4 @@ CREATE TABLE IF NOT EXISTS portfolio (
 
 ---
 
-Built by [Dariush Tahajomi](https://linkedin.com/in/dariushtahajomi) · HSG St. Gallen 2026
+Built by [Dariush Tahajomi](https://linkedin.com/in/dariushtahajomi) · HSG St. Gallen 2027
