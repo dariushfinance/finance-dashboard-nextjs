@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [tab, setTab]         = useState<'signin' | 'signup'>('signin')
+  const [name, setName]       = useState('')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +26,10 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { full_name: name.trim() },
+        },
       })
       if (error) setError(error.message)
       else setMessage('Check your email to confirm, then sign in.')
@@ -112,6 +116,23 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {tab === 'signup' && (
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--ink-4)', display: 'block', marginBottom: 7 }}>
+                  Name
+                </label>
+                <input
+                  className="fin-input"
+                  type="text"
+                  placeholder="Max Muster"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required disabled={loading}
+                  maxLength={120}
+                  autoComplete="name"
+                />
+              </div>
+            )}
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--ink-4)', display: 'block', marginBottom: 7 }}>
                 Email

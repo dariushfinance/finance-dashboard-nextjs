@@ -189,6 +189,43 @@ function MarketStatus() {
   )
 }
 
+// ── Greeting ──────────────────────────────────────────────────────────────────
+
+function Greeting({ user }: { user: import('@supabase/supabase-js').User | null }) {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+
+  const hour = now.getHours()
+  const salutation =
+    hour < 5  ? 'Good night'    :
+    hour < 12 ? 'Good morning'  :
+    hour < 18 ? 'Good afternoon':
+    hour < 22 ? 'Good evening'  :
+                'Good night'
+
+  const fullName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
+  const firstName = fullName ? fullName.split(/\s+/)[0] : ''
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <h1 style={{
+        fontFamily: 'var(--font-display)',
+        fontWeight: 700,
+        fontSize: 32,
+        letterSpacing: '-0.02em',
+        color: 'var(--ink)',
+        margin: 0,
+        lineHeight: 1.15,
+      }}>
+        {salutation}{firstName ? `, ${firstName}` : ''}
+      </h1>
+    </div>
+  )
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -570,6 +607,7 @@ export default function Dashboard() {
             <>
               {activeTab === 'overview' && (
                 <>
+                  <Greeting user={user} />
                   <MetricsRow
                     total_value={total_value}
                     total_invested={total_invested}
