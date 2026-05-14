@@ -424,11 +424,11 @@ export default function Landing() {
                     </svg>
                   </Link>
                   <a
-                    href="mailto:dtahajomi2007@gmail.com"
+                    href="mailto:dariush.tahajomi@gmail.com"
                     className="lp-ghost"
                     style={{ ...ctaGhost, padding: '11px 18px', fontSize: 13 }}
                   >
-                    dtahajomi2007@gmail.com
+                    dariush.tahajomi@gmail.com
                   </a>
                 </div>
               </div>
