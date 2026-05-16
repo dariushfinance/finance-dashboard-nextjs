@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
@@ -54,6 +55,27 @@ export default function LoginPage() {
       </div>
 
       <div style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1, animation: 'fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both' }}>
+        {/* Back to landing */}
+        <Link
+          href="/"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 13, color: 'var(--ink-3)',
+            textDecoration: 'none', marginBottom: 20,
+            transition: 'color 0.15s, transform 0.15s',
+          }}
+          onMouseOver={e => {
+            e.currentTarget.style.color = 'var(--brand-b)'
+            e.currentTarget.style.transform = 'translateX(-2px)'
+          }}
+          onMouseOut={e => {
+            e.currentTarget.style.color = 'var(--ink-3)'
+            e.currentTarget.style.transform = 'translateX(0)'
+          }}
+        >
+          ← Back to Quantfoli
+        </Link>
+
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center', marginBottom: 32 }}>
           <div style={{
