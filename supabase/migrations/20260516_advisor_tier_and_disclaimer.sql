@@ -21,6 +21,11 @@ create index if not exists advisor_disclaimers_user_id_idx
 
 alter table advisor_disclaimers enable row level security;
 
+-- Policies are dropped-then-created so this migration is safe to re-run.
+drop policy if exists "users_read_own_disclaimers"      on advisor_disclaimers;
+drop policy if exists "users_insert_own_disclaimers"    on advisor_disclaimers;
+drop policy if exists "service_role_manage_disclaimers" on advisor_disclaimers;
+
 -- Users can read their own acceptance log (transparency)
 create policy "users_read_own_disclaimers"
   on advisor_disclaimers for select
