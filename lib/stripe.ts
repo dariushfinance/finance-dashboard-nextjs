@@ -87,10 +87,10 @@ const PRO_FEATURES = [
 
 const ADVISOR_FEATURES = [
   'Everything in Pro',
-  'Monthly portfolio review via email',
-  'AI-optimized Markowitz target weights',
-  'Custom factor exposure breakdown',
-  'Rebalancing playbook (quarterly)',
+  'Monthly quantitative portfolio report',
+  'Model-optimal weights (Markowitz, historical covariance)',
+  'Factor exposure breakdown (Fama-French)',
+  'Quarterly weight-drift analysis',
   'Priority support · 24h response',
 ]
 

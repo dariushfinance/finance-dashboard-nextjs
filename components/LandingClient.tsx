@@ -377,10 +377,10 @@ export function PricingCards() {
             <ul style={featureList}>
               {[
                 'Everything in Pro',
-                'Monthly portfolio review via email',
-                'AI-optimized Markowitz target weights',
-                'Custom factor exposure breakdown',
-                'Quarterly rebalancing playbook',
+                'Monthly quantitative portfolio report',
+                'Model-optimal weights (Markowitz, historical covariance)',
+                'Factor exposure breakdown (Fama-French)',
+                'Quarterly weight-drift analysis',
                 'Priority support · 24h response',
               ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
             </ul>

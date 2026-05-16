@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-const SUPPORT_TO    = 'dtahajomi2007@gmail.com'
+const SUPPORT_TO    = 'dariush.tahajomi@gmail.com'
 const SUPPORT_FROM  = process.env.RESEND_FROM || 'Quantfoli Support <onboarding@resend.dev>'
 
 export async function POST(req: Request) {
