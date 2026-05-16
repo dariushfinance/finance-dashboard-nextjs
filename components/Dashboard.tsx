@@ -393,7 +393,7 @@ export default function Dashboard() {
   const displayName = user?.email?.split('@')[0] ?? 'User'
 
   return (
-    <div className="app">
+    <div className="app" data-tier={userTier}>
       <TickerTape />
 
       {/* Mobile overlay */}
@@ -454,8 +454,10 @@ export default function Dashboard() {
               marginBottom:    10,
               fontSize:        12,
               fontWeight:      700,
-              background:      userTier === 'advisor' ? 'oklch(0.78 0.16 305)' : userTier === 'pro' ? '#C89B3C' : 'var(--brand-a)',
-              color:           userTier !== 'free' ? '#000' : '#fff',
+              background:      'var(--accent)',
+              color:           userTier === 'free' ? '#fff' : '#000',
+              boxShadow:       userTier !== 'free' ? '0 0 18px var(--accent-glow)' : 'none',
+              transition:      'background 0.4s, color 0.4s, box-shadow 0.4s',
               border:          'none',
             }}
             onClick={() => setUpgradeOpen(true)}
