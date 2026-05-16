@@ -1,14 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ADVISOR_TERMS_VERSION } from '@/lib/advisor-terms'
 
 export const metadata: Metadata = {
   title: 'Advisor Terms — Quantfoli',
   description: 'Quantitative analysis service terms — Quantfoli Advisor tier.',
 }
-
-// Bump this string whenever the terms below change in any material way.
-// The version is stored alongside every acceptance row in advisor_disclaimers.
-export const ADVISOR_TERMS_VERSION = 'v1-2026-05-16'
 
 export default function AdvisorLegalPage() {
   return (

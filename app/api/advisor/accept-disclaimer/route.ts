@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
-import { ADVISOR_TERMS_VERSION } from '@/app/advisor-legal/page'
+import { ADVISOR_TERMS_VERSION } from '@/lib/advisor-terms'
 
 // Records that a user has accepted the Advisor Terms.
 // Civil-liability audit trail: stores (user_id, accepted_at, terms_version, ip, user_agent).
