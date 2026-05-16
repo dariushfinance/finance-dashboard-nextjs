@@ -20,7 +20,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="2. Description of Service">
-        <p>Quantfoli is a portfolio analytics platform that provides financial information, risk metrics, and quantitative analysis tools for self-directed investors. The Service is operated by Dariush Tahajomi, Switzerland.</p>
+        <p>Quantfoli is a portfolio analytics platform that provides financial information, risk metrics, and quantitative analysis tools for self-directed investors. The Service is operated by Dariush Tahajomi as an Einzelunternehmen based in Schaffhausen, Switzerland.</p>
       </Section>
 
       <Section title="3. No Investment Advice">

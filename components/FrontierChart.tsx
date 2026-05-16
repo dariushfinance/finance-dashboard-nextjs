@@ -15,7 +15,7 @@ interface FrontierResult {
   minVol: OptimalPoint; maxSharpe: OptimalPoint; current: OptimalPoint
   tickerVols: Record<string, number>
 }
-interface Props { positions: Position[]; userTier?: 'free' | 'pro' }
+interface Props { positions: Position[]; userTier?: 'free' | 'pro' | 'advisor' }
 
 const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`
 

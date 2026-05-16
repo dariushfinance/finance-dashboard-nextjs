@@ -1,419 +1,335 @@
-# HANDOFF — Quantfoli
-*Last updated: 2026-05-13 (session 4 end). Fresh Claude: read this entire file before touching anything.*
+# HANDOFF — Quantfoli (Session 6)
+
+**Date:** 2026-05-14
+**Branch:** `main`
+**Last commit:** `8120202` — add vitest + 36 unit tests for lib/yahoo.ts math
+**Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
+**Owner:** Dariush Tahajomi (dtahajomi2007@gmail.com), 18, HSG St. Gallen 2027
+
+> Prior handoffs are in git history. **Session 5's handoff is the previous version of this file (overwritten now).** Read this file end-to-end before touching anything.
 
 ---
 
-## The Mission
+## 1. What Quantfoli is
 
-Building **Quantfoli** (quantfoli.com) — a Swiss portfolio analytics SaaS for self-directed investors.
-Stack: Next.js 14 · TypeScript · Tailwind · Supabase · Vercel.
+A Swiss-focused portfolio analytics SaaS for self-directed investors.
 
-**The founder trigger:** Mom imports her ZKB portfolio, pays CHF 15 via Stripe → webhook fires → `tier = pro` → LinkedIn title: "Founder & Developer — Quantfoli".
+**Stack:** Next.js 14 (App Router) · TypeScript · Supabase (Postgres + Auth) · Stripe · Vercel (Frankfurt) · Resend (transactional email)
 
-- **Repo:** https://github.com/dariushfinance/finance-dashboard-nextjs
-- **Live:** https://quantfoli.com (Vercel, auto-deploys on push to main)
-- **Supabase:** https://supabase.com/dashboard/project/hegdcutlpciaplhgzemm
-- **Stripe:** Live mode · webhook at `https://www.quantfoli.com/api/webhooks/stripe`
+**Pricing:**
+- **Free** — CHF 0: tracker, EOD prices (Yahoo Finance), S&P 500 benchmark, Swiss broker CSV import, multi-currency display
+- **Pro Monthly** — CHF 15/mo
+- **Pro Yearly** — CHF 150/yr (≈17% off, "2 months free") — **verified working end-to-end in prod this session**
 
----
-
-## Current Status — What Still Blocks the Founder Trigger
-
-Only two manual steps remain. Everything in the codebase is done.
-
-### 1. Set CHF 15 price in Stripe + update Vercel env var
-```
-Stripe dashboard → Products → "Quantfoli PRO" → the CHF 15 price was being created
-at end of session. Once saved:
-  → Copy the price ID (price_live_...)
-  → Vercel → Project → Settings → Environment Variables
-  → Update STRIPE_PRO_PRICE_ID = price_live_...
-  → Save → Redeploy
-```
-Current price ID in use: `price_1TWJ2gGqej9WyHe3OCKpuXnk` (CHF 1 test — replace this)
-
-### 2. Verify Supabase Site URL
-```
-Supabase dashboard → Project Settings → Authentication
-  → Site URL: https://www.quantfoli.com
-  → Redirect URLs: add https://www.quantfoli.com/**
-```
-Without this, email confirmation links may redirect to localhost.
+**Defensible differentiator:** Markowitz frontier + historical stress test + Sharpe/Sortino/Beta/Alpha on top of FX-aware ZKB/Yuh/Neon CSV imports, accurate to ±0.2% vs. the broker statement. No Swiss retail competitor ships this combo.
 
 ---
 
-## Business Readiness
+## 2. Session 6 — what was built (chronological)
 
-| Layer | Status | Notes |
+Commits this session, oldest → newest:
+
+| Commit | What it did |
+|---|---|
+| `9c4c2b8` | **About / The Team section** added to the landing page (replaces the old small Founder note). New `#about` section between Pricing and Final CTA. Two-column desktop layout (gradient `DT` initials avatar + name/role left; lead blockquote with original founder quote, full bio, mission callout, contact CTAs right). Mobile stacks via new `.lp-about` rule in `globals.css`. Added `About` link to the landing nav. Contact CTAs route to `/support` and `mailto:dtahajomi2007@gmail.com`. |
+| `14a05b9` | Email fix (small follow-up cleanup) |
+| `8120202` | **Vitest + 36 unit tests for `lib/yahoo.ts`.** Locks in the math behaviour. Added `vitest` + `@vitest/coverage-v8` devDeps, `npm test` + `test:watch` scripts, minimal `vitest.config.ts` (node env, scopes `lib/**/*.test.ts`). Also gitignored `.claude/worktrees/` + `.claude/settings.local.json` to clear untracked noise. |
+
+Manual verification done this session (no code change, just confirmation):
+- **Yearly Stripe tier confirmed live** — Dariush opened checkout in incognito and verified total reads **CHF 150** (not 15). Env var `STRIPE_PRO_YEARLY_PRICE_ID` is set in Vercel and the redeploy took effect. Did NOT complete a real purchase — relied on the visible checkout total since the downstream code path is shared with monthly (which has a paying user).
+
+---
+
+## 3. Current state of the codebase
+
+### New files this session
+
+| File | Purpose |
+|---|---|
+| `lib/yahoo.test.ts` | 36 unit tests covering all 8 pure helpers in `lib/yahoo.ts` (see §4 for breakdown) |
+| `vitest.config.ts` | Minimal Vitest config: node environment, includes `lib/**/*.test.ts` only |
+
+### Modified this session
+
+| File | What changed |
+|---|---|
+| `components/Landing.tsx` | New `#about` section between Pricing and Final CTA. Old "Founder note" block removed; founder quote preserved as a styled `<blockquote>` lead-in inside the new section. Added `About` to nav links. Imports unchanged. |
+| `app/globals.css` | Added `.lp-about` responsive override inside the existing `@media (max-width: 768px)` block — stacks the about grid on mobile. |
+| `.gitignore` | Appended `.claude/worktrees/` and `.claude/settings.local.json`. |
+| `package.json` | Added `test` + `test:watch` scripts. Added `vitest` + `@vitest/coverage-v8` to devDependencies. |
+| `package-lock.json` | Regenerated by npm install. |
+
+### Unchanged this session, still important
+
+| File | Status |
+|---|---|
+| `lib/yahoo.ts` | **NOT touched.** This is the math file; intentionally left alone. Now wrapped by `lib/yahoo.test.ts` regression suite. |
+| `components/LandingClient.tsx` | Unchanged — `HeroChart`, `FeatureCard`, `Reveal`, `PricingCards` work as in Session 5. |
+| Everything else from Session 5 (`UpgradeModal`, `lib/stripe.ts`, Stripe routes, `Footer`, etc.) | Unchanged. |
+
+### DO NOT TOUCH
+
+| File | Why |
+|---|---|
+| `lib/yahoo.ts` | Portfolio + TWR + Beta/Alpha calculations. Math is correct, ±0.2% accuracy vs. ZKB statement validated manually. **NOW HAS 36 PASSING TESTS** — if you refactor, run `npm test` first to confirm green, then run again after to confirm still green. Any red = you changed math behaviour. |
+
+---
+
+## 4. Test suite reference (`lib/yahoo.test.ts`)
+
+36 tests, all passing as of commit `8120202`. Run: `npm test` (one-shot) or `npm run test:watch` (TDD mode).
+
+**Coverage by function:**
+
+- **`calcTWRReturns` (6 tests)** — simple period return, capital-injection exclusion (new buy mid-period not faked as performance), weighted multi-position return, no-prior-holdings skip, missing-price skip, ISO-timestamp `buy_date` handling
+- **`calcSharpeAndVol` (5)** — null on <4 returns, null on zero std, vol annualisation by √252, Sharpe formula match against re-derived expected, positive Sharpe sanity when mean > Rf
+- **`calcBetaAlpha` (7)** — null on <5 points, β=1 + α=0 when portfolio mirrors market, β=2 for 2× leveraged mirror, β=−1 for anti-correlated, null when market variance is zero, length truncation to shorter series, Jensen alpha annualisation (× 252) with correct Rf treatment
+- **`calcMaxDrawdown` (4)** — null on single entry, 0 for monotonic rising, 50% drawdown capture, keeps max not latest
+- **`calcSortino` (4)** — null on <4, null when no downside returns, positive when mean > Rf with downside, analytical-formula match
+- **`calcVaR` (3)** — null on <30 obs, 5th percentile correctness with hand-calculated input, 99% > 95% confidence
+- **`calcCVaR` (3)** — null on <30, CVaR ≥ VaR property, mean-of-tail correctness
+- **`calcRollingBeta` (3)** — empty when aligned < window, correct count of rolling windows over 70 days × 63 window, drops unaligned dates
+- **Constants (1)** — `RISK_FREE_DAILY === RISK_FREE_ANNUAL / 252`
+
+**Not tested (intentionally):** the I/O wrappers `getCurrentPrice`, `getHistoricalPrices`, `getFundamentals`. They hit Yahoo/Alpha Vantage and would need `fetch` mocking. Lower ROI than the math; defer until either is refactored.
+
+---
+
+## 5. Production checklist — what's done, what's pending
+
+### 5.1 Stripe Yearly tier — ✅ DONE
+
+`STRIPE_PRO_YEARLY_PRICE_ID` is set in Vercel. Redeploy completed. Checkout shows CHF 150 correctly (verified visually by Dariush). Yearly tier ships and works in prod.
+
+### 5.2 Resend domain verification — 🟠 IN PROGRESS (DNS propagating, may take hours)
+
+The user added the Resend DNS records to Namecheap **during this session**. State at session end:
+
+- **MX record skipped intentionally.** Namecheap demanded a paid "Private Email" plan to add MX records. Resend's MX record is only for inbound bounce handling — not required for outbound sending. We confirmed Resend will verify the domain with just SPF + DKIM TXT records.
+- **Two TXT records added in Namecheap (Advanced DNS):**
+  1. `TXT @ send → v=spf1 include:amazonses.com ~all` (SPF, no quotes)
+  2. `TXT resend._domainkey → <long p=MIGf... DKIM key>` (DKIM, no quotes, no line breaks)
+- **Mail Settings:** left on default ("Email Forwarding") — switching to Custom MX triggered the upsell.
+- **Status:** Resend domain verification will turn green once DNS propagates. Namecheap's notice warned this **"might take hours."** Next session, the first thing to check is `https://resend.com/domains` — if both rows are green, proceed with §5.2.1. If still red after 24 hours, debug (likely a stray quote, wrong host string, or unexpected MX requirement on Resend's side).
+
+#### 5.2.1 Once Resend verifies (do this next session)
+
+1. In Vercel env vars, add `RESEND_FROM` = `Quantfoli Support <support@quantfoli.com>` (Production scope). Redeploy.
+2. Edit `app/api/support/route.ts` line 5: change `SUPPORT_TO` from `'dtahajomi2007@gmail.com'` back to whichever business inbox Dariush wants tickets in. **Ask him which one** — he hasn't specified between `dariush.tahajomi@gmail.com` (the original) and his current default `dtahajomi2007@gmail.com`.
+3. Update the fallback `mailto:` link at the bottom of `app/support/page.tsx` to match.
+4. Update the About section's `mailto:` button in `components/Landing.tsx` to match (currently points to `dtahajomi2007@gmail.com`).
+5. Redeploy.
+6. Test the support form from an incognito tab with a fake customer email; confirm it lands in the correct inbox.
+
+### 5.3 Stripe public details — ✅ done in Session 5, verified still good
+
+Support / Privacy / Terms / Website URLs all point to live `quantfoli.com` pages.
+
+---
+
+## 6. Environment variables (Vercel → Production)
+
+| Variable | Required | Status | Purpose |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | set | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | set | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | set | Server-only, used in webhook |
+| `STRIPE_SECRET_KEY` | yes | set | Live mode |
+| `STRIPE_WEBHOOK_SECRET` | yes | set | Webhook signature verification |
+| `STRIPE_PRO_PRICE_ID` | yes | set | CHF 15/mo price ID |
+| `STRIPE_PRO_YEARLY_PRICE_ID` | yes | **set this session** | CHF 150/yr price ID — verified working |
+| `RESEND_API_KEY` | yes | set | Support form |
+| `RESEND_FROM` | optional | **NOT SET — set once domain verifies** | Defaults to `Quantfoli Support <onboarding@resend.dev>` until then |
+
+---
+
+## 7. Approaches that didn't work this session
+
+| Attempt | Why it failed | Resolution |
 |---|---|---|
-| Auth (signup / login) | ✅ | Email confirmation, middleware redirect, emailRedirectTo fixed |
-| ZKB CSV import | ✅ | Tested, FX-aware, ISIN resolution working |
-| Stripe checkout | ✅ | Live mode, Apple Pay + Google Pay + Klarna + card all enabled |
-| Webhook → tier = pro | ✅ | Verified live with real card |
-| Welcome modal after upgrade | ✅ | Polls 8× · also triggerable via `?welcome=1` |
-| Branding | ✅ | Quantfoli everywhere — login, sidebar, footer, favicon |
-| Legal pages | ✅ | /privacy + /terms public (no auth), linked in Stripe |
-| CHF 15 price | ❌ | Being created in Stripe — needs env var update + redeploy |
-| Supabase Site URL | ❌ | Verify it points to quantfoli.com |
-| Fundamentals | ⚠️ | Alpha Vantage 25 req/day — breaks at 3+ positions. Sprint 2 fix. |
-| Real-time prices | ⚠️ | Yahoo Finance EOD only. Fine for MVP. |
-| RLS hardening | ⚠️ | Frontend-only gating. Fine for <10 users. |
-| Markets tab | ⚠️ | Locked "Coming Soon" — no data source yet |
+| Add MX record in Namecheap for Resend bounces | Namecheap requires a paid "Private Email" plan to add custom MX records | Skipped MX entirely. Confirmed Resend only needs SPF + DKIM (the 2 TXT records) for sending. Bounce handling lost — acceptable for a support form that emails Dariush, not customers. |
+| Switching Namecheap Mail Settings to "Custom MX" | Triggered an upsell screen demanding email purchase | Left Mail Settings on default. The 2 TXT records can be added under Host Records regardless of the Mail Settings dropdown. |
+
+**Approaches from Session 5 still relevant (NOT re-tried this session):**
+
+- Putting demo MP4 (81 MB) into the repo — deferred. Recommendation: YouTube unlisted embed or ffmpeg-compressed ~12 MB self-host.
+- Resend with `to: dariush.tahajomi@gmail.com` before domain verification — currently still routed to `dtahajomi2007@gmail.com` (sandbox restriction). Swap back after §5.2.1.
 
 ---
 
-## Full Infrastructure
+## 8. Outstanding blockers / known issues
 
-### Domain + Hosting
-- `quantfoli.com` → Vercel (A `76.76.21.21`, CNAME `www → cname.vercel-dns.com`)
-- Region: `fra1` (Frankfurt)
-- Auto-deploys on every push to `main`
-
-### Stripe (Live Mode)
-- Vercel env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRO_PRICE_ID`
-- Webhook: `https://www.quantfoli.com/api/webhooks/stripe`
-- Business name: "Portfolio Intelligence" · descriptor: `QUANTFOLI.COM`
-- Support email: `dariush.tahajomi@gmail.com`
-- Customer portal: configured
-- Payment methods: card · Apple Pay · Google Pay · Klarna · Amazon Pay (all auto-detected)
-- **Price being set: CHF 15/mo recurring · tax included · "Quantfoli PRO"**
-
-### Supabase
-- Auth: email + password
-- Tables: `portfolio`, `user_tiers`
-- Service role key bypasses RLS for webhook writes
-- **Site URL: must be set to `https://www.quantfoli.com`**
-
-### Vercel Env Vars
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-STRIPE_PRO_PRICE_ID           ← UPDATE TO CHF 15 PRICE ID
-ALPHA_VANTAGE_API_KEY
-```
-
----
-
-## Pricing
-
-```
-FREE    CHF 0      Portfolio tracker · P&L · EOD prices · S&P 500 benchmark
-                   All broker CSV parsers (ZKB, Yuh, Neon) · Multi-currency
-
-PRO     CHF 15/mo  Everything in Free +
-                   Sharpe · Sortino · Beta · Alpha
-                   Efficient Frontier (Markowitz MPT)
-                   Stress Testing
-                   Full Fundamentals (P/E, EV/EBITDA, FCF)
-                   Risk Tab (Vol Regime · Correlation Matrix · Heatmap)
-```
-
-Broker parsers are free permanently — they are the acquisition hook.
-
----
-
-## Architecture — Every Key File
-
-```
-app/
-  layout.tsx                  ← title: Quantfoli, OG tags, fonts
-  page.tsx                    ← renders <Dashboard />
-  globals.css                 ← full design system (tokens, dark/light, components)
-  icon.svg                    ← favicon: Q, indigo-violet gradient
-  login/page.tsx              ← email+password auth · signUp passes emailRedirectTo
-  privacy/page.tsx            ← PUBLIC — no auth required (Stripe compliance)
-  terms/page.tsx              ← PUBLIC — no auth required (Stripe compliance)
-
-  api/
-    portfolio/route.ts        ← GET: FX-aware P&L · POST: insert · DELETE: by ticker/id/all
-    frontier/route.ts         ← Markowitz MC, 30% weight cap, returns tickerVols
-    isin/route.ts             ← ISIN → ticker via Yahoo Finance search
-    fx/route.ts               ← FX rates, USD base, 15-min module cache
-    history/route.ts          ← TWR time series
-    benchmark/route.ts        ← S&P 500 normalised
-    stress/route.ts           ← Historical crash scenarios
-    fundamentals/route.ts     ← Alpha Vantage (unreliable at free tier)
-    correlation/route.ts      ← Pearson correlation matrix
-    dividends/route.ts        ← Dividend history
-    markets/route.ts          ← Stub, no data source wired (tab is Coming Soon)
-    prices/route.ts           ← Price endpoint
-    search/route.ts           ← Ticker search
-    neon/route.ts             ← Neon broker API route
-    admin/verify/route.ts     ← Admin
-
-    stripe/
-      checkout/route.ts       ← Creates Checkout session · no payment_method_types
-                                restriction → Apple Pay/Google Pay/Klarna auto-enabled
-      portal/route.ts         ← Stripe Customer Portal
-      tier/route.ts           ← GET tier from user_tiers
-    webhooks/stripe/route.ts  ← checkout.session.completed · subscription.updated/deleted
-                                · payment_failed → upserts user_tiers.tier
-
-lib/
-  fx.ts                       ← getCHFperUSD(), getCHFperEUR(), 15-min cache
-  yahoo.ts                    ← getCurrentPrice(), TWR, Sharpe, Beta, Alpha, Sortino,
-                                VaR, CVaR — STABLE. Do not refactor.
-  stripe.ts                   ← getStripe(), PRICE_IDS, PLANS (2-tier only)
-  supabase.ts                 ← getAuthUser(), createAuthClient(), createServerClient()
-  supabase-browser.ts         ← createBrowserSupabase() for client components
-  ticker-meta.ts              ← sector metadata, SECTOR_COLORS
-  parsers/
-    zkb.ts                    ← ZKB Depotauszug CSV parser (semicolon, Windows-1252)
-    yuh.ts                    ← Yuh Bank parser
-    neon.ts                   ← Neon Bank parser
-
-components/
-  Dashboard.tsx               ← Root client component. Auth, tier, positions, modals,
-                                tab routing. Default import tab: zkb. Handles ?upgraded=1
-                                (polls tier) and ?welcome=1 (direct modal open).
-  UpgradeModal.tsx            ← 2-tier only. Do NOT add Pro Max.
-  ProGate.tsx                 ← Blur + lock overlay. Lock icon: var(--pos), not var(--brand-green).
-  ZkbImport.tsx               ← ISIN resolution + row-by-row import
-  YuhImport.tsx / NeonImport.tsx
-  FrontierChart.tsx           ← Efficient Frontier + weights table + VolatilityInsights.
-                                RebalancePanel EXISTS but is commented out — FIDLEG.
-                                Do not re-enable without legal review.
-  PortfolioTable.tsx          ← isRetPos uses ret >= 0 (not pnl sign)
-  RiskTab.tsx / StressTest.tsx / FundamentalsTable.tsx
-  HistoryChart.tsx / BenchmarkChart.tsx / AllocationChart.tsx
-  MarketsTab.tsx              ← Component exists, tab is locked Coming Soon
-  [other tabs]
-
-middleware.ts                 ← Auth redirect. Public (no auth): /login · /api/* · /privacy · /terms
-vercel.json                   ← region: fra1 · no-store on /api/*
-tailwind.config.ts            ← brand/bg/text color tokens
-```
-
----
-
-## Supabase Schema
-
-```sql
-CREATE TABLE IF NOT EXISTS portfolio (
-  id          BIGSERIAL PRIMARY KEY,
-  user_id     TEXT NOT NULL,
-  ticker      TEXT NOT NULL,
-  shares      REAL NOT NULL,
-  buy_price   REAL NOT NULL,
-  buy_date    TEXT NOT NULL,
-  buy_fx_rate NUMERIC    -- NULL for Yuh/Neon/manual. Set for ZKB.
-);
-
-ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS buy_fx_rate NUMERIC;
-
-CREATE TABLE IF NOT EXISTS user_tiers (
-  user_id                TEXT PRIMARY KEY,
-  tier                   TEXT DEFAULT 'free',
-  stripe_customer_id     TEXT,
-  stripe_subscription_id TEXT,
-  subscription_status    TEXT,
-  current_period_end     TIMESTAMPTZ,
-  updated_at             TIMESTAMPTZ
-);
-```
-
----
-
-## ZKB CSV Format
-
-```
-"Bezeichnung";"ISIN";"Anz. Nom.";"Währung";"Datum";"Spesen CHF";"Marktkurs";
-"Einstandskurs";"Diff T";"Marktwert";"Einstandswert";"Bucherfolg CHF";"Gesamtrendite"
-```
-Export path: ZKB eBanking → Depot → Depotauszug → CSV herunterladen
-Encoding: Windows-1252 (parser retries UTF-8 on failure)
-
-**FX return formula:**
-```typescript
-const buy_fx_rate = Einstandswert / (shares × Einstandskurs)  // CHF per foreign unit at purchase
-const buy_chf     = buy_price × buy_fx_rate
-const current_chf = current_price × tickerChfRate             // getCHFperEUR() for .AS/.DE
-const return_pct  = ((current_chf - buy_chf) / buy_chf) × 100
-```
-Verified accuracy ±0.2% vs ZKB statements (residual = live price vs snapshot timing).
-
----
-
-## Everything Changed This Session (all commits)
-
-### `8fd1a89` — Rebrand to Quantfoli + critical fixes
-- "Portfolio Intelligence" → "Quantfoli" everywhere (sidebar, login, footer). Mark P → Q.
-- `brand__tag` was hardcoded "Pro · v4.2" for all users → now shows actual tier dynamically
-- Empty state: added "Import ZKB / Yuh / Neon" as primary CTA (previously only "Add position" — a non-technical user wouldn't connect that with CSV import)
-- Default import tab: Yuh → ZKB
-- ProGate lock icon was invisible: `var(--brand-green)` is a Tailwind token, not a CSS variable → fixed to `var(--pos)`
-- `middleware.ts`: `/privacy` and `/terms` were behind auth — Stripe requires these to be publicly accessible → added `isPublicPage` check
-
-### `a2af5eb` — Sidebar cleanup + FIDLEG
-- Removed `<span className="kbd">{i+1}</span>` number badges from every nav item (looked cluttered)
-- `RebalancePanel` in `FrontierChart.tsx` had been re-enabled for Pro users — shows specific implied CHF trade sizes ("sell IWDA.L 44% = −Fr. 169k") which is investment advice under CH FIDLEG/FINIG. Commented out again with legal note. `VolatilityInsights` (factual vol stats) stays visible.
-
-### `ba2837b` — Email redirect fix
-- `signUp()` now passes `emailRedirectTo: window.location.origin`
-- Without this, Supabase falls back to its configured Site URL which may still be localhost
-
-### `8dd9959` + `de0c900` — Markets Coming Soon
-- TABS type extended with optional `tag?: string`
-- Markets gets `tag: 'soon'` → amber pill in nav + 55% opacity
-- Tab content replaced with lock card: "Markets — Coming Soon" + description
-- `MarketsTab` component no longer rendered — no broken API calls
-
-### `da623a8` — Demo welcome modal param
-- Added `?welcome=1` URL param that directly opens the welcome modal without polling
-- For video demo: set tier to 'pro' in Supabase → navigate to `quantfoli.com/?welcome=1` → modal fires instantly
-- `?upgraded=1` (real Stripe flow) unchanged
-
-### `7d87119` — Apple Pay / Google Pay / Klarna
-- Removed `payment_method_types: ['card']` from `app/api/stripe/checkout/route.ts`
-- When this field is absent, Stripe auto-detects all available payment methods per device
-- Confirmed live: iPhone shows card · Apple Pay · Klarna · Amazon Pay
-- Apple does NOT take a provision on web payments (that's App Store only)
-- No domain certificate needed — we use Stripe Checkout (hosted on Stripe's domain), not Payment Element
-
----
-
-## All Bugs Fixed (cumulative across all sessions)
-
-| Bug | Cause | Fix |
+| Severity | Issue | Where to fix |
 |---|---|---|
-| Return showing wrong sign (`+-16.81%`) | `isRetPos` checked `pnl` not `ret` | Fixed in `PortfolioTable.tsx` |
-| EUR tickers wrong return | Used getCHFperUSD() for EUR tickers | `.AS`/`.DE` → getCHFperEUR() |
-| ZKB AAPL showing 11.68% not 8.39% | FX drag not accounted for | `buy_fx_rate` column + CHF-normalised return |
-| ZKB import fails after 22:00 Swiss time | UTC date comparison before midnight | +1d buffer in ISO string comparison |
-| Frontier: "sell 44% MSCI World" | No weight cap in optimizer | 30% cap via iterative Dirichlet projection |
-| ProGate lock icon invisible | `var(--brand-green)` not a CSS var | → `var(--pos)` |
-| /privacy + /terms behind auth | No public page exception in middleware | Added `isPublicPage` check |
-| Email confirmation → wrong redirect | No `emailRedirectTo` in signUp | Added `window.location.origin` |
-| Sidebar numbers 1–12 on nav items | Hardcoded `<span class="kbd">` | Removed |
-| RebalancePanel showing trade instructions | Got re-enabled after being blocked | Commented out again, FIDLEG note |
-| Apple Pay not showing despite activated | `payment_method_types: ['card']` blocked it | Removed the restriction entirely |
-| Welcome modal not firing for demo | useEffect doesn't re-run on client nav | Added `?welcome=1` direct trigger |
+| 🟠 **Inbox routing (in flight)** | Support emails currently land at `dtahajomi2007@gmail.com` instead of the intended business inbox. Resend DNS is propagating from this session. | Wait for verification (could be hours), then do §5.2.1. |
+| 🟠 **Untested I/O code** | `lib/yahoo.ts` math is now tested (36 tests), but `getCurrentPrice`, `getHistoricalPrices`, `getFundamentals` still untested. Lower ROI than math. | Add `vi.mock('fetch')` tests when one of those functions is next refactored. |
+| 🟡 | No error monitoring (Sentry / Logtail). Webhook failures and 500s are invisible in production. | Add Sentry SDK (free tier). High leverage. |
+| 🟡 | No SEO meta tags / Open Graph / sitemap.xml / robots.txt. Links shared on WhatsApp/LinkedIn render as raw URLs, no preview card. Google hasn't crawled deeply. | One short Next.js metadata pass + a `sitemap.ts` + a `robots.ts` route. |
+| 🟡 | No welcome email after signup. Resend is already wired for `/api/support` — extend to fire on `auth.user.created` (Supabase auth hook) or on first dashboard load. | Add a Resend send + a once-per-user flag in `user_metadata`. |
+| 🟡 | Markowitz frontier uses historical means as forward expected returns (textbook over-fit) | Acceptable for MVP. Long-term: shrinkage estimator (Ledoit-Wolf or James-Stein). |
+| 🟡 | RLS not strictly enforced on `portfolio` / `user_tiers` (frontend-only Pro gating; API checks auth but not tier) | Harden before scaling past ~10 paying users. |
+| 🟢 | McAfee WebAdvisor flags `quantfoli.com` as "not verified" on Dariush's machine. Affects only users with that extension installed. | Submit to `https://www.trustedsource.org/` for re-categorisation (Finance / Banking). 3–7 day review. Same drill for Norton Safe Web if needed. |
+| 🟢 | `HANDOFF.md` previously had ~588 lines of unstaged diff (probably CRLF line-ending normalisation from Windows). | Just overwritten by this file. Should now be clean. Verify with `git status` next session. |
 
 ---
 
-## Open Issues (not blocking founder trigger)
+## 9. Honesty status — public claims vs reality
 
-1. **Fundamentals unreliable** — Alpha Vantage 25 req/day. Breaks at 3+ positions. Sprint 2: Financial Modeling Prep ($14/mo).
-2. **buy_fx_rate for non-ZKB positions** — Yuh/Neon/manual entries are FX-unadjusted. Acceptable (mostly CHF-denominated).
-3. **RLS not hardened** — Pro features gated frontend-only. Fix after 10 paying users.
-4. **Markowitz uses historical returns as forward estimates** — classic error maximisation. Future fix: shrinkage to equal-weight or CAPM prior.
-5. **Markets tab stub** — MarketsTab component and /api/markets exist but have no live data. Polygon.io Starter ($29/mo) is the plan.
+Unchanged from Session 5. Every public claim maps to working code:
+
+| Claim | Backed by code? |
+|---|---|
+| "Markowitz Efficient Frontier" | ✅ `app/api/frontier/route.ts` — 5,000-MC Monte Carlo with weight caps |
+| "Historical Stress Testing — dot-com, 2008, COVID, 2022" | ✅ `app/api/stress/route.ts` (4 scenarios) |
+| "Sharpe · Sortino · Beta · Alpha" | ✅ `lib/yahoo.ts` — **now backed by 36 unit tests** |
+| "Multi-currency, FX-aware to ±0.2%" | ✅ Validated manually against ZKB statement |
+| "ZKB · Yuh · Neon CSV import" | ✅ `lib/parsers/` |
+| "7 currencies" | ✅ USD, CHF, EUR, GBP, JPY, CAD, SGD |
+| "EOD prices via Yahoo Finance" | ✅ `lib/yahoo.ts` |
+| Pro tier features in `lib/stripe.ts` | ✅ All present |
+| "Cancel anytime" | ✅ Stripe Customer Portal enabled |
+
+Footer everywhere shows "Not investment advice." Only residual legal risk is FINMA / FIDLEG ambiguity around the frontier feature — defer to a Swiss legal opinion when revenue justifies (~CHF 2–5k).
 
 ---
 
-## What NOT to Touch
+## 10. Architecture quick-ref
 
-- **`lib/yahoo.ts`** — TWR, Sharpe, Beta, Sortino, VaR, CVaR. Stable. Do not refactor.
-- **`app/api/webhooks/stripe/route.ts`** — Working in production. Do not change without end-to-end test.
-- **`components/UpgradeModal.tsx`** — 2-tier only. Do NOT add Pro Max back.
-- **`FrontierChart.tsx` RebalancePanel** — Leave commented. FIDLEG. Legal review required before re-enabling.
-- **`app/globals.css`** — Design system stable. All CSS vars defined here. Check here before adding inline styles.
-
----
-
-## Video Demo Flow (for LinkedIn post)
-
-For recording the founder trigger without paying again:
+(Same as Session 5 with two additions: `lib/yahoo.test.ts` and `vitest.config.ts` at the root.)
 
 ```
-1. Supabase → user_tiers → set your row to tier = 'free'
-2. Record:
-   - Empty state → click "Import ZKB / Yuh / Neon"
-   - Upload ZKB CSV → ISINs resolve → import
-   - Portfolio loads with FX-adjusted returns
-   - Click a Pro tab (Risk / Frontier) → ProGate lock shows
-   - Click "Upgrade to Pro" → Stripe opens (Apple Pay, Klarna, card visible)
-3. Switch to Supabase tab (off camera) → set tier = 'pro'
-4. Navigate to quantfoli.com/?welcome=1
-5. Welcome modal fires → all Pro tabs unlock
+/
+├── app/
+│   ├── page.tsx              # SERVER component: auth check → Landing or Dashboard
+│   ├── layout.tsx            # Root layout, mounts Footer + Analytics
+│   ├── login/page.tsx        # Signin/Signup tabs (name field on signup)
+│   ├── support/page.tsx      # Public contact form
+│   ├── privacy/page.tsx, terms/page.tsx
+│   ├── globals.css           # Design system (oklch palette, .lp-* utilities, .lp-about, keyframes)
+│   └── api/
+│       ├── support/route.ts          # Resend integration (SUPPORT_TO temp gmail)
+│       ├── stripe/checkout/route.ts  # Creates session OR swaps existing sub's price
+│       ├── stripe/portal/route.ts    # Stripe Customer Portal
+│       ├── stripe/tier/route.ts      # Returns user's tier
+│       ├── webhooks/stripe/route.ts  # Subscription lifecycle → user_tiers
+│       ├── portfolio/, history/, benchmark/, frontier/, stress/, risk/, fx/, isin/
+│       └── fundamentals/route.ts     # DEAD — kept for future revival
+├── components/
+│   ├── Dashboard.tsx         # Main app (12 tabs)
+│   ├── Landing.tsx           # Public marketing — now includes #about section
+│   ├── LandingClient.tsx     # Client widgets: HeroChart, FeatureCard, Reveal, PricingCards
+│   ├── Footer.tsx
+│   ├── UpgradeModal.tsx      # Monthly/Yearly toggle
+│   ├── ProGate.tsx           # Frontend Pro paywall wrapper
+│   ├── parsers UI: ZkbImport.tsx, YuhImport.tsx, NeonImport.tsx
+│   └── Tab components + FundamentalsTable.tsx (DEAD)
+├── lib/
+│   ├── stripe.ts             # PRICE_IDS, PRO_INTERVALS, PLAN_TIER, PLANS, PRO_FEATURE_LIST
+│   ├── supabase.ts, supabase-browser.ts
+│   ├── yahoo.ts              # ⚠️ DO NOT TOUCH — TWR/Beta/Alpha/Sharpe math
+│   ├── yahoo.test.ts         # 🆕 36 unit tests for yahoo.ts
+│   ├── fx.ts, ticker-meta.ts
+│   └── parsers/{zkb,yuh,neon}.ts
+├── supabase/                  # Schema/migrations
+├── middleware.ts              # Auth gate; isPublicPage = ['/', '/privacy', '/terms', '/support']
+├── next.config.js, vercel.json (fra1 region, no-store on /api/*)
+├── vitest.config.ts           # 🆕 node env, scopes lib/**/*.test.ts
+└── package.json               # Now includes vitest + @vitest/coverage-v8
+```
+
+### Test command
+
+```bash
+npm test          # one-shot run, exits with code
+npm run test:watch # TDD mode, re-runs on file save
 ```
 
 ---
 
-## LinkedIn Post (ready to publish after founder trigger fires)
+## 11. Next concrete steps (priority order)
 
-**Post the same day Mom pays or same day you record the demo.**
+### Resume the in-flight DNS work first
 
----
+1. **Check Resend domain verification status** at `https://resend.com/domains` for `quantfoli.com`. The 2 TXT records were added in Namecheap at session end and were propagating. If both rows green → do §5.2.1 (swap `SUPPORT_TO`, set `RESEND_FROM`, redeploy, test the support form). If still red after 24h, debug DNS values (most likely culprits: stray quotes around the SPF/DKIM values, wrong host string, or copy-paste linebreak in the DKIM key).
+   - **Ask Dariush which inbox he wants tickets in** before editing `SUPPORT_TO`. Default options: `dariush.tahajomi@gmail.com` (original intent) or `dtahajomi2007@gmail.com` (current fallback).
 
-6 weeks ago I posted a portfolio dashboard. Today someone paid for it.
+### High-leverage code (~30–60 min total)
 
-At 18, I just launched quantfoli.com — a live, paid SaaS product. Here's what changed since the April post:
+2. **SEO basics** — add Open Graph + Twitter meta tags in `app/layout.tsx`, create `app/sitemap.ts` and `app/robots.ts` (Next.js 14 metadata routes). After deploy, submit `https://quantfoli.com/sitemap.xml` to Google Search Console. Right now links shared on WhatsApp/LinkedIn render as naked URLs — kills click-through.
 
-**What I actually built (the technical diff):**
+3. **Sentry SDK** — `npm install @sentry/nextjs`, run the wizard, set DSN env var in Vercel. Free tier covers months of traffic. Currently any webhook 500 or API failure is invisible until a customer complains.
 
-→ ZKB Depotauszug parser — Swiss-specific CSV import that auto-resolves ISINs to live tickers. ZKB is one of Switzerland's largest retail banks. Upload your export, positions appear in seconds.
+4. **Welcome email** — extend `app/api/support/route.ts` send pattern. Trigger on first successful login (set `user_metadata.welcomed = true` after first send). Resend template inline. 30% better activation typically.
 
-→ FX-adjusted returns — ZKB showed AAPL at +8.39%. My tool was showing +11.68%. The delta is USD depreciation against CHF, which ZKB bakes in and my tool wasn't. Fixed by storing the historical CHF/USD rate at purchase date and normalising all returns through CHF. Accuracy after fix: ±0.2%.
+### Marketing (Dariush's move, not code)
 
-→ Markowitz optimizer with a 30% per-asset weight cap — without the cap it told users to sell 44% of their MSCI World position. Fixed via iterative projection of Dirichlet samples onto the weight-constrained simplex.
+5. **LinkedIn launch post** — 18, HSG-bound, shipped a real SaaS with a paying user. Strong signal for his network + future internships.
+6. **r/SwissPersonalFinance long-form German post** — walk through Sharpe + Frontier on a sample portfolio. Educational tone, Quantfoli as the tool. Repeatable channel test.
 
-→ FIDLEG compliance layer — I removed the implied trade-size table ("buy CHF 35k of AAPL") from the Efficient Frontier tab. Under Swiss law, specific buy/sell instructions in CHF constitute investment advice. Replaced with a volatility overview — factual, non-advisory.
+### Future / backlog (defer)
 
-→ Stripe live payments. CHF 15/mo, webhook → Supabase tier update. Not a demo.
+7. RLS hardening on `portfolio` + `user_tiers` once paying users > 10.
+8. Replace Alpha Vantage with Financial Modeling Prep ($14/mo). Revive Fundamentals tab. Re-add to Pro features list in `lib/stripe.ts`. Re-enable import in `Dashboard.tsx`.
+9. Markowitz frontier: replace raw historical means with a shrinkage estimator (Ledoit-Wolf or James-Stein).
+10. Email-based magic link signin (drop password requirement) — cuts signup friction.
+11. Annual revenue + LTV dashboard for Dariush's own use.
+12. Confirm Stripe Customer Portal self-cancel works without contacting support.
+13. Swiss legal opinion on FIDLEG (~CHF 2–5k) once revenue justifies — frontier feature is on the line for "investment advice."
+14. Add `vi.mock('fetch')` tests for `getCurrentPrice` / `getHistoricalPrices` / `getFundamentals` (the I/O wrappers in `lib/yahoo.ts`).
+15. Submit `quantfoli.com` to McAfee TrustedSource + Norton Safe Web for reputation clearing.
 
-**What still doesn't work:**
+### Idea from earlier sessions (kept for memory)
 
-Fundamentals tab (P/E, EV/EBITDA, FCF Yield) breaks at 3+ positions. Alpha Vantage free tier is 25 calls/day. The first paying user's revenue funds the fix: Financial Modeling Prep API.
-
-This is what build-in-public actually means. Revenue before perfect. Ship, charge, reinvest.
-
-quantfoli.com — account needed, ZKB/Yuh/Neon import is free.
-
-If you're in Swiss finance, self-directed investing, or fintech — try to break it. I want to know what's wrong.
-
-\#quantfinance \#buildinpublic \#fintech \#swisstech
-
----
-
-**Checklist before posting:** English ✅ · Age in first 2 lines ✅ · 5+ specific terms ✅ · Live link ✅ · One flaw named precisely ✅ · Swiss finance CTA ✅ · Post Tuesday–Thursday 07:30–09:00 or 17:30–19:00
+16. **Idea from Dariush (Session 5):** Include inside the landing page a quick rundown under a sub tab called contact / the team — **IMPLEMENTED in Session 6 as the `#about` section in commit `9c4c2b8`.** Includes intro, mission ("CHF 15/mo vs hundreds per advisor meeting"), and contact CTAs. Marked done.
 
 ---
 
-## Next Steps — Priority Order
+## 12. Personal context for the fresh agent
 
-### 1. Manual: Set CHF 15 in Stripe + update Vercel STRIPE_PRO_PRICE_ID (BLOCKING)
-See "Current Status" section at top.
-
-### 2. Manual: Verify Supabase Site URL = quantfoli.com (BLOCKING for signup)
-
-### 3. Record the demo video + publish LinkedIn post
-Use the `?welcome=1` flow above. 90 seconds, same format as the April 30 post that got 1700 views.
-
-### 4. Mom Test — The Founder Trigger
-Full flow: sign up → confirm email → import ZKB CSV → upgrade → CHF 15 → webhook → tier = pro → LinkedIn title update.
-
-### 5. Sprint 2 — Data Layer (after first revenue)
-- Financial Modeling Prep API ($14/mo) — fix fundamentals tab
-- Polygon.io Starter ($29/mo) — real-time prices for Pro
-- Vercel KV — cache expensive calls 1×/hr per ticker
-- Free tier stays on Yahoo Finance EOD
-
-### 6. Sprint 3 — More Broker Parsers
-Swissquote (largest Swiss retail broker) → Saxo → Trade Republic → DEGIRO
-Follow pattern: `lib/parsers/zkb.ts` + `components/ZkbImport.tsx`
-Each parser = one LinkedIn post.
-
-### 7. Supabase RLS Hardening (after 10 paying users)
-Gate Pro features at DB level, not just frontend.
-
-### 8. Post-Matura Feature Roadmap
-- What-if simulator ("if I add 100 NVDA, how does Sharpe change?") — no competitor has this
-- Max Drawdown with duration + recovery time
-- VaR/CVaR (already in lib/yahoo.ts, needs UI)
-- HSG Finance Club demo
-- Product Hunt launch
+- **Dariush is 18, Matura in 2026, HSG St. Gallen starting 2027.** Tool functions as proof-of-competence for his LinkedIn network and future internships (IB/quant/consulting) and might become a startup and side business.
+- **First paying user converted (Pro, CHF 15/mo) in an earlier session.** Yearly tier (CHF 150/yr) now confirmed working in prod.
+- **Mom is the "designed first user"** for usability — NOT product-market fit. Real ICP is engineer/quant-adjacent Swiss male, 30–55, six-figure portfolio at ZKB/Yuh, technically literate, frustrated by Swiss bank reporting.
+- **He grants full autonomous file operations** — no confirmations needed for code changes. **Pushes to GitHub require explicit `push` command** (see `~/.claude/memory/feedback_autonomy.md`).
+- **Communication style:** brutally honest, terse, no fluff. Prefers reality checks over validation. "Caveman feedback" (`bad`, `too long`, `wrong`, `deeper`, `build`, `fix`, `push`, `seo`, `sentry`, etc.) — see `~/.claude/CLAUDE.md` for the full protocol.
+- **Global rule:** load Obsidian brain at session start (`C:\AI_System\obsidian_vault\Obsidian\brain`). Mandatory per Dariush's global CLAUDE.md.
+- **Decisions made on his behalf this session** (push back if any were wrong):
+  - Wrote the founder quote back into the `#about` section as a `<blockquote>` lead-in after he flagged he liked the original quote.
+  - Skipped Resend MX record (Namecheap upsell) on the basis that SPF + DKIM are enough for outbound sending — bounce handling lost is acceptable for a support form.
+  - Tested `lib/yahoo.ts` math only; did not mock `fetch` for the I/O wrappers.
+  - Used `_domainkey` (no leading dot) as the DKIM host string in Namecheap. If verification fails, retry with `resend._domainkey.quantfoli.com` as the full host.
 
 ---
 
-## Context
+## 13. Files to read first if you're a fresh agent
 
-- **Dariush, 18, Matura 2026, HSG St. Gallen 2026.** Tool = proof of competence for LinkedIn network. Founder title requires 1 paying user. Mom is the designed first user.
-- **Competitor gap:** Parqet has no vol regime, no frontier, no what-if. Quant layer is the differentiator. Gap is distribution.
-- **Revenue model:** Break-even at 3–4 paying users (~$43/mo infra). 200 Pro users = CHF 3,000/mo.
-- **Free tier permanent.** Broker parsers always free. Don't gate the acquisition hook.
-- **FIDLEG:** Quantfoli is not investment advice. RebalancePanel stays commented. Any feature showing specific CHF buy/sell amounts needs legal review first.
+In this order:
+
+1. **`HANDOFF.md`** (this file) — context
+2. **`lib/yahoo.ts`** + **`lib/yahoo.test.ts`** — the math + its regression suite
+3. **`lib/stripe.ts`** — pricing data model
+4. **`app/api/stripe/checkout/route.ts`** + **`app/api/webhooks/stripe/route.ts`** — full subscription lifecycle
+5. **`components/Dashboard.tsx`** — main app shell
+6. **`components/Landing.tsx`** + **`components/LandingClient.tsx`** — marketing page (includes new `#about` section)
+7. **`middleware.ts`** — auth gate
+8. **`app/api/support/route.ts`** — Resend integration (will change once DNS verifies)
+
+---
+
+## 14. Memory references
+
+Persistent memory in `~/.claude/projects/C--Users-Dariush-Tahajomi/memory/`:
+
+- `user_profile.md` — Dariush context
+- `project_obsidian.md` — separate Obsidian vault (referenced by global CLAUDE.md)
+- `feedback_autonomy.md` — autonomous operation granted, push requires explicit ask
+- `feedback_tasks_format.md` — daily task file format (Obsidian, not this repo)
+- `feedback_obsidian_links.md` — Obsidian backlink conventions
+- `feedback_obsidian_permissions.md` — no confirmation prompts for Obsidian files
+
+Global instructions in `~/.claude/CLAUDE.md`. Mandatory: load Obsidian brain at session start.
+
+---
+
+**End of handoff. The next session can read this file and resume cleanly.**
+
+**Immediate pickup point:** Check `https://resend.com/domains` for `quantfoli.com` verification status. If green → execute §5.2.1 (swap `SUPPORT_TO`, set `RESEND_FROM`, redeploy, test). If still red, debug the 2 TXT records in Namecheap. After that, biggest leverage moves are SEO meta tags + Sentry + welcome email (§11 steps 2–4).

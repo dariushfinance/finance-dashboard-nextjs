@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { PRO_INTERVALS, type IntervalKey } from '@/lib/stripe'
+import { PRO_INTERVALS, ADVISOR_INTERVALS, type IntervalKey } from '@/lib/stripe'
 
 // ── Animated frontier chart visual ──────────────────────────────────────────
 
@@ -208,7 +208,8 @@ export function FeatureCard({ title, desc, accent, delay = 0 }: {
 
 export function PricingCards() {
   const [interval, setInterval] = useState<IntervalKey>('yearly')
-  const meta = PRO_INTERVALS[interval]
+  const meta         = PRO_INTERVALS[interval]
+  const advisorMeta  = ADVISOR_INTERVALS[interval]
 
   return (
     <>
@@ -336,6 +337,59 @@ export function PricingCards() {
             </ul>
             <Link href="/login" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
               Get Pro {interval === 'yearly' ? '(yearly)' : '(monthly)'}
+            </Link>
+          </div>
+        </Reveal>
+
+        {/* Advisor */}
+        <Reveal delay={240}>
+          <div className="lp-pro-card" style={{ ...pricingCardBase(true), borderRadius: 'var(--radius-lg)', borderColor: 'oklch(0.78 0.16 305 / 0.35)' }}>
+            <div style={{
+              position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(90deg, oklch(0.78 0.16 305), oklch(0.72 0.18 320))',
+              color: 'oklch(0.97 0 0)',
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '4px 12px', borderRadius: 20,
+              boxShadow: '0 0 16px oklch(0.78 0.16 305 / 0.55)',
+              zIndex: 2,
+            }}>
+              Premium
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'oklch(0.82 0.15 305)' }}>
+              Advisor
+            </div>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{
+                fontSize: 40, fontWeight: 800, letterSpacing: '-0.025em',
+                transition: 'opacity 0.2s', display: 'inline-block',
+              }} key={advisorMeta.price}>
+                {advisorMeta.price}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>{advisorMeta.period}</span>
+            </div>
+            <div style={{
+              marginTop: 6, fontSize: 12, height: 18,
+              fontFamily: 'var(--font-mono)',
+              color: advisorMeta.savings ? 'oklch(0.82 0.156 162)' : 'var(--ink-4)',
+            }}>
+              {advisorMeta.savings ?? 'Billed monthly'}
+            </div>
+            <ul style={featureList}>
+              {[
+                'Everything in Pro',
+                'Monthly portfolio review via email',
+                'AI-optimized Markowitz target weights',
+                'Custom factor exposure breakdown',
+                'Quarterly rebalancing playbook',
+                'Priority support · 24h response',
+              ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
+            </ul>
+            <Link href="/login" className="lp-cta" style={{
+              ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto',
+              background: 'linear-gradient(135deg, oklch(0.78 0.16 305), oklch(0.72 0.18 320))',
+              boxShadow: '0 0 32px oklch(0.78 0.16 305 / 0.45), 0 6px 20px oklch(0 0 0 / 0.30)',
+            }}>
+              Get Advisor {interval === 'yearly' ? '(yearly)' : '(monthly)'}
             </Link>
           </div>
         </Reveal>

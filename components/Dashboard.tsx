@@ -239,7 +239,7 @@ export default function Dashboard() {
   const [paletteOpen, setPaletteOpen]         = useState(false)
   const [preFillTicker, setPreFillTicker] = useState('')
   const [activeTab, setActiveTab]         = useState<TabId>('overview')
-  const [userTier, setUserTier]           = useState<'free' | 'pro'>('free')
+  const [userTier, setUserTier]           = useState<'free' | 'pro' | 'advisor'>('free')
   const [hasSubscription, setHasSubscription] = useState(false)
   const [upgradeOpen, setUpgradeOpen]     = useState(false)
   const [welcomeOpen, setWelcomeOpen]     = useState(false)
@@ -408,7 +408,7 @@ export default function Dashboard() {
           <div className="brand__mark">Q</div>
           <div>
             <div className="brand__name">Quantfoli</div>
-            <div className="brand__tag">{userTier === 'pro' ? 'Pro' : 'Free'} · v1.0</div>
+            <div className="brand__tag">{userTier === 'advisor' ? 'Advisor' : userTier === 'pro' ? 'Pro' : 'Free'} · v1.0</div>
           </div>
         </div>
 
@@ -454,13 +454,13 @@ export default function Dashboard() {
               marginBottom:    10,
               fontSize:        12,
               fontWeight:      700,
-              background:      userTier === 'pro' ? '#C89B3C' : 'var(--brand-a)',
-              color:           userTier === 'pro' ? '#000' : '#fff',
+              background:      userTier === 'advisor' ? 'oklch(0.78 0.16 305)' : userTier === 'pro' ? '#C89B3C' : 'var(--brand-a)',
+              color:           userTier !== 'free' ? '#000' : '#fff',
               border:          'none',
             }}
             onClick={() => setUpgradeOpen(true)}
           >
-            {userTier === 'free' ? 'Upgrade to Pro' : '✦ Pro — Manage plan'}
+            {userTier === 'free' ? 'Upgrade to Pro' : userTier === 'advisor' ? '✦ Advisor — Manage plan' : '✦ Pro — Manage plan'}
           </button>
           <div className="user-card">
             <div className="user-card__avatar">{initials}</div>
@@ -469,7 +469,7 @@ export default function Dashboard() {
                 {displayName}
               </div>
               <div className="user-card__plan">
-                {userTier === 'free' ? 'Free' : userTier === 'pro' ? 'Pro · HSG \'27' : 'Pro Max · HSG \'27'}
+                {userTier === 'free' ? 'Free' : userTier === 'advisor' ? 'Advisor · HSG \'27' : 'Pro · HSG \'27'}
               </div>
             </div>
           </div>

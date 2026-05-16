@@ -1,11 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { PLANS, PRO_INTERVALS, PRO_FEATURE_LIST, type IntervalKey, type PlanKey } from '@/lib/stripe'
+import {
+  PLANS,
+  PRO_INTERVALS,
+  PRO_FEATURE_LIST,
+  ADVISOR_INTERVALS,
+  ADVISOR_FEATURE_LIST,
+  type IntervalKey,
+  type PlanKey,
+} from '@/lib/stripe'
 
 interface Props {
   onClose:     () => void
-  userTier?:   'free' | 'pro'
+  userTier?:   'free' | 'pro' | 'advisor'
 }
 
 function CheckIcon() {
@@ -27,16 +35,36 @@ function CloseIcon() {
 }
 
 export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
-  const [loading,  setLoading]  = useState<string | null>(null)
-  const [error,    setError]    = useState<string | null>(null)
-  const [interval, setInterval] = useState<IntervalKey>('yearly')
+  const [loading,            setLoading]            = useState<string | null>(null)
+  const [error,              setError]              = useState<string | null>(null)
+  const [interval,           setInterval]           = useState<IntervalKey>('yearly')
+  const [advisorAccepted,    setAdvisorAccepted]    = useState(false)
+  const [advisorAcceptError, setAdvisorAcceptError] = useState<string | null>(null)
 
-  const proInterval = PRO_INTERVALS[interval]
+  const proInterval     = PRO_INTERVALS[interval]
+  const advisorInterval = ADVISOR_INTERVALS[interval]
 
   const handleUpgrade = async (planKey: PlanKey) => {
     setLoading(planKey)
     setError(null)
     try {
+      const isAdvisor = planKey === 'advisor' || planKey === 'advisor_yearly'
+
+      if (isAdvisor) {
+        if (!advisorAccepted) {
+          setAdvisorAcceptError('You must accept the Advisor Terms to continue.')
+          setLoading(null)
+          return
+        }
+        const ack = await fetch('/api/advisor/accept-disclaimer', { method: 'POST' })
+        const ackData = await ack.json()
+        if (!ack.ok || !ackData.ok) {
+          setError(ackData.error ?? 'Could not record acceptance.')
+          setLoading(null)
+          return
+        }
+      }
+
       const res  = await fetch('/api/stripe/checkout', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,7 +100,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
       <div
         className="modal"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 540, width: '95vw' }}
+        style={{ maxWidth: 780, width: '95vw' }}
       >
         <div className="modal__head">
           <div>
@@ -132,7 +160,7 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
             {/* Free card */}
             <PlanCard
               isCurrent={userTier === 'free'}
@@ -173,6 +201,8 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
                   >
                     {loading === 'portal' ? 'Opening…' : 'Manage subscription'}
                   </button>
+                ) : userTier === 'advisor' ? (
+                  <DimNote>Downgrade via portal</DimNote>
                 ) : (
                   <button
                     className="btn"
@@ -190,7 +220,91 @@ export default function UpgradeModal({ onClose, userTier = 'free' }: Props) {
                 )
               }
             />
+
+            {/* Advisor card */}
+            <PlanCard
+              isCurrent={userTier === 'advisor'}
+              accent="oklch(0.78 0.16 305)"
+              border="oklch(0.78 0.16 305)"
+              bg="oklch(0.78 0.16 305 / 0.06)"
+              glow="0 0 32px oklch(0.78 0.16 305 / 0.18)"
+              badge={userTier === 'advisor' ? 'Your Plan' : 'Premium'}
+              title={PLANS.advisor.name}
+              price={advisorInterval.price}
+              period={advisorInterval.period}
+              savings={advisorInterval.savings}
+              features={ADVISOR_FEATURE_LIST}
+              cta={
+                userTier === 'advisor' ? (
+                  <button
+                    className="btn btn--ghost"
+                    style={{ width: '100%', justifyContent: 'center', borderColor: 'oklch(0.78 0.16 305)', color: 'oklch(0.78 0.16 305)' }}
+                    onClick={handlePortal}
+                    disabled={loading !== null}
+                  >
+                    {loading === 'portal' ? 'Opening…' : 'Manage subscription'}
+                  </button>
+                ) : (
+                  <button
+                    className="btn"
+                    style={{
+                      width: '100%', justifyContent: 'center',
+                      background: 'oklch(0.78 0.16 305)', color: '#000', border: 'none', fontWeight: 700,
+                      opacity: advisorAccepted ? 1 : 0.55,
+                      cursor: advisorAccepted ? 'pointer' : 'not-allowed',
+                    }}
+                    onClick={() => handleUpgrade(advisorInterval.planKey)}
+                    disabled={loading !== null || !advisorAccepted}
+                    title={advisorAccepted ? '' : 'Accept the Advisor Terms below first'}
+                  >
+                    {loading === advisorInterval.planKey
+                      ? 'Redirecting…'
+                      : `Get Advisor ${interval === 'yearly' ? '(yearly)' : '(monthly)'}`}
+                  </button>
+                )
+              }
+            />
           </div>
+
+          {userTier !== 'advisor' && (
+            <div style={{
+              marginTop: 16,
+              padding: '12px 14px',
+              border: '1px solid oklch(0.78 0.16 305 / 0.45)',
+              background: 'oklch(0.78 0.16 305 / 0.06)',
+              borderRadius: 10,
+              fontSize: 12,
+              lineHeight: 1.55,
+              color: 'var(--ink-2)',
+            }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={advisorAccepted}
+                  onChange={e => { setAdvisorAccepted(e.target.checked); setAdvisorAcceptError(null) }}
+                  style={{ marginTop: 3, flexShrink: 0, accentColor: 'oklch(0.78 0.16 305)' }}
+                />
+                <span>
+                  Required for Advisor: I have read and accept the{' '}
+                  <a
+                    href="/advisor-legal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'oklch(0.82 0.15 305)', textDecoration: 'underline' }}
+                  >
+                    Advisor Terms & Disclaimer
+                  </a>
+                  . I understand Quantfoli provides quantitative analysis only — not investment advice — and that
+                  every trading decision is my own.
+                </span>
+              </label>
+              {advisorAcceptError && (
+                <div style={{ marginTop: 6, color: 'var(--neg)', fontSize: 11 }}>
+                  {advisorAcceptError}
+                </div>
+              )}
+            </div>
+          )}
 
           {error && (
             <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--neg)', marginTop: 12 }}>

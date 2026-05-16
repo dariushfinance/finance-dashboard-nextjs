@@ -13,6 +13,28 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe()
     const db = createServerClient()
 
+    // Advisor plans require a recorded disclaimer acceptance. Civil-liability defense.
+    if (plan === 'advisor' || plan === 'advisor_yearly') {
+      const { data: disclaimer, error: discErr } = await db
+        .from('advisor_disclaimers')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('accepted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (discErr) {
+        console.error('[stripe/checkout] disclaimer lookup failed:', discErr)
+        return NextResponse.json({ error: 'Could not verify disclaimer' }, { status: 500 })
+      }
+      if (!disclaimer) {
+        return NextResponse.json(
+          { error: 'Advisor terms must be accepted before subscribing.' },
+          { status: 403 },
+        )
+      }
+    }
+
     const { data: tierRow } = await db
       .from('user_tiers')
       .select('stripe_customer_id, tier')
