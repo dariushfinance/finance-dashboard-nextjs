@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginPage() {
-  const [tab, setTab]         = useState<'signin' | 'signup'>('signin')
+function LoginPageInner() {
+  const searchParams = useSearchParams()
+  const initialTab: 'signin' | 'signup' =
+    searchParams.get('tab') === 'signup' ? 'signup' : 'signin'
+  const [tab, setTab]         = useState<'signin' | 'signup'>(initialTab)
   const [name, setName]       = useState('')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
@@ -224,5 +227,14 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+// useSearchParams() requires a Suspense boundary in Next 14 App Router builds.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   )
 }

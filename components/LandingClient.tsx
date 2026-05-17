@@ -287,7 +287,7 @@ export function PricingCards() {
                 'Multi-currency display',
               ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
             </ul>
-            <Link href="/login" className="lp-ghost" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+            <Link href="/login?tab=signup" className="lp-ghost" style={{ ...ctaGhost, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
               Start free
             </Link>
           </div>
@@ -335,7 +335,7 @@ export function PricingCards() {
                 'Rolling volatility regime',
               ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
             </ul>
-            <Link href="/login" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
+            <Link href="/login?tab=signup&plan=pro" className="lp-cta" style={{ ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto' }}>
               Get Pro {interval === 'yearly' ? '(yearly)' : '(monthly)'}
             </Link>
           </div>
@@ -384,7 +384,7 @@ export function PricingCards() {
                 'Priority support · 24h response',
               ].map(f => <FeatureLi key={f}>{f}</FeatureLi>)}
             </ul>
-            <Link href="/login" className="lp-cta" style={{
+            <Link href="/login?tab=signup&plan=advisor" className="lp-cta" style={{
               ...ctaPrimary, width: '100%', justifyContent: 'center', marginTop: 'auto',
               background: 'linear-gradient(135deg, oklch(0.78 0.16 305), oklch(0.72 0.18 320))',
               boxShadow: '0 0 32px oklch(0.78 0.16 305 / 0.45), 0 6px 20px oklch(0 0 0 / 0.30)',
