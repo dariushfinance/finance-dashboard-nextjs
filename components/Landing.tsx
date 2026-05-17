@@ -97,6 +97,7 @@ export default function Landing() {
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#features" style={navLink}>Features</a>
+            <Link href="/how-it-works" style={navLink}>How it works</Link>
             <a href="#pricing"  style={navLink}>Pricing</a>
             <a href="#about"    style={navLink}>About</a>
             <Link href="/login" className="lp-cta" style={{
@@ -155,9 +156,9 @@ export default function Landing() {
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </Link>
-            <a href="#features" className="lp-ghost" style={ctaGhost}>
-              See features
-            </a>
+            <Link href="/how-it-works" className="lp-ghost" style={ctaGhost}>
+              See backtests
+            </Link>
           </div>
 
           <div style={{ marginTop: 20, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
