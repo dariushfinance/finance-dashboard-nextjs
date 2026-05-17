@@ -135,8 +135,8 @@ export default function Landing() {
             fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.02,
             margin: 0, color: 'var(--ink)',
           }}>
-            Markowitz, Sharpe, and stress tests —<br />
-            <span className="lp-grad-text">on your actual ZKB depot.</span>
+            The portfolio tool<br />
+            <span className="lp-grad-text">your quant friend uses.</span>
           </h1>
 
           <p style={{
@@ -144,7 +144,7 @@ export default function Landing() {
             lineHeight: 1.6, color: 'var(--ink-2)',
             maxWidth: 680, margin: '28px auto 0',
           }}>
-            Institutional-grade portfolio analytics on top of your real ZKB, Yuh or Neon positions.
+            Institutional-grade analytics on your actual ZKB, Yuh or Neon positions.
             FX-aware to ±0.2%. Six risk metrics, one efficient frontier, four crisis stress tests. From CHF&nbsp;0.
           </p>
 
