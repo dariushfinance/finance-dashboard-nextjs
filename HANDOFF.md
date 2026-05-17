@@ -1,13 +1,92 @@
-# HANDOFF — Quantfoli (Session 8)
+# HANDOFF — Quantfoli (Sessions 8 + 9)
 
 **Date:** 2026-05-17
 **Branch:** `main`
-**Last commit:** `c53bb84` — SEO, Sentry, and founder-notification email on Advisor signup
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
-**DNS:** Now on **Cloudflare** (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`). Migrated this session.
+**DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`). Migrated in session 8.
 **Owner:** Dariush Tahajomi (dariush.tahajomi@gmail.com), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen
 
-> Prior handoffs are in git history. **Session 7's handoff is the previous version of this file (overwritten now).** Read this file end-to-end before touching anything.
+> Prior handoffs are in git history. Read this file end-to-end before touching anything.
+
+---
+
+## 0. Session 9 — Backtesting landing page (2026-05-17, same day as session 8)
+
+Built the `/how-it-works` landing page from `docs/BACKTESTING_LANDING_PAGE.md`. Spec was written first, approved (`go ahead, build my guy`), then implemented end-to-end. One PR, bundled commit.
+
+### What shipped
+
+- **Walk-forward backtest engine** (`lib/backtest/engine.ts`) with lookahead-bias guard. Two guards: a runtime assertion that no price row with `date >= asOf` reaches the optimizer, and two regression tests — one shifting in-window prices by 1 trading day (output MUST change), one mutating only post-`endDate` prices (output MUST be identical). The strong guard is the canary; do not weaken it.
+- **Mulberry32 deterministic RNG** for the Monte Carlo Markowitz solver (`seed: 42`). Same input → identical weights → reproducible aggregate JSONs.
+- **Cost model** (`lib/backtest/costs.ts`): 0.50% commission + 0.10% spread + 0.15% (CH) / 0.30% (foreign) stamp duty per trade side, with sources cited in the file header. If the numbers change, update `docs/BACKTESTING_LANDING_PAGE.md` §B.3 in the same commit — they must stay in sync.
+- **Data pipeline** (`lib/backtest/data.ts`): 7-day disk cache under `data/backtests-cache/` (gitignored). Single chokepoint for all price reads — `pricesBefore(frame, ticker, asOf)` is the only function the engine uses to read history.
+- **Universe** (`lib/backtest/universe.ts`): curated SMI large-caps + Swiss-broker-accessible UCITS ETFs, annotated with first-trade-date and domicile for stamp duty.
+- **Build script** (`scripts/build-backtests.ts`): generates 3 portfolio JSONs + `aggregate.json` into `public/backtests/`. Run with `npm run build:backtests`.
+- **Verify script** (`scripts/verify-backtest-jsons.ts`): re-derives aggregate from the per-portfolio JSONs, fails on drift. **Wired into `npm run build`** as a precheck — `next build` will not run if aggregate is stale.
+- **`/how-it-works`** route (server component, `data-tier="advisor"` for purple cascade). Hero chart, methodology section, screenshot-quotable aggregate-stats block, three sample portfolio cards, dual Pro/Advisor CTA, disclaimer importing `ADVISOR_TERMS_VERSION` from `lib/advisor-terms.ts`.
+- **`/backtests`** → 308 redirect to `/how-it-works`.
+- **`/how-it-works/[portfolio]`** → permalink that redirects to `#portfolio-<id>` anchor.
+- **OG cards** at `/how-it-works/opengraph-image` and `/how-it-works/[portfolio]/opengraph-image` — show actual aggregate stats, not generic branding. Both are `runtime = 'nodejs'` + `dynamic = 'force-dynamic'` (need fs to read JSON; Vercel edge-caches at request time).
+- **`tsx`** added as devDependency (was needed by the build/verify scripts).
+- **`sitemap.ts`** + `/how-it-works` (priority 0.9, weekly).
+- **FIDLEG copy lint** (`lib/backtest/fidleg-lint.test.ts`): walks every `.tsx` under `app/how-it-works/` and `components/backtest/`, fails on forbidden prescriptive phrasing. Allow-list via `// eslint-allow-fidleg: <reason>` comment.
+
+### Honesty patch (post-Dariush review)
+
+Dariush spotted that the original card sentence framed a 45%-win, ending-NAV-below-starting-allocation result as net-positive. That violates `docs/BACKTESTING_LANDING_PAGE.md` §D ("acknowledge limits openly"). Fixed in the same commit:
+
+- Per-card **verdict badge** (`Model outperformed` / `Roughly tied` / `Model underperformed`) derived from wins% AND median Sharpe Δ (median is the more honest center than the mean).
+- Opening sentence flips based on verdict — never leads with "wins in X%" when wins < 50%.
+- Median Sharpe Δ printed next to the mean on every card.
+- One-line **"Why"** explanation per portfolio, passed in from the page. Concentrated portfolio's "why" explicitly upsells the Advisor diagnostic.
+- Advisor CTA copy now says "what the model computes on your portfolio — and, just as importantly, where it doesn't help and why."
+
+### Test counts
+
+`npx vitest run` — **51/51 passing** (36 original + 13 engine/costs/lookahead + 2 FIDLEG/disclaimer).
+
+### Headline numbers (66 pooled rebalances, 2019-06 → 2024-12)
+
+- Vs. equal-weight: **+Sharpe in 56% of quarters**, mean Δ **+0.022**.
+- Vs. starting allocation: 47% of quarters, mean Δ **+0.029**.
+- Concentrated SMI portfolio: model loses (45% wins, ending NAV 1.779 vs starting-allocation 1.812). Surfaced honestly with verdict badge "Model underperformed" + structural explanation.
+- Conservative + growth portfolios: model wins. The page tells both stories.
+
+### Files added/modified this session
+
+```
+NEW
+  docs/BACKTESTING_LANDING_PAGE.md
+  lib/backtest/{universe,data,costs,engine,engine.test,fidleg-lint.test}.ts
+  scripts/{build-backtests,verify-backtest-jsons}.ts
+  public/backtests/{conservative,growth,concentrated,aggregate}.json
+  app/how-it-works/page.tsx
+  app/how-it-works/opengraph-image.tsx
+  app/how-it-works/[portfolio]/page.tsx
+  app/how-it-works/[portfolio]/opengraph-image.tsx
+  app/backtests/page.tsx                      (308 → /how-it-works)
+  components/backtest/{HeroChart,SamplePortfolioCard,CTACards,Disclaimer,CopyLinkButton}.tsx
+
+MODIFIED
+  .gitignore                                  + data/backtests-cache/
+  app/sitemap.ts                              + /how-it-works @ priority 0.9
+  package.json                                + tsx devDep, + build/verify scripts
+  package-lock.json
+  HANDOFF.md                                  (this section)
+```
+
+### What was NOT done
+
+- **`app/finances/page.tsx` + `components/FinancesSheet.tsx`** are still untracked (deferred in session 8, deferred again here — Dariush's call).
+- **HANDOFF.md bottom sections** (5–14) below still describe session 8 state. Re-read them but treat this Session 9 block as the latest authoritative summary on backtest infrastructure.
+- **No browser walkthrough by Claude** — Dariush ran `npm run dev` and reviewed live, then asked for the honesty patch which is now shipped.
+
+### Next session pickup
+
+1. Verify the live deploy of `/how-it-works` once Vercel finishes the auto-deploy. Open in incognito; check Advisor purple cascade, hero chart renders, verdict badges show the right verdict per card, OG cards render at `/how-it-works/opengraph-image` and `/how-it-works/conservative/opengraph-image`.
+2. Submit the new route to Google Search Console (sitemap already includes it).
+3. Decision still pending: commit `app/finances/` or remove.
+4. Marketing scaffolding doc (`docs/MARKETING_PLAN.md`) is the next deliverable per the further-instructions file — but Dariush will do most of the research himself, with Claude in advisory role. Wait for him to start.
 
 ---
 

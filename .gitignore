@@ -1,3 +1,6 @@
+# Backtest local price cache (regenerable from Yahoo)
+data/backtests-cache/
+
 # Dependencies
 node_modules/
 .pnp

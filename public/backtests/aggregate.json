@@ -1,0 +1,68 @@
+{
+  "portfolios": [
+    {
+      "id": "conservative",
+      "title": "Conservative 60/40 Swiss investor",
+      "range": {
+        "start": "2019-06-21",
+        "end": "2024-12-31"
+      },
+      "nRebalances": 22
+    },
+    {
+      "id": "growth",
+      "title": "Growth-oriented ETF portfolio",
+      "range": {
+        "start": "2019-06-21",
+        "end": "2024-12-31"
+      },
+      "nRebalances": 22
+    },
+    {
+      "id": "concentrated",
+      "title": "SMI single-stock-heavy retail portfolio",
+      "range": {
+        "start": "2019-06-21",
+        "end": "2024-12-31"
+      },
+      "nRebalances": 22
+    }
+  ],
+  "pooled": {
+    "equal-weight": {
+      "sharpeDelta": {
+        "mean": 0.021912543382480016,
+        "median": 0.045751626417260466,
+        "n": 66,
+        "pctPositive": 0.5606060606060606
+      },
+      "volDelta": {
+        "mean": 0.006044320424977259,
+        "median": 0.003908870213745162,
+        "n": 66,
+        "pctPositive": 0.7121212121212122
+      }
+    },
+    "starting-allocation": {
+      "sharpeDelta": {
+        "mean": 0.02926888878335544,
+        "median": -0.03791388565434049,
+        "n": 66,
+        "pctPositive": 0.4696969696969697
+      },
+      "volDelta": {
+        "mean": 0.0033648597124049328,
+        "median": -0.001825306805171241,
+        "n": 66,
+        "pctPositive": 0.42424242424242425
+      }
+    }
+  },
+  "generatedAt": "2026-05-17T19:18:49.343Z",
+  "worstQuarter": {
+    "date": "2020-09-21",
+    "portfolio": "concentrated",
+    "benchmark": "equal-weight",
+    "sharpeDelta": -1.9566551430431736
+  }
+}
