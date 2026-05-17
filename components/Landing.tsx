@@ -135,18 +135,17 @@ export default function Landing() {
             fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.02,
             margin: 0, color: 'var(--ink)',
           }}>
-            Institutional-grade<br />
-            portfolio analytics.{' '}
-            <span className="lp-grad-text">Retail price.</span>
+            Markowitz, Sharpe, and stress tests —<br />
+            <span className="lp-grad-text">on your actual ZKB depot.</span>
           </h1>
 
           <p style={{
             marginTop: 28, fontSize: 'clamp(15px, 1.8vw, 19px)',
             lineHeight: 1.6, color: 'var(--ink-2)',
-            maxWidth: 640, margin: '28px auto 0',
+            maxWidth: 680, margin: '28px auto 0',
           }}>
-            Markowitz frontier, stress tests, Sharpe, Sortino, Beta, Alpha — on top of your
-            real ZKB, Yuh or Neon portfolio. FX-aware to ±0.2%. From CHF&nbsp;0.
+            Institutional-grade portfolio analytics on top of your real ZKB, Yuh or Neon positions.
+            FX-aware to ±0.2%. Six risk metrics, one efficient frontier, four crisis stress tests. From CHF&nbsp;0.
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

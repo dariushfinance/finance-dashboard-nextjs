@@ -155,6 +155,7 @@ function LoginPageInner() {
                   required disabled={loading}
                   maxLength={120}
                   autoComplete="name"
+                  autoFocus
                 />
               </div>
             )}
@@ -170,6 +171,7 @@ function LoginPageInner() {
                 onChange={e => setEmail(e.target.value)}
                 required disabled={loading}
                 autoComplete="email"
+                autoFocus={tab === 'signin'}
               />
             </div>
             <div>
@@ -219,6 +221,46 @@ function LoginPageInner() {
                 tab === 'signin' ? 'Sign In' : 'Create Account'
               )}
             </button>
+
+            {/* Prose switch link — recovers users who landed on the wrong tab */}
+            <div style={{
+              textAlign: 'center', fontSize: 12.5, color: 'var(--ink-3)',
+              marginTop: 6,
+            }}>
+              {tab === 'signin' ? (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setTab('signup'); setError(''); setMessage('') }}
+                    style={{
+                      background: 'none', border: 'none', padding: 0,
+                      color: 'oklch(0.80 0.14 258)', fontWeight: 600, cursor: 'pointer',
+                      textDecoration: 'underline', textUnderlineOffset: 3,
+                      fontSize: 'inherit', fontFamily: 'inherit',
+                    }}
+                  >
+                    Create one →
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setTab('signin'); setError(''); setMessage('') }}
+                    style={{
+                      background: 'none', border: 'none', padding: 0,
+                      color: 'oklch(0.80 0.14 258)', fontWeight: 600, cursor: 'pointer',
+                      textDecoration: 'underline', textUnderlineOffset: 3,
+                      fontSize: 'inherit', fontFamily: 'inherit',
+                    }}
+                  >
+                    Sign in →
+                  </button>
+                </>
+              )}
+            </div>
           </form>
         </div>
 

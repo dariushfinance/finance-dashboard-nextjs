@@ -278,6 +278,9 @@ export function PricingCards() {
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
               Forever free
             </div>
+            <div style={{ marginTop: 4, fontSize: 11, color: 'oklch(0.82 0.156 162)', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>
+              No credit card · No trial expiry
+            </div>
             <ul style={featureList}>
               {[
                 'Portfolio tracker & P&L',
