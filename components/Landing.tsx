@@ -98,6 +98,7 @@ export default function Landing() {
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#features" style={navLink}>Features</a>
             <Link href="/how-it-works" style={navLink}>How it works</Link>
+            <Link href="/blog" style={navLink}>Blog</Link>
             <a href="#pricing"  style={navLink}>Pricing</a>
             <a href="#about"    style={navLink}>About</a>
             <Link href="/login" className="lp-cta" style={{
