@@ -41,7 +41,7 @@ export default async function BlogIndexPage() {
             <li key={post.slug} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 24 }}>
               <Link href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <article>
-                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, color: '#ffffff', marginBottom: 8 }}>
                     <time dateTime={post.date}>{formatDate(post.date)}</time>
                     <span style={{ margin: '0 8px' }}>·</span>
                     <span>{post.readingMinutes} min read</span>
