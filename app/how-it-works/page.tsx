@@ -142,7 +142,7 @@ export default async function HowItWorksPage() {
         <p style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 16, lineHeight: 1.6 }}>
           Vs. the user&apos;s starting allocation rebalanced on the same schedule, the model improved Sharpe in {pct(startStats.sharpeDelta.pctPositive)} of periods
           (mean Δ {startStats.sharpeDelta.mean >= 0 ? '+' : ''}{startStats.sharpeDelta.mean.toFixed(3)}).
-          In periods following major regime changes (COVID March 2020, 2022 rate shock), the model has historically underperformed the buy-and-hold benchmark —
+          In periods following major regime changes (COVID March 2020, 2022 rate shock), the model has historically produced lower returns than the buy-and-hold benchmark —
           walk-forward optimization adapts after the regime change, not during it.
         </p>
       </section>

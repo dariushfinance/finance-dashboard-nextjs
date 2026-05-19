@@ -54,9 +54,9 @@ function deriveVerdict(winsPct: number, median: number): Verdict {
 }
 
 const VERDICT_META: Record<Verdict, { label: string; color: string; bg: string }> = {
-  won:  { label: 'Model outperformed',    color: 'var(--pos)',  bg: 'oklch(0.82 0.156 162 / 0.14)' },
-  tied: { label: 'Roughly tied',          color: 'var(--warn)', bg: 'oklch(0.84 0.148 80 / 0.14)' },
-  lost: { label: 'Model underperformed',  color: 'var(--neg)',  bg: 'oklch(0.65 0.190 25 / 0.14)' },
+  won:  { label: 'Model returned higher Sharpe', color: 'var(--pos)',  bg: 'oklch(0.82 0.156 162 / 0.14)' },
+  tied: { label: 'Roughly tied',                 color: 'var(--warn)', bg: 'oklch(0.84 0.148 80 / 0.14)' },
+  lost: { label: 'Model returned lower Sharpe',  color: 'var(--neg)',  bg: 'oklch(0.65 0.190 25 / 0.14)' },
 }
 
 export function SamplePortfolioCard({
@@ -86,7 +86,7 @@ export function SamplePortfolioCard({
     verdict === 'won'
       ? `Model improved Sharpe vs. equal-weight in ${pct(wins, 0)} of measured periods.`
     : verdict === 'lost'
-      ? `Model underperformed equal-weight in ${pct(1 - wins, 0)} of measured periods.`
+      ? `Model returned lower Sharpe than equal-weight in ${pct(1 - wins, 0)} of measured periods.`
       : `Model and equal-weight were roughly tied (model won ${pct(wins, 0)} of periods).`
 
   return (

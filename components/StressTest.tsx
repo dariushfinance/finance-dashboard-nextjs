@@ -38,12 +38,12 @@ function ScenarioCard({ s }: { s: ScenarioResult }) {
         </div>
         <span style={{
           fontSize: 11, fontWeight: 700, padding: '4px 9px', borderRadius: 7, flexShrink: 0,
-          color:       outperformed ? 'var(--pos)'      : 'var(--neg)',
-          background:  outperformed ? 'var(--pos-soft)' : 'var(--neg-soft)',
-          border:      `1px solid ${outperformed ? 'var(--pos-line)' : 'var(--neg-line)'}`,
+          color:       'var(--ink-3)',
+          background:  'var(--surface-2)',
+          border:      '1px solid var(--line)',
           fontFamily:  'var(--font-mono)',
         }}>
-          {outperformed ? '▲' : '▼'} {fmt(excess)} vs index
+          Δ vs index: {fmt(excess)}
         </span>
       </div>
 
@@ -146,8 +146,7 @@ export default function StressTest({ positions }: Props) {
               Historical Stress Test
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.55 }}>
-              Current portfolio weights applied to four historical crises · shows how your holdings
-              <em> would have</em> performed · not a prediction
+              Current portfolio weights applied to four historical crises · historical simulation only · not a prediction
             </div>
           </div>
           {loading && <span className="spinner" style={{ flexShrink: 0, marginTop: 2 }} />}
