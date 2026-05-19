@@ -145,7 +145,7 @@ export default function Landing() {
             lineHeight: 1.6, color: 'var(--ink-2)',
             maxWidth: 680, margin: '28px auto 0',
           }}>
-            Institutional-grade analytics on your actual ZKB, Yuh or Neon positions.
+            ZKB's Depotauszug doesn't show FX drag or tail risk. Quantfoli does, on your actual positions.
             FX-aware to ±0.2%. Six risk metrics, one efficient frontier, four crisis stress tests. From CHF&nbsp;0.
           </p>
 
