@@ -15,6 +15,20 @@ const SCAN_ROOTS = [
   'components/backtest',
 ]
 
+// Specific files outside the scan roots that must also be FIDLEG-clean.
+// Added when the ProGate redesign exposed headline metrics on free-tier
+// dashboard tabs — see docs/PROGATE_REDESIGN.md §6.
+const SCAN_FILES = [
+  'components/ProGate.tsx',
+  'components/RiskTab.tsx',
+  'components/RiskHeadline.tsx',
+  'components/StressTest.tsx',
+  'components/StressHeadline.tsx',
+  'components/FrontierChart.tsx',
+  'components/FrontierHeadline.tsx',
+  'components/Dashboard.tsx',
+]
+
 // Each pattern is a regex tested against the full source text (case-insensitive).
 // Keep the list tight — false positives erode the value of the check.
 const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
@@ -72,6 +86,10 @@ describe('FIDLEG copy lint', () => {
     for (const root of SCAN_ROOTS) {
       const abs = path.join(repoRoot, root)
       allFiles.push(...await walk(abs))
+    }
+    for (const rel of SCAN_FILES) {
+      const abs = path.join(repoRoot, rel)
+      try { await fs.access(abs); allFiles.push(abs) } catch { /* file removed since list was last updated — skip */ }
     }
 
     expect(allFiles.length, 'scan found zero files — paths likely wrong').toBeGreaterThan(0)

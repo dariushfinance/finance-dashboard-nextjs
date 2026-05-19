@@ -59,6 +59,9 @@ import NeonImport from './NeonImport'
 import ZkbImport from './ZkbImport'
 import UpgradeModal from './UpgradeModal'
 import ProGate from './ProGate'
+import RiskHeadline from './RiskHeadline'
+import StressHeadline from './StressHeadline'
+import FrontierHeadline from './FrontierHeadline'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
@@ -446,24 +449,26 @@ export default function Dashboard() {
         </nav>
 
         <div className="side__foot">
-          <button
-            className="btn"
-            style={{
-              width:           '100%',
-              justifyContent:  'center',
-              marginBottom:    10,
-              fontSize:        12,
-              fontWeight:      700,
-              background:      'var(--accent)',
-              color:           userTier === 'free' ? '#fff' : '#000',
-              boxShadow:       userTier !== 'free' ? '0 0 18px var(--accent-glow)' : 'none',
-              transition:      'background 0.4s, color 0.4s, box-shadow 0.4s',
-              border:          'none',
-            }}
-            onClick={() => setUpgradeOpen(true)}
-          >
-            {userTier === 'free' ? 'Upgrade to Pro' : userTier === 'advisor' ? '✦ Advisor — Manage plan' : '✦ Pro — Manage plan'}
-          </button>
+          {(userTier !== 'free' || positions.length > 0) && (
+            <button
+              className="btn"
+              style={{
+                width:           '100%',
+                justifyContent:  'center',
+                marginBottom:    10,
+                fontSize:        12,
+                fontWeight:      700,
+                background:      'var(--accent)',
+                color:           userTier === 'free' ? '#fff' : '#000',
+                boxShadow:       userTier !== 'free' ? '0 0 18px var(--accent-glow)' : 'none',
+                transition:      'background 0.4s, color 0.4s, box-shadow 0.4s',
+                border:          'none',
+              }}
+              onClick={() => setUpgradeOpen(true)}
+            >
+              {userTier === 'free' ? 'Upgrade to Pro' : userTier === 'advisor' ? '✦ Advisor — Manage plan' : '✦ Pro — Manage plan'}
+            </button>
+          )}
           <div className="user-card">
             <div className="user-card__avatar">{initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -629,17 +634,35 @@ export default function Dashboard() {
               {activeTab === 'dividends'    && <DividendsTab positions={positions} ccy={ccy} />}
               {activeTab === 'risk' && (
                 userTier === 'free'
-                  ? <ProGate featureName="Risk Analytics" onUpgrade={() => setUpgradeOpen(true)}><RiskTab positions={positions} /></ProGate>
+                  ? <ProGate
+                      featureName="Unlock full Risk dashboard"
+                      featureSubcopy="Five more risk metrics, regime detection, and per-position correlation matrix with Pro."
+                      ctaLabel="Unlock full Risk dashboard · Pro CHF 15/mo"
+                      headlineMetric={<RiskHeadline positions={positions} />}
+                      onUpgrade={() => setUpgradeOpen(true)}
+                    ><RiskTab positions={positions} /></ProGate>
                   : <RiskTab positions={positions} />
               )}
               {activeTab === 'stress' && (
                 userTier === 'free'
-                  ? <ProGate featureName="Stress Testing" onUpgrade={() => setUpgradeOpen(true)}><StressTest positions={positions} /></ProGate>
+                  ? <ProGate
+                      featureName="Unlock full Stress Test"
+                      featureSubcopy="All historical scenarios, per-scenario position attribution, and worst-month rolling distribution with Pro."
+                      ctaLabel="Unlock full Stress Test · Pro CHF 15/mo"
+                      headlineMetric={<StressHeadline positions={positions} />}
+                      onUpgrade={() => setUpgradeOpen(true)}
+                    ><StressTest positions={positions} /></ProGate>
                   : <StressTest positions={positions} />
               )}
               {activeTab === 'frontier' && (
                 userTier === 'free'
-                  ? <ProGate featureName="Efficient Frontier" onUpgrade={() => setUpgradeOpen(true)}><FrontierChart positions={positions} /></ProGate>
+                  ? <ProGate
+                      featureName="See full Frontier analysis"
+                      featureSubcopy="Full efficient frontier with constraint-aware Markowitz optimisation and per-portfolio Sharpe distribution with Pro."
+                      ctaLabel="See full Frontier analysis · Pro CHF 15/mo"
+                      headlineMetric={<FrontierHeadline positions={positions} />}
+                      onUpgrade={() => setUpgradeOpen(true)}
+                    ><FrontierChart positions={positions} /></ProGate>
                   : <FrontierChart positions={positions} userTier={userTier} />
               )}
               {activeTab === 'hedging'      && <HedgingTab positions={positions} />}
