@@ -28,13 +28,13 @@ export default async function BlogIndexPage() {
     <main style={{ maxWidth: 760, margin: '0 auto', padding: '64px 24px' }}>
       <header style={{ marginBottom: 48 }}>
         <h1 style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 12 }}>Blog</h1>
-        <p style={{ color: '#475569', fontSize: 17, lineHeight: 1.6 }}>
+        <p style={{ color: '#ffffff', fontSize: 17, lineHeight: 1.6 }}>
           Portfolio analytics, Swiss-broker mechanics, and quant primers — written for self-directed investors.
         </p>
       </header>
 
       {posts.length === 0 ? (
-        <p style={{ color: '#64748b' }}>No articles yet.</p>
+        <p style={{ color: '#ffffff' }}>No articles yet.</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 32 }}>
           {posts.map((post) => (
@@ -49,7 +49,7 @@ export default async function BlogIndexPage() {
                   <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8, letterSpacing: '-0.01em' }}>
                     {post.title}
                   </h2>
-                  <p style={{ color: '#475569', lineHeight: 1.6, margin: 0 }}>{post.description}</p>
+                  <p style={{ color: '#ffffff', lineHeight: 1.6, margin: 0 }}>{post.description}</p>
                 </article>
               </Link>
             </li>

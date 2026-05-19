@@ -1,7 +1,7 @@
 .prose {
   font-size: 17px;
   line-height: 1.75;
-  color: #1e293b;
+  color: #ffffff;
 }
 
 .prose h2 {
@@ -59,7 +59,7 @@
 .prose blockquote {
   border-left: 3px solid #cbd5e1;
   padding-left: 16px;
-  color: #475569;
+  color: #ffffff;
   margin: 24px 0;
 }
 
@@ -104,12 +104,12 @@
 
 /* External links — absolute URLs */
 .prose a[href^="http"] {
-  color: #475569;
+  color: #ffffff;
   text-decoration: underline;
   text-decoration-color: #cbd5e1;
   text-underline-offset: 3px;
 }
 
 .prose a[href^="http"]:hover {
-  text-decoration-color: #475569;
+  text-decoration-color: #ffffff;
 }

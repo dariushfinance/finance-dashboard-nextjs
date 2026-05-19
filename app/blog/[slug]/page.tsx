@@ -86,7 +86,7 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
       )}
 
       <nav style={{ marginBottom: 32, fontSize: 14 }}>
-        <Link href="/blog" style={{ color: '#64748b', textDecoration: 'none' }}>
+        <Link href="/blog" style={{ color: '#ffffff', textDecoration: 'none' }}>
           ← Blog
         </Link>
       </nav>
@@ -95,7 +95,7 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
         <h1 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 16 }}>
           {post.title}
         </h1>
-        <div style={{ fontSize: 14, color: '#64748b' }}>
+        <div style={{ fontSize: 14, color: '#ffffff' }}>
           <span>{post.author}</span>
           <span style={{ margin: '0 8px' }}>·</span>
           <time dateTime={post.date}>{formatDate(post.date)}</time>
