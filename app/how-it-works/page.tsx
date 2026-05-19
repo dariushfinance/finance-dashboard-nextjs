@@ -165,7 +165,7 @@ export default async function HowItWorksPage() {
         <SamplePortfolioCard
           data={concentrated}
           anchor="portfolio-concentrated"
-          whyText="Swiss large-caps are highly correlated — NESN, NOVN, ROG, UBSG and ZURN all move with global risk-on / risk-off. Markowitz has little to diversify across, so per-rebalance trading costs outweigh the small allocation gains. The Advisor report flags exactly this kind of structural concentration and lists instruments that would add cross-sectional variation."
+          whyText="Swiss large-caps are highly correlated — NESN, NOVN, ROG, UBSG and ZURN all move with global risk-on / risk-off. Markowitz has little to diversify across, so per-rebalance trading costs outweigh the small allocation gains. The Advisor report flags exactly this kind of structural concentration and describes the correlation properties of the holdings and quantifies the diversification deficit relative to the broader market."
         />
       </section>
 

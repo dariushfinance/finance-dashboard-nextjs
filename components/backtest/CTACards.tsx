@@ -54,7 +54,7 @@ export function CTACards({ userTier = 'free' as 'free' | 'pro' | 'advisor' }) {
           Run the same analysis on your own portfolio
         </h2>
         <p style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 8 }}>
-          Upload your ZKB, Yuh or Neon export — get the model output, the rebalancing decisions, the stress tests.
+          Upload your ZKB, Yuh or Neon export — get the model output, the rebalancing weights, the stress tests.
         </p>
       </div>
 
