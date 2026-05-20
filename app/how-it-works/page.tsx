@@ -54,7 +54,7 @@ export default async function HowItWorksPage() {
       padding: '48px 24px 80px',
       color: 'var(--ink-2)',
     }}>
-      <MethodologyBanner
+      <MethodologyBanner />
       <Link
         href="/"
         style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 28 }}
