@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { HeroChart, FeatureCard, Reveal, PricingCards } from './LandingClient'
+import { HeroChart, FeatureCard, Reveal, PricingCards, ThemeToggle } from './LandingClient'
 
 const FEATURES = [
   {
@@ -63,7 +63,7 @@ export default function Landing() {
         }} />
         <div style={{
           position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.025) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, var(--lp-dot) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
           maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
           WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
@@ -101,6 +101,7 @@ export default function Landing() {
             <Link href="/blog" style={navLink}>Blog</Link>
             <a href="#pricing"  style={navLink}>Pricing</a>
             <a href="#about"    style={navLink}>About</a>
+            <ThemeToggle />
             <Link href="/login" className="lp-cta" style={{
               ...navLink,
               padding: '8px 16px', borderRadius: 9,

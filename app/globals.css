@@ -57,6 +57,9 @@
   --accent-grad: linear-gradient(135deg, oklch(0.68 0.180 258), oklch(0.78 0.150 250));
   --accent-glow: oklch(0.68 0.180 258 / 0.50);
 
+  /* Landing page specifics */
+  --lp-dot: oklch(1 0 0 / 0.025);
+
   /* Geometry */
   --radius:    14px;
   --radius-sm: 10px;
@@ -107,6 +110,8 @@ html[data-theme="light"] {
     0 2px 8px oklch(0 0 0 / 0.06),
     0 0 0 1px oklch(0 0 0 / 0.05);
   --shadow-hi: 0 20px 48px -12px oklch(0 0 0 / 0.16);
+
+  --lp-dot: oklch(0 0 0 / 0.045);
 }
 
 /* ── Reset ───────────────────────────────────────────────────── */
