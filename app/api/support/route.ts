@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { rateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -7,6 +8,10 @@ const SUPPORT_FROM  = process.env.RESEND_FROM || 'Quantfoli Support <onboarding@
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIdentifier(req)
+    const limit = rateLimit(`support:${ip}`, 10, 60_000)
+    if (!limit.allowed) return rateLimitResponse(limit)
+
     const { name, email, subject, message } = await req.json()
 
     if (!name || !email || !subject || !message) {

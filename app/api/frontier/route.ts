@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices, RISK_FREE_ANNUAL } from '@/lib/yahoo'
 import { getAuthUser } from '@/lib/supabase'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 const N_PORTFOLIOS = 2000
 const LOOKBACK_MS  = Math.round(504 * 1.4 * 24 * 60 * 60 * 1000)  // ~2 trading years
@@ -38,7 +39,11 @@ function randomWeights(n: number, cap = MAX_WEIGHT): number[] {
 // POST /api/frontier
 // Body: { positions: [{ ticker, shares, current_price }] }
 export async function POST(req: NextRequest) {
-  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limit = rateLimit(`frontier:${user.id}`, 20, 60_000)
+  if (!limit.allowed) return rateLimitResponse(limit)
 
   const body = await req.json()
   const positions: PositionInput[] = (body.positions ?? []).filter(

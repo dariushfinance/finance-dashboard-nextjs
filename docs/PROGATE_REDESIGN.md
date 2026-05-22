@@ -202,4 +202,130 @@ Linter coverage: `lib/backtest/fidleg-lint.test.ts` currently walks `app/how-it-
 
 ---
 
-**End of spec. Caveman feedback expected before any code lands.**
+**End of v1 spec. Per-chart refinement appended below (2026-05-19).**
+
+---
+
+## 10. Per-chart paywall refinement (v2 — 2026-05-19)
+
+### 10.1 Motivation
+
+The shipped ProGate (`ad28b62`) treats each Pro-gated tab as **one blurred surface with one CTA**. Each Pro tab actually contains multiple distinct visualizations. A user looking at the Risk tab sees:
+
+- 6 stat boxes (top row)
+- Rolling Volatility chart
+- Correlation Matrix heatmap
+- Monthly Returns Calendar
+
+…all blurred under a single "Unlock full Risk dashboard" CTA. The CTA says "with Pro you get more risk metrics" but does not say WHICH metric is behind WHICH visualization.
+
+Refinement: apply blur + Pro CTA **per chart** instead of per tab. Each CTA describes what THAT specific visualization unlocks.
+
+### 10.2 Constraint (preserves v1 guarantee)
+
+The v1 "headline metric outside blur" guarantee must survive. At least ONE crisp real-data number per tab still renders above any blur, identical to current.
+
+### 10.3 Per-chart inventory
+
+#### Risk tab (`components/RiskTab.tsx`)
+Distinct visualizations found in current file:
+
+| # | Chart / block | Source line | Headline-metric eligible? |
+|---|---|---|---|
+| R1 | 6 stat boxes top row (Vol 21d, Sharpe 1Y, Sortino, MaxDD, VaR, CVaR) | already partially exposed via `RiskHeadline` | YES — already free-tier on the 2 of 6 most relevant |
+| R2 | Rolling Volatility chart | 171-256 | NO — full chart is the Pro unlock |
+| R3 | Correlation Matrix heatmap | 258-343 | NO — Pro |
+| R4 | Monthly Returns Calendar | 345-end | NO — Pro |
+
+#### Stress Test tab (`components/StressTest.tsx`)
+| # | Chart / block | Source line | Headline-metric eligible? |
+|---|---|---|---|
+| S1 | Worst-scenario name + max drawdown | exposed via `StressHeadline` | YES — already free-tier |
+| S2 | Scenario card 1 (dot-com / 2000) | 167 (`scenarios.map`) | NO — Pro |
+| S3 | Scenario card 2 (GFC / 2008) | same | NO — Pro |
+| S4 | Scenario card 3 (COVID / 2020) | same | NO — Pro |
+| S5 | Scenario card 4 (2022 inflation) | same | NO — Pro |
+
+Per-scenario position attribution is rendered INSIDE each ScenarioCard (per-position contribution to scenario loss). Hence per-card CTA covers it.
+
+#### Frontier tab (`components/FrontierChart.tsx`)
+| # | Chart / block | Source line | Headline-metric eligible? |
+|---|---|---|---|
+| F1 | Current portfolio (Return, Volatility) point | exposed via `FrontierHeadline` | YES — already free-tier (as text) |
+| F2 | Efficient Frontier scatter (Monte Carlo cloud + frontier curve + current portfolio dot) | 357+ | NO — Pro |
+| F3 | `VolatilityInsights` block — rebalancing-target weights + per-asset vol contribution | 71-end, rendered at 505 | NO — Pro |
+
+### 10.4 Per-chart CTA copy (FIDLEG-safe, awaiting `@agent-fidleg-reviewer` pass)
+
+Each chart gets its own CTA card overlaying its own blurred surface. Copy follows the v1 §6 FIDLEG rule set: descriptive feature names, no advice claims, no "you would have", no "outperformed", no "recommended."
+
+| Chart | CTA headline | CTA subcopy | Notes |
+|---|---|---|---|
+| R2 Rolling Volatility | `"Rolling volatility regime — Pro"` | `"21d annualised volatility across the trailing 12 months. Shows the regime shifts your headline number averages out."` | "Spot" → "Shows" per fidleg-reviewer 2026-05-20 |
+| R3 Correlation Matrix | `"Per-position correlation matrix — Pro"` | `"Pairwise daily-return correlation across every position. Identifies pairs with > 0.8 co-movement."` | Pure descriptive |
+| R4 Monthly Returns Calendar | `"Monthly returns calendar — Pro"` | `"TWR for every month since first position. Heatmap green/red by realised return."` | Descriptive |
+| S2 Scenario card (dot-com) | `"2000 dot-com scenario — Pro"` | `"Daily returns of your current allocation replayed against the 2000-2002 dot-com drawdown. Past data, not a forecast."` | Repeats v1 "past data, not a forecast" disclaimer per card |
+| S3 Scenario card (GFC) | `"2008 GFC scenario — Pro"` | `"Daily returns of your current allocation replayed against the 2008 financial-crisis window. Past data, not a forecast."` | Same |
+| S4 Scenario card (COVID) | `"2020 COVID scenario — Pro"` | `"Daily returns of your current allocation replayed against the Feb-Apr 2020 COVID drawdown. Past data, not a forecast."` | Same |
+| S5 Scenario card (2022) | `"2022 inflation scenario — Pro"` | `"Daily returns of your current allocation replayed against the 2022 rate-hike drawdown. Past data, not a forecast."` | Same |
+| F2 Frontier scatter | `"Efficient frontier with Markowitz — Pro"` | `"Monte Carlo cloud of weight allocations subject to per-asset cap. Frontier curve fitted through the convex hull."` | "Constraint-aware" replaced with "subject to per-asset cap" — more concrete |
+| F3 VolatilityInsights | `"Rebalancing weights and per-asset volatility contribution — Pro"` | `"Computed target weights from the frontier solver plus each asset's marginal contribution to portfolio volatility."` | "Suggested" → "Computed" per fidleg-reviewer 2026-05-20 |
+
+### 10.5 FIDLEG pre-review — completed 2026-05-20
+
+`@agent-fidleg-reviewer` reviewed all 9 strings. Verdict:
+- **7 of 9 PASS** as originally written (R3, R4, S2, S3, S4, S5, F2).
+- **2 rewrites applied** (already in §10.4 table above):
+  - R2 subcopy: `"Spot the regime shifts"` → `"Shows the regime shifts"` (action verb → observation verb).
+  - F3 subcopy: `"Suggested target weights"` → `"Computed target weights"` (recommendation → computation).
+
+Table §10.4 is **shippable to spec-approval** post-edits. Zero remaining FIDLEG risk.
+Reviewer also recommends extending `lib/backtest/fidleg-lint.test.ts` `SCAN_FILES` to include `ProChart.tsx` once it exists (already noted in §10.6 step 4).
+
+### 10.6 Implementation plan (when approved)
+
+1. Run `@agent-fidleg-reviewer` over the 9 new strings (this spec, §10.4 table). Apply any rewrites.
+2. Refactor `ProGate.tsx` to support **per-child** wrapping: a new component `ProChart` that takes its own `featureName`, `featureSubcopy`, `ctaLabel` and wraps a single child in the blur+CTA pattern. The outer `ProGate` still owns the headline.
+3. Wrap each Pro-gated chart in a `ProChart` instead of letting `ProGate` blur the whole tab. Pseudocode:
+   ```tsx
+   <ProGate featureName="Risk" headlineMetric={<RiskHeadline … />}>
+     <RiskTab>
+       <ProChart name="Rolling volatility regime" sub="…">
+         <RollingVolatilityChart … />
+       </ProChart>
+       <ProChart name="Per-position correlation matrix" sub="…">
+         <CorrelationMatrix … />
+       </ProChart>
+       …
+     </RiskTab>
+   </ProGate>
+   ```
+   Free-tier user: each chart has its own CTA card. Pro-tier: ProChart no-ops (renders child directly).
+4. Extend `lib/backtest/fidleg-lint.test.ts` `SCAN_FILES` to include the new `ProChart.tsx`.
+5. Manual smoke test against a free-tier and Pro-tier account.
+6. Run `@agent-fidleg-reviewer` over the shipped code (post-impl pass).
+
+### 10.7 Risks
+
+| Risk | Mitigation |
+|---|---|
+| Visual density — 9 small CTA cards instead of 3 large ones — looks busy. | Each per-chart CTA card is smaller (smaller font, single-line subcopy, gold accent stripe only). Headline CTA per tab is removed once per-chart pattern lands; user pays for any chart through any of the 3 per-tab CTAs. |
+| Free user feels "more locked" because every chart now has its own CTA. | Counter: the user sees more specifically what they're missing per chart. Per-chart CTAs convert better than per-tab in standard SaaS A/B data. |
+| FIDLEG slips through on one of 9 strings. | Pre- and post-impl `@agent-fidleg-reviewer` pass (same as v1). |
+| Mobile layout: 4 stacked scenario cards each with their own CTA card = a lot of vertical scroll on Stress Test. | Acceptable — the alternative (one big CTA at top) is what v1 already shipped. Mobile users already scroll. |
+
+### 10.8 Out of scope for v2
+
+- No new Pro features being added — only repackaging the existing ones with finer-grained CTA copy.
+- No tier changes.
+- Free-tier headline metrics from v1 are unchanged.
+
+### 10.9 Approval gate
+
+Per-chart spec sits waiting for:
+1. `@agent-fidleg-reviewer` pre-pass over §10.4 strings.
+2. Caveman approval from Dariush.
+
+Then code lands per §10.6.
+
+**End of v2 spec.**

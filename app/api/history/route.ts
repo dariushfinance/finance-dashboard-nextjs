@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices, calcSharpeAndVol, calcTWRReturns, calcMaxDrawdown, calcSortino, calcVaR, calcCVaR } from '@/lib/yahoo'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { HistoryResult } from '@/types'
 
 // POST /api/history
@@ -10,6 +11,9 @@ import type { HistoryResult } from '@/types'
 export async function POST(_req: NextRequest) {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limit = rateLimit(`history:${user.id}`, 20, 60_000)
+  if (!limit.allowed) return rateLimitResponse(limit)
 
   const supabase = createServerClient()
   const { data: lots, error: dbError } = await supabase

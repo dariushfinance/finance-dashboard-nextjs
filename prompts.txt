@@ -1,0 +1,316 @@
+═══════════════════════════════════════════════════════════════════
+QUANTFOLI BACKGROUND BATCH — Sunday, 2026-05-19
+═══════════════════════════════════════════════════════════════════
+
+Dariush is studying maths (Matura prep). Run these tasks in parallel 
+where possible. Do NOT push anything to GitHub. Do NOT modify 
+production code without explicit approval. All deliverables go 
+to /docs or appropriate spec files.
+
+also: read HANDOFF.md 
+
+Stop and wait for caveman feedback after each major deliverable.
+
+TASK ZERO: 
+═══════════════════════════════════════════════════════════════════
+TASK 0 — DESIGN AUDIT (USING ui-ux-pro-max-skill)
+═══════════════════════════════════════════════════════════════════
+## Audit scope
+
+Compare current Quantfoli design against three reference brands 
+in adjacent space:
+- Linear.app (technical SaaS, dark theme, precise typography)
+- Vercel.com (developer tool, minimalist, strong type hierarchy)  
+- Stripe.com (financial infrastructure, trust-signaling, content-dense)
+
+For each surface (Landing, Dashboard, /how-it-works, /pricing, 
+/blog), assess:
+- Typography (font choice, scale, hierarchy, line-height, tracking)
+- Color system (saturation, contrast ratios, accent usage)
+- Spacing rhythm (consistency of 4/8/16/24/32px grid)
+- Component patterns (cards, buttons, tables, modals)
+- Information density (too sparse, too cluttered, balanced)
+- Visual identity strength (does it look like Quantfoli, or 
+  could it be any SaaS?)
+
+## Diagnosis required
+
+For each surface, identify the top 3 things that make it look 
+"generic AI-startup" rather than "Swiss precision quant tool".
+
+## Output
+
+/docs/DESIGN_AUDIT.md with:
+- Section A — Current state assessment per surface
+- Section B — Specific "generic markers" identified (e.g. 
+  "Inter font with no customization, default Tailwind shades, 
+  no consistent vertical rhythm")
+- Section C — Reference patterns from Linear/Vercel/Stripe that 
+  would translate to Quantfoli
+- Section D — Proposed visual identity direction:
+  - Typography (specific font recommendation with rationale)
+  - Color refinement (keep current --accent-pro and --accent-advisor 
+    or refine?)
+  - Spacing system
+  - One unique visual element that becomes a Quantfoli signature 
+    (e.g. how Stripe uses gradient lines, how Linear uses sharp 
+    corners + subtle glow)
+- Section E — Implementation phasing:
+  - Phase 1 — Typography + spacing (lowest risk, biggest impact)
+  - Phase 2 — Component refinement
+  - Phase 3 — Surface-by-surface redesign
+  - Estimated effort per phase
+
+## Hard rules
+
+- Do NOT implement any visual changes during the audit
+- Do NOT touch the Hero (Session 10 H1 decision is final on copy, 
+  but visual treatment can be discussed)
+- Do NOT introduce new dependencies without flagging them
+- The Advisor purple --accent-advisor on /how-it-works and 
+  /advisor-legal is brand-relevant — do not change without explicit 
+  approval
+- FIDLEG-compliant copy stays untouched
+- Identify the ONE highest-leverage change before proposing 
+  large-scale work
+
+═══════════════════════════════════════════════════════════════════
+END OF TASK 0
+═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════
+TASK 1 — ETF MATH AUDIT (HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════════
+
+Founder intuition: the math model may behave differently or 
+incorrectly on ETF holdings vs. single stocks. No specific bug 
+confirmed, but the suspicion is strong enough to warrant a 
+systematic audit. Two of three /how-it-works sample portfolios 
+are ETF-heavy — if math is wrong, published backtests are wrong.
+
+Investigate across:
+1. Return computation (lib/yahoo.ts TWR, FX-adjusted returns)
+2. Distribution handling (dividends, ETF distributions)
+3. Total-Return vs. Price-Return data fetching from Yahoo
+4. Currency hedging detection and FX adjustment logic
+5. Covariance estimation in Markowitz solver (lib/backtest)
+6. Walk-forward backtest engine handling of mixed asset types
+7. Sample-length handling when ETFs have shorter history
+
+Test these 5 hypotheses:
+
+H1: Yahoo Finance returns Price-Return data for some ETF tickers 
+    and Total-Return for others, depending on suffix (.SW, .L, 
+    .DE, .US). Code might treat them uniformly.
+
+H2: ETF distributions (quarterly dividends) not incorporated into 
+    return calculations, causing systematic under-reporting of 
+    ETF returns vs. single stocks.
+
+H3: Currency-hedged ETF share classes (e.g. AGGG.L is CHF-hedged) 
+    being double-FX-adjusted because FX layer doesn't detect 
+    that returns are already hedged.
+
+H4: Markowitz solver behavior on ETF portfolios with high 
+    inter-asset correlation (>0.9) produces unstable or 
+    counterintuitive weights vs. single-stock portfolios.
+
+H5: Walk-forward training-window length sometimes shorter for 
+    ETF-heavy portfolios because some ETFs have less history, 
+    leading to noisy covariance estimates.
+
+Deliverable: /docs/ETF_MATH_AUDIT.md with:
+- Section A — Code paths inspected (file paths, line numbers)
+- Section B — Findings per hypothesis (confirmed | likely | 
+  unlikely | refuted with evidence)
+- Section C — Concrete Vitest test scenarios to add, using real 
+  Yahoo data for VWRL.SW, CSPX.L, AGGG.L, EIMI.L vs. NESN.SW 
+  and AAPL controls
+- Section D — Severity assessment (does this affect /how-it-works 
+  published backtests, paying user's metrics, FIDLEG risk)
+- Section E — Fix proposal ranked by impact, effort, regression risk
+
+Hard rules:
+- Do NOT modify lib/yahoo.ts during audit
+- Do NOT delete existing tests
+- If audit finds NO bugs, say so clearly — don't manufacture issues
+- If a hypothesis can't be tested without writing code, document 
+  the test that would prove/disprove it
+
+═══════════════════════════════════════════════════════════════════
+TASK 2 — PROGATE PER-CHART PAYWALL REFINEMENT (SPEC ONLY)
+═══════════════════════════════════════════════════════════════════
+
+Current spec docs/PROGATE_REDESIGN.md applies ONE blur overlay + 
+ONE Pro CTA per gated tab. Refinement needed: each Pro-gated tab 
+contains MULTIPLE distinct visualizations. Apply blur + Pro CTA 
+separately to each chart.
+
+Inventory required:
+- Frontier tab — confirmed: Markowitz Frontier + Volatility Overview
+- Risk tab — investigate: likely Rolling Vol + Drawdown + Returns 
+  Histogram + others?
+- Stress Test tab — investigate: Scenario Comparison + Per-Position 
+  Attribution + others?
+
+For each chart found, write descriptive Pro CTA copy that states 
+what THAT specific visualization unlocks (e.g. Markowitz CTA: 
+"constraint-aware optimization with Pro" / Volatility CTA: 
+"time-series regime detection with Pro").
+
+Deliverable: 
+- Update docs/PROGATE_REDESIGN.md with per-chart pattern
+- New section "Per-chart inventory" listing every Pro-gated chart 
+  with proposed CTA copy
+- Run @agent-fidleg-reviewer on all new CTA strings BEFORE asking 
+  for caveman approval
+- Flag any FIDLEG concerns in the spec itself
+
+Do NOT implement code yet. Spec + FIDLEG-pre-review only.
+
+═══════════════════════════════════════════════════════════════════
+TASK 3 — PERSONA 1 RESEARCH
+═══════════════════════════════════════════════════════════════════
+
+Dispatch @agent-persona-research to fill the Persona 1 (Marc, 42, 
+ZKB-Kunde, IT-Consultant) table in docs/QUANTFOLI_RESEARCH_SOURCES.md.
+
+Goal: minimum 5 real quotes with URLs, focused on:
+- Frustration with ZKB reporting/tools
+- Manual tracking pain (Excel)
+- Feature gaps in current setup
+- What this persona wants that doesn't exist
+
+Sources to prioritize: Mustachian Post Forum, Schwiizerfranke 
+comments, finanzbloggers.com. Reddit blocked (don't waste cycles).
+
+If <5 quotes found after thorough search, document why (sources 
+exhausted, persona under-represented, etc).
+
+═══════════════════════════════════════════════════════════════════
+TASK 4 — SWISSQUOTE PARSER FEASIBILITY (SPEC ONLY)
+═══════════════════════════════════════════════════════════════════
+
+Dariush will likely need Swissquote support to onboard Johannes 
+Ermatinger (warm contact who recommended Vollenweider meeting). 
+Don't build yet — assess feasibility.
+
+Deliverable: /docs/SWISSQUOTE_PARSER_SPEC.md with:
+- Sample Swissquote export format (research from Swissquote docs, 
+  forum posts, sample screenshots from web)
+- ISIN/ticker resolution complexity vs. existing ZKB parser
+- FX handling differences (Swissquote often shows CHF-converted 
+  values differently than ZKB)
+- Edge cases (fractional shares, multi-currency positions, 
+  derivatives if any)
+- Estimated implementation time
+- Recommended test fixtures needed
+
+Do NOT write parser code. Spec + research only.
+
+═══════════════════════════════════════════════════════════════════
+TASK 5 — FINYON BRIEFING DOCUMENT (RESEARCH)
+═══════════════════════════════════════════════════════════════════
+
+Dariush meets Peter Vollenweider, Partner at Finyon, on 2026-06-19 
+at Apollostrasse 2, Zürich Oerlikon.
+
+Research and deliver /docs/FINYON_BRIEFING.md with:
+
+## Section A — Finyon overview
+- Business model (Treasury & Risk Advisory? Wealth Management? 
+  Both?)
+- Typical mandates (corporate treasury, family office, HNW 
+  individuals, institutional?)
+- Team size and key partners (search finyon.ch, LinkedIn)
+- Recent publications, white papers, blog posts
+- Any public information about clients or case studies
+
+## Section B — Peter Vollenweider profile
+- Background (career path, education, prior roles)
+- LinkedIn activity in last 6 months (posts, comments, likes)
+- Network connections (Swiss finance ecosystem)
+- Any podcasts, interviews, public speaking
+- His personal interests if surfaced anywhere public
+
+## Section C — Strategic interpretation
+- Why might Finyon be interested in Quantfoli?
+- Possible meeting outcomes (curiosity / mentoring / 
+  business opportunity / investment / partnership)
+- Where does Quantfoli's positioning intersect with Finyon's 
+  client needs
+
+## Section D — Questions Dariush should ask
+- 5-7 specific questions that respect his time and elicit useful 
+  information
+- Frame them peer-level, not student-level
+
+## Section E — Topics to AVOID
+- Don't pitch hard
+- Don't ask for investment
+- Don't ask for general "career advice" — too vague
+- Don't discuss specific pricing of Quantfoli unprompted
+
+Hard rules:
+- Use WebSearch and WebFetch extensively
+- Cite all sources with URLs
+- If a section can't be researched (e.g. Vollenweider has minimal 
+  public presence), document that finding instead of fabricating
+- This document is for Dariush's eyes only — internal briefing, 
+  no PR voice
+
+═══════════════════════════════════════════════════════════════════
+TASK 6 — CONTENT IDEATOR — 20 NEW IDEAS
+═══════════════════════════════════════════════════════════════════
+
+Dispatch @agent-content-ideator to generate 20 new content ideas, 
+clustered by:
+- LinkedIn build-in-public (post-/how-it-works launch story)
+- TikTok/Reels (ZKB import demo, FX-bereinigt visual, math reveal)
+- SEO articles (long-tail Swiss finance keywords not yet covered)
+- Reddit/Mustachian Post substantial threads
+
+For each idea: hook, platform, format, length, data needed from 
+Dariush, ICP fit 1-10, effort low/medium/high.
+
+Save to /docs/content-ideas/2026-05-19-batch-2.md (NOT just chat 
+output).
+
+End with top 3 to execute first based on (ICP fit × low effort × 
+reusability across platforms).
+
+═══════════════════════════════════════════════════════════════════
+EXECUTION ORDER & PRIORITIES
+═══════════════════════════════════════════════════════════════════
+
+P0 — Task 1 (ETF Math Audit) — start immediately, this affects 
+     /how-it-works credibility before Vollenweider meeting
+P1 — Task 5 (Finyon Briefing) — can run in parallel via 
+     WebSearch, doesn't touch code
+P1 — Task 3 (Persona 1) — parallel, agent-based
+P1 — Task 6 (Content Ideator) — parallel, agent-based
+P2 — Task 2 (Paywall Refinement Spec) — after Task 1 (don't 
+     touch ProGate if math audit might force /how-it-works changes)
+P2 — Task 4 (Swissquote Spec) — anytime, low priority
+
+═══════════════════════════════════════════════════════════════════
+WHAT NOT TO DO
+═══════════════════════════════════════════════════════════════════
+
+- No git pushes
+- No production code changes
+- No new dependencies
+- No marketing pricing changes (15 CHF stays)
+- No re-running @agent-landing-copy-reviewer on hero (Session 10 
+  decision is final)
+- Don't start TikTok video production — that's Dariush's work
+- Don't open new tasks not listed above without flagging
+
+═══════════════════════════════════════════════════════════════════
+END-OF-BATCH REPORT
+═══════════════════════════════════════════════════════════════════
+
+When all tasks complete (or you hit a blocker), summarize in chat:
+- Which deliverables produced
+- Which tasks blocked and why
+- Top 3 things that need caveman attention first
+- Estimated time investment per task for cost transparency

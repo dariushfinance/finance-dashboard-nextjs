@@ -1,13 +1,70 @@
-# HANDOFF — Quantfoli (Sessions 8 → 10)
+# HANDOFF — Quantfoli (Sessions 8 → 11)
 
-**Date last touched:** 2026-05-17
+**Date last touched:** 2026-05-19
 **Branch:** `main`
-**Last commit:** `7e33e72` — universalise hero H1, keep Swiss specificity in subhead
+**Last commit:** `ad28b62` — ProGate: blurred-preview pattern + free-tier headline metric
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
 **DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`). Migrated in session 8.
 **Owner:** Dariush Tahajomi (`dariush.tahajomi@gmail.com`), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen.
 
-> Read this file end-to-end before touching anything. Older session content (1–7) is in git history. Sessions 8 + 9 + 10 all happened on 2026-05-17 and are documented below in execution order.
+> Read this file end-to-end before touching anything. Older session content (1–7) is in git history. Sessions 8 + 9 + 10 happened on 2026-05-17. Session 11 happened on 2026-05-19 and is documented first below. **Session 12 (background-task batch) happened on 2026-05-20** and is documented immediately below Session 11.
+
+---
+
+## 2.5 Session 12 (2026-05-20) — Background-task batch (NO CODE CHANGES)
+
+Sunday work block while Dariush studied for Matura. **No git pushes, no production code changes.** All deliverables are spec/audit docs in `docs/`.
+
+### Deliverables produced
+
+| File | Type | Highlight |
+|---|---|---|
+| `docs/ETF_MATH_AUDIT.md` | 🔴 high-severity audit | Confirmed bug: backtest engine mixes CHF/USD/EUR daily returns without FX conversion. Affects 2 of 3 published `/how-it-works` portfolios (Conservative 60/40 + Growth ETF). Concentrated SMI portfolio is pure-CHF and unaffected. Sharpe deltas vs. benchmark partially survive (both legs share the bug) but absolute returns/vol/Sharpe printed do not represent CHF-investor reality. Proposed fix: new `lib/backtest/fx.ts` + composition formula in `engine.ts:periodReturns()` and `returnsMatrix()`. Effort: 2-4 hours including tests T1+T2. |
+| `docs/PROGATE_REDESIGN.md` §10 (v2 appended) | spec extension | Per-chart paywall pattern. 9 new CTA strings inventoried per chart (Risk R2/R3/R4, Stress S2-S5, Frontier F2/F3). Implementation pattern: new `ProChart` component wrapping each gated visualization individually. `@agent-fidleg-reviewer` pre-pass dispatched on the 9 strings. |
+| `docs/DESIGN_AUDIT.md` | audit | Quantfoli vs. Linear/Vercel/Stripe. Highest-leverage finding: typography (drop Inter Tight, adopt Söhne or GT Walsheim Pro or free Public Sans as `--font-display`). Three-phase implementation plan: Phase 1 = type+spacing (low risk, half-day), Phase 2 = component refinement, Phase 3 = surface-by-surface. Brand-locked: Advisor purple `--accent-advisor`, Pro gold `--accent-pro`. |
+| `docs/FINYON_BRIEFING.md` | strategic briefing | Internal-only prep for Vollenweider meeting 2026-06-19. **Address discrepancy flagged:** Apollostrasse 2 is Zürich-Hottingen (Kreuzplatz, 8032), NOT Oerlikon (8050) — confirm 24-48h before meeting. Strongest insight: HSG is the connective tissue (Vollenweider HSG-grad, Dariush HSG-bound 2027) — meeting is likely curiosity + talent scouting, not commercial. 7 peer-level questions, 8 topics to avoid. Includes data-gap report (WebFetch denied throughout). |
+| `docs/QUANTFOLI_RESEARCH_SOURCES.md` (updated) | persona research | Persona 1 (Marc, ZKB IT-Consultant) — 4 quotes filled, threshold of 5 not met. Sources: 3× Mustachian Post forum (ZKB CSV pain, no Swiss bank APIs), 1× Trustpilot ZKB fees ("not to be surpassed in audacity"). Themes: ZKB CSV export broken for trackers; no API forces manual Excel entry; ZKB depot fees among highest in CH. 9 high-signal domains (insideparadeplatz, thepoorswiss, schwiizerfranke, forum.cash.ch, trustpilot, saldo.ch, moneyland forum, srf.ch, nzz.ch) all returned HTTP 403 to WebFetch — unblock requires manual extraction. |
+| `docs/content-ideas/2026-05-19-batch-2.md` | content brief | 20 ideas across 4 clusters (LinkedIn build-in-public 5, TikTok/Reels 5, SEO articles 5, Mustachian/Reddit threads 5). Top 3 to execute: (1) FX-adjusted return reveal TikTok, (2) Concentrated SMI 45%-win Mustachian thread, (3) "66 real rebalances" LinkedIn post. All ICP-fit 9, low effort. |
+
+### Blocked / not produced
+
+- **Swissquote parser feasibility spec (Task 4)** — deferred. Wasn't urgent and the session ran long on the higher-value tasks. Pickup any time.
+- **`docs/QUANTFOLI_RESEARCH_SOURCES.md`** for Personas 2-7 — not started; Persona 1 was the explicit ask.
+- **ProGate per-chart code** — spec-only this session. `@agent-fidleg-reviewer` pre-pass dispatched on §10.4 strings; awaiting result + caveman approval before any code lands.
+
+### Background agents dispatched this session
+
+| Agent | Output | Status |
+|---|---|---|
+| persona-research | `docs/QUANTFOLI_RESEARCH_SOURCES.md` Persona 1 table | done; 4/5 quotes (sources blocked, see above) |
+| content-ideator | `docs/content-ideas/2026-05-19-batch-2.md` | done |
+| general-purpose (Finyon) | `docs/FINYON_BRIEFING.md` | done; data-gaps documented |
+| fidleg-reviewer | §10.4 CTA strings audit | done — 7/9 pass, 2 rewrites applied (R2 "Spot" → "Shows"; F3 "Suggested" → "Computed"). Table shippable. |
+
+### Top 3 items needing Dariush attention first
+
+1. **🔴 ETF FX bug.** Decide whether to ship Fix 1 (FX layer in `lib/backtest/`) before next marketing claim or whether to disclose the limitation in `/how-it-works` copy. Numbers on the page right now overstate Swiss-CHF reality for the 2 ETF-heavy backtests.
+2. **🟠 Finyon meeting prep.** Confirm exact meeting address (Hottingen vs. Oerlikon). Pick 4-5 questions from §D. Decide one specific outcome to optimize the meeting for (HSG-network intros recommended).
+3. **🟡 Type-face decision.** Söhne/GT Walsheim ($200-1500 one-time) vs. Public Sans (free) for `--font-display`. Lowest-effort highest-impact design improvement.
+
+### Cost transparency (rough)
+
+| Task | Approx. duration | Notes |
+|---|---|---|
+| ETF Math Audit | 1 long inline session | High-value finding |
+| Design Audit | 1 inline session | Knowledge-based; no new dependencies introduced |
+| ProGate v2 spec | 1 inline session | Awaiting fidleg-reviewer pass |
+| Persona 1 research | 1 background agent run | WebFetch blocks limited yield |
+| Content ideas | 1 background agent run | Output saved by parent agent (subagent write-blocked) |
+| Finyon briefing | 1 background agent run | Same; reconstructed from search excerpts |
+| fidleg-reviewer pre-pass | 1 background agent run | Triggered late |
+
+### No-code constraint respected
+
+- No `npm test` / `npm run build` regressions introduced — nothing built.
+- No new dependencies.
+- No git commits, no pushes.
+- No edits to `/app/**`, `/components/**`, `/lib/**`. Only `/docs/**` writes.
 
 ---
 
@@ -41,7 +98,120 @@ The further-instructions doc (`C:/AI_System/further instructions.txt`) defined t
 
 ---
 
-## 3. Session 10 (2026-05-17 evening) — Landing-page audit + signup-funnel fix
+## 3. Session 11 (2026-05-19) — Onboarding audit + ProGate redesign + FIDLEG cleanup
+
+### Execution order (commits, chronological)
+
+| Time | Commit | Scope |
+|---|---|---|
+| 14:19 | `f274cdb` | Hero subhead rewrite — leads with the ZKB Depotauszug pain point instead of feature counts. `components/Landing.tsx` 1-line change. |
+| 14:27 | `7c0eadb` | Blog colour fix; **`app/finances/page.tsx` finally committed** (was deferred 3 sessions). |
+| 14:30 | `f58dcdd` | "fix whatevers broken" — HANDOFF rewrite (+768/−401), `components/FinancesSheet.tsx` committed (307 lines), **two new agent definitions** added under `.claude/agents/`: `fidleg-reviewer.md` and `landing-copy-reviewer.md`. |
+| 14:40 | `48e7154` | Blog: all article text set to pure white. Was using slate greys (#475569, #64748b, #1e293b) that read as off-white on the dark background. |
+| 14:49 | `acbe3a9` | **FIDLEG fix** — `components/StressTest.tsx` + `components/backtest/SamplePortfolioCard.tsx` + `app/how-it-works/page.tsx`: replaced "outperformed/underperformed" with neutral Sharpe-delta / return comparisons, removed "would have performed" counterfactual from StressTest header, neutralized ▲/▼ colour coding on scenario excess. |
+| 15:01 | `beb8656` | **FIDLEG fix #2** — `app/how-it-works/page.tsx` + `components/backtest/CTACards.tsx`: concentrated-portfolio whyText now describes correlation/diversification deficit instead of "instruments that would add cross-sectional variation"; CTA copy "rebalancing weights" instead of "rebalancing decisions". |
+| 23:47 | `ad28b62` | **Main deliverable** — ProGate redesign: blurred-preview pattern + free-tier headline metric. Audit doc, spec doc, three new headline components, Dashboard wiring, FIDLEG lint glob extension. **51/51 tests passing, tsc clean.** Pre-reviewed AND post-reviewed by `@agent-fidleg-reviewer`. |
+
+### The ProGate redesign (the substantive work this session)
+
+#### Why
+
+Dariush asked for an onboarding audit against the principle "user must hit a clear value moment BEFORE any Pro modal." Diagnosis written first to `docs/ONBOARDING_AUDIT.md` (189 lines, no code). Findings:
+
+- **No forced paywall** fires before value moment (no modal, no time gate). Good.
+- BUT the persistent sidebar "Upgrade to Pro" CTA renders the moment the dashboard mounts — before the user has imported anything. Passive, not blocking, but a first-impression leak. ("E2")
+- BUT the free value moment is **tracker-grade** (value, P&L, allocation, history, benchmark). The math the ICP came for (Sharpe, Sortino, Beta, Markowitz, stress test) is **100% Pro-gated**. He sees that the CSV parser works, NOT that the math works on his data. ("E3")
+- The ICP specifically wants: "okay, does YOUR Sharpe match what I'd compute myself?" — and the current answer is "pay CHF 15 to find out."
+
+Audit produced three fixes ranked by impact. Dariush approved E2 + E3, asked for a spec doc first.
+
+#### Spec
+
+`docs/PROGATE_REDESIGN.md` (205 lines) — full implementation plan, including:
+- New ProGate API: `featureName`, `featureSubcopy`, `ctaLabel`, `headlineMetric`, `onUpgrade`, `children`.
+- Layout: tab title + headline metric **crisp at top**, full Pro content **blurred (filter: blur(8px))** behind it, gold CTA card centered overlay.
+- Per-tab headline numbers, all on real positions:
+  - **Risk:** 21d annualised volatility + Sharpe(1Y), side by side.
+  - **Stress Test:** worst historical drawdown + scenario name.
+  - **Frontier:** historical-mean return + volatility coordinates (chart itself stays blurred).
+- §6 FIDLEG audit table (F1–F13) of every new customer-facing string.
+
+`@agent-fidleg-reviewer` ran on §6 BEFORE code. Verdict: all 13 strings pass. Pre-emptively switched "expected return" → "historical-mean return" in F6/F7 per the reviewer's recommendation (the spec was edited by Dariush to lock that in).
+
+#### Shipped code (commit `ad28b62`)
+
+| File | What |
+|---|---|
+| `components/ProGate.tsx` | Rewritten. New API. Blur + CTA card. Reuses `--accent` (gold for Pro) via existing tier tokens — no new CSS. |
+| `components/RiskHeadline.tsx` | NEW. Fetches `/api/history`, renders 21d rolling annualised vol (last value, returns capped ±25% same as RiskTab) + Sharpe(1Y) from API. |
+| `components/StressHeadline.tsx` | NEW. Fetches `/api/stress`, picks scenario with `max(s.portMaxDD)`, renders `−X.X%` + scenario name. |
+| `components/FrontierHeadline.tsx` | NEW. Fetches `/api/frontier`, renders `data.current.expectedReturn` and `data.current.volatility` as text (chart blurred behind). |
+| `components/Dashboard.tsx` | Three Pro tabs wired with new ProGate props. **Sidebar Upgrade CTA hidden when `userTier === 'free' && positions.length === 0`** (E2). Existing payers keep "Manage plan" regardless. |
+| `lib/backtest/fidleg-lint.test.ts` | New `SCAN_FILES` array for individual files outside the dir scan: `ProGate`, `RiskTab`, `RiskHeadline`, `StressTest`, `StressHeadline`, `FrontierChart`, `FrontierHeadline`, `Dashboard`. Linter still passes. |
+
+#### Behavior implications
+
+- Free user uploads CSV → sees Overview metrics (tracker-grade) immediately, just like before. **No regression to the free path.**
+- Free user clicks Risk / Stress / Frontier tab → now sees the actual headline number on their portfolio at the top, with the full chart/table blurred below + Pro CTA overlay. Previously: everything blurred, lock card with no real data.
+- Free user with no positions yet (just signed up): **no Upgrade button in sidebar.** First impression is "load your data", not "pay me."
+- Pro/Advisor user: no visible change — the gate just isn't rendered.
+- Double-fetch tradeoff accepted: the full Pro tab still mounts behind the blur and fetches its own data, AND the headline component fetches separately. Same endpoints, browser caches, low cost. Means tier-upgrade reveals the full tab instantly with no reload.
+
+#### Post-implementation FIDLEG sweep (run after `ad28b62` landed)
+
+`@agent-fidleg-reviewer` ran a second pass on the shipped code. **PASS on all five files** (ProGate, RiskHeadline, StressHeadline, FrontierHeadline, Dashboard). All F1–F13 strings implemented verbatim from spec, "historical-mean return" preserved. One low-risk flag: `components/FrontierChart.tsx:359` axis label says "expected return" — internal Recharts label, not customer copy. Lint regex doesn't catch it. Acceptable; rename if/when FrontierChart gets a refactor.
+
+### Other shipped work this session
+
+- **Two agent definitions added** under `.claude/agents/`:
+  - `fidleg-reviewer.md` — Swiss FIDLEG copy auditor (used twice this session for the ProGate redesign).
+  - `landing-copy-reviewer.md` — ICP / brand-voice scorer for landing-page copy.
+- **`app/finances/` + `components/FinancesSheet.tsx` finally committed** (in `f58dcdd` / `7c0eadb`). Was deferred 3 sessions. Currently unguarded — no auth gating. **Worth deciding next session whether this should be admin-only or Pro-only.**
+
+### Untracked artifacts at end of session
+
+```
+.claude/agent-memory/                       Per-agent memory files (auto-generated)
+docs/FIDLEG_AUDIT.md                        Earlier FIDLEG sweep findings — keep
+docs/QUANTFOLI_RESEARCH_SOURCES.md          Persona research log — likely populated by persona-research agent
+docs/content-ideas/                         Output from content-ideator agent (LinkedIn / TikTok / blog ideas)
+```
+
+None of these are blockers. Most are Claude-agent outputs Dariush will sort through manually. They don't affect production builds.
+
+### Sprint backlog (carried into next session)
+
+#### Open item: per-chart paywall refinement
+
+Current ProGate (shipped today) blurs the **entire Pro tab content** as one blob with one CTA. But each Pro tab contains multiple distinct visualizations:
+
+- **Risk tab:** Rolling Volatility chart + Correlation Matrix + Monthly Returns Calendar + the 6-stat-box top row.
+- **Stress Test tab:** Four scenario cards (each is a card with port-vs-S&P boxes and a mini chart).
+- **Frontier tab:** Markowitz scatter + Volatility Insights section (`VolatilityInsights`).
+
+Refinement: apply blur + Pro CTA **per chart**, not as one tab-spanning overlay. Each per-chart CTA describes what THAT specific visualization unlocks (e.g. Markowitz CTA: "constraint-aware optimisation with Pro"; rolling-vol CTA: "time-series regime detection with Pro"; correlation-matrix CTA: "per-position correlation with Pro").
+
+**Tasks (next session):**
+1. Update `docs/PROGATE_REDESIGN.md` with the per-chart pattern (extend, don't replace).
+2. Inventory every distinct Pro-gated chart across Risk / Stress / Frontier.
+3. Write new CTA copy per chart — descriptive, FIDLEG-safe.
+4. Run `@agent-fidleg-reviewer` on new CTA strings BEFORE code.
+5. Implementation.
+6. Extend `lib/backtest/fidleg-lint.test.ts` glob to cover any new component files.
+
+**Constraint to remember:** the per-chart pattern needs to preserve the "headline metric outside blur" guarantee from this session — at least ONE crisp real-data number per tab must remain unobscured. The refinement is about granularity of the blur, not removing the headline.
+
+### Lessons captured this session
+
+- **Audit-before-implementation** worked again. `docs/ONBOARDING_AUDIT.md` shipped first, no code, just diagnosis. Same pattern as `LANDING_AUDIT.md`. Dariush approved E2/E3, rejected E1 (cannibalisation risk on Sharpe-in-Overview). Saved a rebuild later.
+- **Spec-doc-before-code** worked again. `docs/PROGATE_REDESIGN.md` ran the FIDLEG reviewer on copy strings BEFORE any implementation, caught "expected return" framing, switched to "historical-mean return". Code shipped clean on the first commit.
+- **Lint glob is for marketing surfaces only — not arbitrary code.** Extended carefully: `Dashboard.tsx`, `ProGate.tsx`, three headlines, three Pro tabs. NOT extended to `lib/yahoo.ts` or other math (would generate noise from forbidden words appearing in symbol names like `outperformed`).
+- **Variable names like `outperformed` are not FIDLEG violations.** Only user-facing strings count. Confirmed by reviewer.
+- **Double-fetch is fine here.** Don't over-architect. The Pro content mounts behind the blur and fetches; the headline mounts and fetches separately. Same endpoints, hot in browser cache.
+
+---
+
+## 4. Session 10 (2026-05-17 evening) — Landing-page audit + signup-funnel fix
 
 ### What triggered it
 
@@ -80,7 +250,7 @@ Dariush dropped fresh Vercel Analytics (last 24h, ~540 visits): 70% Swiss, top p
 
 ---
 
-## 4. Session 9 (2026-05-17 daytime) — Backtesting landing page
+## 5. Session 9 (2026-05-17 daytime) — Backtesting landing page
 
 ### What was built
 
@@ -147,7 +317,7 @@ Fixed in the same commit:
 
 ---
 
-## 5. Session 8 (2026-05-17 morning) — Infrastructure work (condensed)
+## 6. Session 8 (2026-05-17 morning) — Infrastructure work (condensed)
 
 Single commit `c53bb84` — full detail in git log. Summary:
 
@@ -159,9 +329,9 @@ Single commit `c53bb84` — full detail in git log. Summary:
 
 ---
 
-## 6. Current state of files Claude touched today
+## 7. Current state of files Claude touched today
 
-All committed unless flagged. Working tree should be clean except for `app/finances/` + `components/FinancesSheet.tsx` (deferred 3 sessions, NOT touched today).
+All committed unless flagged. Working tree clean after session 10 commits.
 
 ### New this session
 
@@ -222,18 +392,13 @@ HANDOFF.md                  (this file)
 | `lib/yahoo.ts` | Portfolio + TWR + Beta/Alpha math. 36 passing tests guard the ±0.2% accuracy invariant. Wrap, don't modify. |
 | `app/api/frontier/route.ts` | The engine deliberately keeps its own Markowitz copy in `lib/backtest/engine.ts` rather than reusing this route — keeps request paths uncoupled from the backtest path. |
 
-### Uncommitted (Dariush's decision, deferred 3 sessions now)
+### Finances page — committed (session 10)
 
-| File | Status |
-|---|---|
-| `app/finances/page.tsx` | Untracked. Personal finances tracker page Dariush built in another session. |
-| `components/FinancesSheet.tsx` | Untracked, 307 lines, client component. |
-
-Next session: ask if these should be committed, and if so what auth gating (admin-only? Pro-only? public?).
+`app/finances/page.tsx` and `components/FinancesSheet.tsx` were committed in session 10 (commit `f58dcdd` / earlier). Auth-gating decision still open — confirm with Dariush whether the page should remain admin-only, Pro-only, or public.
 
 ---
 
-## 7. Approaches tried this session that failed (and how they were fixed)
+## 8. Approaches tried in earlier sessions that failed (and how they were fixed)
 
 | Attempt | Why it failed | Resolution |
 |---|---|---|
@@ -253,41 +418,41 @@ Next session: ask if these should be committed, and if so what auth gating (admi
 
 ---
 
-## 8. Current production state
+## 9. Current production state
 
-### 8.1 Stripe — ✅ live (no change)
+### 9.1 Stripe — ✅ live (no change)
 
 Free / Pro M (CHF 15) / Pro Y (CHF 150) / Advisor M (CHF 50) / Advisor Y (CHF 500) all live with verified env vars. Customer Portal cancel works. Refund works. Webhook handler sends founder notification on Advisor transition.
 
-### 8.2 Resend — ✅ live
+### 9.2 Resend — ✅ live
 
 Domain `quantfoli.com` verified. DKIM + SPF + DMARC green. Sending live. **`RESEND_FROM` still pending** in Vercel — falls back to `onboarding@resend.dev` (rate-limited, unbranded).
 
-### 8.3 Sentry — ⚪ dormant
+### 9.3 Sentry — ⚪ dormant
 
 SDK installed, configs gated on DSN env vars. Activate by adding `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` in Vercel + redeploy (5 min).
 
-### 8.4 SEO — ✅ live + extended
+### 9.4 SEO — ✅ live + extended
 
 `/sitemap.xml`, `/robots.txt`, `/opengraph-image` all live. **New since session 8:** `/how-it-works` in sitemap @ priority 0.9, `/how-it-works/opengraph-image` (headline aggregate stat), per-portfolio OG cards. **Pending Dariush action:** submit sitemap to Google Search Console + Bing Webmaster Tools.
 
-### 8.5 Supabase — unchanged
+### 9.5 Supabase — unchanged
 
 `20260516_advisor_tier_and_disclaimer.sql` applied. `user_tiers` CHECK allows `'free' | 'pro' | 'advisor'`. `advisor_disclaimers` table exists with RLS.
 
-### 8.6 Backtest infrastructure — ✅ live (new this session)
+### 9.6 Backtest infrastructure — ✅ live (new this session)
 
 `/how-it-works` server-renders 3 sample portfolios with verdict badges. `npm run build` pre-verifies aggregate.json against per-portfolio JSONs. `npm run build:backtests` regenerates everything when needed.
 
-### 8.7 Signup funnel — ✅ fixed (new this session)
+### 9.7 Signup funnel — ✅ fixed (new this session)
 
 `?tab=signup` deep-link works, `/register` vanity route catches direct/bookmark traffic, all landing CTAs land users on the right tab. Prose switcher recovers wrong-tab landings. Autofocus on Email / Name reduces click count.
 
 ---
 
-## 9. Environment variables — full reference
+## 10. Environment variables — full reference
 
-### 9.1 Required for production (set in Vercel)
+### 10.1 Required for production (set in Vercel)
 
 | Var | What |
 |---|---|
@@ -301,7 +466,7 @@ SDK installed, configs gated on DSN env vars. Activate by adding `NEXT_PUBLIC_SE
 | `STRIPE_ADVISOR_PRICE_ID` / `STRIPE_ADVISOR_YEARLY_PRICE_ID` | CHF 50 / 500 |
 | `RESEND_API_KEY` | Resend transactional email |
 
-### 9.2 Recommended add — `RESEND_FROM` (still pending from session 8)
+### 10.2 Recommended add — `RESEND_FROM` (still pending from session 8)
 
 ```
 RESEND_FROM=Quantfoli Support <support@quantfoli.com>
@@ -309,7 +474,7 @@ RESEND_FROM=Quantfoli Support <support@quantfoli.com>
 
 Without this, both `app/api/support/route.ts` and `lib/resend.ts` use the `onboarding@resend.dev` fallback.
 
-### 9.3 Optional — Sentry (currently unset)
+### 10.3 Optional — Sentry (currently unset)
 
 | Var | When |
 |---|---|
@@ -319,7 +484,7 @@ Without this, both `app/api/support/route.ts` and `lib/resend.ts` use the `onboa
 
 ---
 
-## 10. Outstanding blockers / known issues
+## 11. Outstanding blockers / known issues
 
 | Severity | Issue | Where to fix |
 |---|---|---|
@@ -328,7 +493,6 @@ Without this, both `app/api/support/route.ts` and `lib/resend.ts` use the `onboa
 | 🟡 | No error monitoring active | Activate Sentry (5 min, Dariush action) |
 | 🟡 | No conversion-event analytics | `track('signup_submit')` in `app/login/page.tsx` after a successful `supabase.auth.signUp()` would give real funnel numbers. ~15 min. |
 | 🟡 | `/how-it-works` + `/register` not submitted to Google Search Console | DNS TXT verification → submit sitemap (5 min) |
-| 🟡 | Untracked finances files | Ask Dariush, commit or remove |
 | 🟡 | Untested I/O code in `lib/yahoo.ts` | `vi.mock('fetch')` when next refactored |
 | 🟡 | Markowitz frontier uses historical means as forward expected returns | Long-term: shrinkage estimator (Ledoit-Wolf / James-Stein) |
 | 🟡 | RLS not strictly enforced on `portfolio` / `user_tiers` (frontend-only Pro gating) | Harden before scaling > ~10 paying users |
@@ -338,9 +502,9 @@ Without this, both `app/api/support/route.ts` and `lib/resend.ts` use the `onboa
 
 ---
 
-## 11. Next concrete steps for next session (in priority order)
+## 12. Next concrete steps for next session (in priority order)
 
-### 11.1 Read the funnel impact (24–48h after deploy)
+### 12.1 Read the funnel impact (24–48h after deploy)
 
 Open Vercel Analytics. Specifically check:
 - `/register` should now appear in top pages (proves vanity route is catching real traffic).
@@ -350,7 +514,7 @@ Open Vercel Analytics. Specifically check:
 
 If the new H1 underperforms after 48h, swap to Variant B "See your portfolio the way a quant would." (Variant C — ZKB-specific — already ruled out as too narrow for the non-CH audience.)
 
-### 11.2 Marketing scaffolding doc — `docs/MARKETING_PLAN.md` (PRIORITY 2 from further-instructions)
+### 12.2 Marketing scaffolding doc — `docs/MARKETING_PLAN.md` (PRIORITY 2 from further-instructions)
 
 Now that the backtest landing page is live AND the funnel is fixed, the further-instructions doc says this is the next deliverable. Spec details in `C:/AI_System/further instructions.txt`. Key points:
 
@@ -362,18 +526,18 @@ Now that the backtest landing page is live AND the funnel is fixed, the further-
 
 DO NOT hallucinate persona quotes. Wait for Dariush to populate before writing analytical conclusions.
 
-### 11.3 Decide `app/finances/` — commit (with what gating?) or remove
+### 12.3 Decide `app/finances/` — commit (with what gating?) or remove
 
 Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pro-only? public?).
 
-### 11.4 Dariush actions still pending (5 min each)
+### 12.4 Dariush actions still pending (5 min each)
 
 - Set `RESEND_FROM` env var in Vercel.
 - Activate Sentry — sign up at sentry.io, copy DSN, add `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` to Vercel.
 - Submit sitemap to Google Search Console (DNS TXT verify via Cloudflare).
 - Replace Stripe customer-support phone `+41 000 000 0000` with real number.
 
-### 11.5 Future / backlog (defer until justified)
+### 12.5 Future / backlog (defer until justified)
 
 - **C.6 from `LANDING_AUDIT.md`:** wire `?plan=pro|advisor` post-signup auto-checkout (1–2 hr).
 - **C.7:** open `UpgradeModal` inline on landing Advisor CTA (1 hr).
@@ -393,7 +557,7 @@ Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pr
 
 ---
 
-## 12. Architecture quick-ref
+## 13. Architecture quick-ref
 
 ```
 /
@@ -414,7 +578,7 @@ Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pr
 │   ├── how-it-works/[portfolio]/page.tsx 🆕 Permalink → #anchor
 │   ├── how-it-works/[portfolio]/opengraph-image.tsx 🆕 Per-portfolio OG card
 │   ├── backtests/page.tsx                🆕 308 → /how-it-works
-│   ├── finances/page.tsx                 ⚠️ Uncommitted, ignore for now
+│   ├── finances/page.tsx                 Committed (session 10)
 │   ├── globals.css                       --accent* tier tokens, [data-tier] overrides
 │   └── api/
 │       ├── support/route.ts
@@ -423,14 +587,17 @@ Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pr
 │       ├── webhooks/stripe/route.ts      + founder notification on Advisor transition
 │       └── portfolio/, history/, benchmark/, frontier/, stress/, risk/, fx/, isin/, fundamentals/
 ├── components/
-│   ├── Dashboard.tsx                     data-tier theming
+│   ├── Dashboard.tsx                     🔄 data-tier theming + ProGate redesign wiring + sidebar Upgrade hidden pre-import
 │   ├── Landing.tsx, LandingClient.tsx    🔄 Universal H1 + Swiss subhead, /login?tab=signup CTAs, Free-tier reassurance
 │   ├── Footer.tsx
 │   ├── UpgradeModal.tsx                  3-card layout + Advisor checkbox
-│   ├── ProGate.tsx
+│   ├── ProGate.tsx                       🔄 Blurred-preview pattern + crisp headline metric (session 11)
+│   ├── RiskHeadline.tsx                  🆕 Vol(21d annualised) + Sharpe(1Y) headline
+│   ├── StressHeadline.tsx                🆕 Worst historical drawdown + scenario name
+│   ├── FrontierHeadline.tsx              🆕 Current portfolio (historical-mean return, vol) coords
 │   ├── FrontierChart.tsx
 │   ├── LegalLayout.tsx
-│   ├── FinancesSheet.tsx                 ⚠️ Uncommitted, ignore for now
+│   ├── FinancesSheet.tsx                 Committed (session 10)
 │   ├── backtest/                         🆕
 │   │   ├── HeroChart.tsx                 Recharts NAV chart w/ rebalance markers
 │   │   ├── SamplePortfolioCard.tsx       Verdict badge + median Δ + "Why"
@@ -453,14 +620,18 @@ Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pr
 │       ├── costs.ts                      Swiss cost model (commission/spread/stamp duty/FX)
 │       ├── engine.ts                     runWalkForward + lookahead guard + mulberry32 RNG
 │       ├── engine.test.ts                13 tests incl. weak + strong lookahead regression
-│       └── fidleg-lint.test.ts           Forbidden-phrase scanner + disclaimer-presence
+│       └── fidleg-lint.test.ts           🔄 Forbidden-phrase scanner + disclaimer-presence; SCAN_FILES extended to ProGate/RiskTab/RiskHeadline/StressTest/StressHeadline/FrontierChart/FrontierHeadline/Dashboard (session 11)
 ├── scripts/                              🆕
 │   ├── build-backtests.ts                Generates 3 portfolio JSONs + aggregate.json
 │   └── verify-backtest-jsons.ts          Re-derives aggregate; wired into npm run build
 ├── public/backtests/                     🆕 conservative/growth/concentrated/aggregate.json
 ├── docs/                                 🆕
 │   ├── BACKTESTING_LANDING_PAGE.md       Full spec (sections A–F)
-│   └── LANDING_AUDIT.md                  Diagnosis + 7 fixes (C.1–C.5 shipped, C.6/C.7 deferred)
+│   ├── LANDING_AUDIT.md                  Diagnosis + 7 fixes (C.1–C.5 shipped, C.6/C.7 deferred)
+│   ├── ONBOARDING_AUDIT.md               🆕 Session 11 — flow audit, value-moment diagnosis, 3 fixes (E1–E3)
+│   ├── PROGATE_REDESIGN.md               🆕 Session 11 — blurred-preview spec + FIDLEG audit table F1–F13
+│   ├── FIDLEG_AUDIT.md                   FIDLEG review notes
+│   └── QUANTFOLI_RESEARCH_SOURCES.md     Persona research log (scaffolded, awaiting Dariush quotes)
 ├── data/backtests-cache/                 🆕 (gitignored) Price JSON cache, regenerable
 ├── supabase/migrations/
 │   ├── 20260430_neon_transactions.sql
@@ -487,7 +658,7 @@ npm run dev               # localhost:3000
 
 ---
 
-## 13. Personal + working-style context for the fresh agent
+## 14. Personal + working-style context for the fresh agent
 
 - **Dariush is 18**, Matura in 2026, HSG St. Gallen starting 2027. Tool is proof-of-competence for his LinkedIn network + future IB/quant/consulting internships, and might become a startup / side business.
 - **Status:** Einzelunternehmen Schaffhausen. No formal registration required at current scale.
@@ -513,7 +684,7 @@ npm run dev               # localhost:3000
 
 ---
 
-## 14. Files to read first if you're a fresh agent
+## 15. Files to read first if you're a fresh agent
 
 In this order:
 
@@ -537,7 +708,7 @@ In this order:
 
 ---
 
-## 15. Memory references
+## 16. Memory references
 
 Persistent memory in `~/.claude/projects/C--Users-Dariush-Tahajomi/memory/`:
 

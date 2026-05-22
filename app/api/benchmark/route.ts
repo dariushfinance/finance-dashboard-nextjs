@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices, calcBetaAlpha, calcTWRReturns, calcRollingBeta } from '@/lib/yahoo'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { BenchmarkResult } from '@/types'
 
 // POST /api/benchmark — fetches raw lots from DB, same reason as /api/history:
@@ -8,6 +9,9 @@ import type { BenchmarkResult } from '@/types'
 export async function POST(_req: NextRequest) {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limit = rateLimit(`benchmark:${user.id}`, 20, 60_000)
+  if (!limit.allowed) return rateLimitResponse(limit)
 
   const supabase = createServerClient()
   const { data: lots, error: dbError } = await supabase

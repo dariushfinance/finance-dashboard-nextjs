@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe, PRICE_IDS, PLAN_TIER, type PlanKey } from '@/lib/stripe'
 import { getAuthUser, createServerClient } from '@/lib/supabase'
+import { rateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIdentifier(req)
+    const limit = rateLimit(`stripe-checkout:${ip}`, 10, 60_000)
+    if (!limit.allowed) return rateLimitResponse(limit)
+
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

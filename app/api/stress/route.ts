@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHistoricalPrices } from '@/lib/yahoo'
 import { getAuthUser } from '@/lib/supabase'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 const SCENARIOS = [
   { name: 'Dot-com Bust', start: '2000-03-10', end: '2002-10-09' },
@@ -28,7 +29,11 @@ function calcMaxDD(values: number[]): number {
 // POST /api/stress
 // Body: { positions: [{ ticker, shares, current_price }] }
 export async function POST(req: NextRequest) {
-  if (!await getAuthUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limit = rateLimit(`stress:${user.id}`, 20, 60_000)
+  if (!limit.allowed) return rateLimitResponse(limit)
 
   const body = await req.json()
   const positions: PositionInput[] = (body.positions ?? []).filter(
