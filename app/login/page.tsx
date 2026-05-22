@@ -35,8 +35,17 @@ function LoginPageInner() {
           data: { full_name: name.trim() },
         },
       })
-      if (error) setError(error.message)
-      else setMessage('Check your email to confirm, then sign in.')
+      if (error) {
+        setError(error.message)
+      } else {
+        setMessage('Check your email to confirm, then sign in.')
+        // Fire-and-forget welcome email — non-blocking, failure doesn't affect signup UX
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name: name.trim() }),
+        }).catch(() => { /* swallow — signup already succeeded */ })
+      }
     }
     setLoading(false)
   }
