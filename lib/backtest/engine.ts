@@ -20,6 +20,7 @@
 
 import { pricesBefore, type PriceFrame } from './data'
 import { DEFAULT_COSTS, type CostModel, rebalanceCost, entryCost } from './costs'
+import { buildFxDeltaMaps, toChfReturn, type FxFrame, type FxPair } from './fx'
 
 export type RebalanceFreq = 'monthly' | 'quarterly' | 'semi-annual'
 export type BenchmarkId   = 'market-cap' | 'equal-weight' | 'starting-allocation'
@@ -38,6 +39,11 @@ export interface WalkForwardParams {
   maxWeight?:      number                    // per-asset cap on Monte Carlo weights (default 0.30)
   nMonteCarlo?:    number                    // number of MC samples per rebalance (default 2000)
   seed?:           number                    // deterministic RNG seed
+  // FX layer — omit for pure-CHF portfolios (concentrated SMI) or backwards-compat.
+  // When supplied, every non-CHF return is converted to CHF before µ/Σ estimation
+  // and NAV calculation: r_chf = (1 + r_native) × (1 + Δ_fx) − 1
+  currencyByTicker?: Record<string, string>  // ticker → 'CHF' | 'USD' | 'EUR'
+  fx?:               FxFrame                 // loaded by loadFxRates() in the build script
 }
 
 export interface RebalanceEvent {
@@ -169,6 +175,23 @@ function maxSharpeWeights(
   return Object.fromEntries(tickers.map((t, i) => [t, +w[i].toFixed(6)]))
 }
 
+// ── FX helpers ─────────────────────────────────────────────────────────
+
+// Apply FX conversion for a single asset return on a single date.
+// CHF assets: no-op. USD/EUR assets: compose with the daily FX move.
+// If the pair's delta is missing for this date, falls back to 0 (no FX adjustment).
+function applyFx(
+  nativeReturn: number,
+  ccy: string,
+  date: string,
+  fxMaps: Map<FxPair, Map<string, number>>,
+): number {
+  if (ccy === 'CHF' || fxMaps.size === 0) return nativeReturn
+  const pair: FxPair = ccy === 'EUR' ? 'EURCHF' : 'USDCHF'
+  const delta = fxMaps.get(pair)?.get(date) ?? 0
+  return toChfReturn(nativeReturn, delta)
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function nextRebalanceDate(d: Date, freq: RebalanceFreq): Date {
@@ -197,11 +220,15 @@ function generateRebalanceDates(start: string, end: string, freq: RebalanceFreq)
 // strictly before `asOf` and intersected on common trading days.
 // LOOKAHEAD-BIAS GUARD: every row of the returned matrix corresponds to a
 // trading day with date < asOf. Assertion verifies.
+// When fxMaps is non-empty, non-CHF returns are converted to CHF before
+// the matrix is returned, so µ/Σ estimation runs on CHF-denominated returns.
 function returnsMatrix(
   frame: PriceFrame,
   tickers: string[],
   asOf: string,
   lookbackDays: number,
+  ccyMap: Record<string, string>,
+  fxMaps: Map<FxPair, Map<string, number>>,
 ): { rets: number[][]; dates: string[] } {
   const perTicker = tickers.map(t => {
     const series = pricesBefore(frame, t, asOf).slice(-lookbackDays - 1)
@@ -219,18 +246,24 @@ function returnsMatrix(
   if (perTicker.some(m => m.size === 0)) return { rets: tickers.map(() => []), dates: [] }
   const sets = perTicker.map(m => new Set(m.keys()))
   const commonDates = [...sets[0]].filter(d => sets.every(s => s.has(d))).sort()
-  const rets = perTicker.map(m => commonDates.map(d => m.get(d) ?? 0))
+  const rets = perTicker.map((m, i) => {
+    const ccy = ccyMap[tickers[i]] ?? 'CHF'
+    return commonDates.map(d => applyFx(m.get(d) ?? 0, ccy, d, fxMaps))
+  })
   return { rets, dates: commonDates }
 }
 
 // Daily portfolio return over [from, to) given fixed weights and the price frame.
 // `from` is exclusive (the rebalance day's price is the basis); returns start the
 // next trading day. `to` is exclusive of the next rebalance day.
+// Non-CHF returns are converted to CHF before weighting when fxMaps is non-empty.
 function periodReturns(
   frame: PriceFrame,
   weights: Record<string, number>,
   from: string,
   to: string,
+  ccyMap: Record<string, string>,
+  fxMaps: Map<FxPair, Map<string, number>>,
 ): { dates: string[]; rets: number[] } {
   const tickers = Object.keys(weights).filter(t => weights[t] > 0)
   if (tickers.length === 0) return { dates: [], rets: [] }
@@ -248,7 +281,10 @@ function periodReturns(
   const commonDates = [...sets[0]].filter(d => sets.every(s => s.has(d))).sort()
   const rets = commonDates.map(d => {
     let r = 0
-    for (let i = 0; i < tickers.length; i++) r += weights[tickers[i]] * (perTicker[i].get(d) ?? 0)
+    for (let i = 0; i < tickers.length; i++) {
+      const ccy = ccyMap[tickers[i]] ?? 'CHF'
+      r += weights[tickers[i]] * applyFx(perTicker[i].get(d) ?? 0, ccy, d, fxMaps)
+    }
     return r
   })
   return { dates: commonDates, rets }
@@ -291,6 +327,9 @@ export function runWalkForward(params: WalkForwardParams): WalkForwardResult {
     seed = 42,
   } = params
 
+  const ccyMap  = params.currencyByTicker ?? {}
+  const fxMaps  = params.fx ? buildFxDeltaMaps(params.fx) : new Map<FxPair, Map<string, number>>()
+
   const rng = mulberry32(seed)
   const rebalanceDates = generateRebalanceDates(startDate, endDate, rebalanceFreq)
   if (rebalanceDates.length < 2) {
@@ -325,7 +364,7 @@ export function runWalkForward(params: WalkForwardParams): WalkForwardResult {
     const nextT = rebalanceDates[i + 1]
 
     // Choose model weights from history strictly before T
-    const { rets } = returnsMatrix(prices, instruments, T, lookbackDays)
+    const { rets } = returnsMatrix(prices, instruments, T, lookbackDays, ccyMap, fxMaps)
     const modelWeights = maxSharpeWeights(instruments, rets, rng, maxWeight, nMonteCarlo)
 
     // Apply rebalance cost
@@ -343,7 +382,7 @@ export function runWalkForward(params: WalkForwardParams): WalkForwardResult {
     rebalances.push({ date: T, weights: modelWeights, turnover, cost })
 
     // Realised returns over [T, nextT)
-    const modelPeriod = periodReturns(prices, modelWeights, T, nextT)
+    const modelPeriod = periodReturns(prices, modelWeights, T, nextT, ccyMap, fxMaps)
     let nav = lastModelNav
     for (let j = 0; j < modelPeriod.rets.length; j++) {
       nav *= (1 + modelPeriod.rets[j])
@@ -362,7 +401,7 @@ export function runWalkForward(params: WalkForwardParams): WalkForwardResult {
         ? entryCost(bWeights, costs)
         : rebalanceCost(prevBenchWeights[b], bWeights, costs)
       const lastBNav = benchNavs[b].navs[benchNavs[b].navs.length - 1] * (1 - bCost)
-      const bPeriod = periodReturns(prices, bWeights, T, nextT)
+      const bPeriod = periodReturns(prices, bWeights, T, nextT, ccyMap, fxMaps)
       let bn = lastBNav
       for (let j = 0; j < bPeriod.rets.length; j++) {
         bn *= (1 + bPeriod.rets[j])

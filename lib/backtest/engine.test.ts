@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { runWalkForward, type WalkForwardParams } from './engine'
 import type { PriceFrame } from './data'
+import type { FxFrame } from './fx'
 import { DEFAULT_COSTS, tradeCost, rebalanceCost, entryCost } from './costs'
 
 // ── Synthetic price frame helpers ───────────────────────────────────────
@@ -172,6 +173,98 @@ describe('runWalkForward — determinism', () => {
     for (let i = 0; i < a.rebalances.length; i++) {
       expect(a.rebalances[i].weights).toEqual(b.rebalances[i].weights)
     }
+  })
+})
+
+// ── FX conversion (T2 from ETF_MATH_AUDIT.md) ─────────────────────────
+//
+// Synthetic proof that the FX layer changes outcomes for mixed-currency portfolios
+// while leaving pure-CHF portfolios unchanged.
+
+describe('runWalkForward — FX conversion', () => {
+  // Build a monotone FX series (no vol, predictable drift) so the test
+  // is deterministic without depending on real Yahoo data.
+  function buildFxSeries(
+    startDate: string,
+    days: number,
+    startRate: number,
+    dailyDrift: number,
+  ): { date: string; close: number }[] {
+    const out: { date: string; close: number }[] = []
+    let d = new Date(startDate + 'T00:00:00Z')
+    let rate = startRate
+    for (let i = 0; i < days; i++) {
+      while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1)
+      rate *= (1 + dailyDrift)
+      out.push({ date: d.toISOString().split('T')[0], close: rate })
+      d.setUTCDate(d.getUTCDate() + 1)
+    }
+    return out
+  }
+
+  it('FX-corrected CHF NAV is lower than native when USD depreciates vs CHF', () => {
+    // USD ticker trends up 0.10%/day (native), but USD depreciates −0.05%/day vs CHF.
+    // CHF ticker is flat. Portfolio is 50/50.
+    // → CHF investor's return on USD leg = (1.001)(0.9995) − 1 ≈ +0.05%/day instead of +0.10%.
+    // Over ~3 years (750 trading days) the gap is several percent of NAV.
+    const prices: PriceFrame = {
+      CHF_FLAT: buildSeries('2018-01-02', 1000, 0.0000, 0.000, 77),   // flat
+      USD_TREND: buildSeries('2018-01-02', 1000, 0.0010, 0.000, 88),  // +0.10%/day, no vol
+    }
+
+    // USDCHF starts at 0.92, drifts down 0.05%/day (USD weakens)
+    const usdchf = buildFxSeries('2018-01-02', 1100, 0.92, -0.0005)
+    const fxFrame: FxFrame = { USDCHF: usdchf, EURCHF: usdchf }
+
+    const shared: WalkForwardParams = {
+      startDate:       '2020-01-02',
+      endDate:         '2022-12-01',
+      rebalanceFreq:   'quarterly',
+      instruments:     ['CHF_FLAT', 'USD_TREND'],
+      startingWeights: { CHF_FLAT: 0.5, USD_TREND: 0.5 },
+      benchmarks:      ['equal-weight'],
+      prices,
+      nMonteCarlo:     400,
+      maxWeight:       0.60,
+      seed:            42,
+    }
+
+    const withoutFx = runWalkForward(shared)
+    const withFx    = runWalkForward({
+      ...shared,
+      currencyByTicker: { CHF_FLAT: 'CHF', USD_TREND: 'USD' },
+      fx: fxFrame,
+    })
+
+    const navWithout = withoutFx.series.model.navs.at(-1)!
+    const navWith    = withFx.series.model.navs.at(-1)!
+
+    // FX drag must reduce final NAV
+    expect(navWith).toBeLessThan(navWithout)
+    // Gap must be economically meaningful (several %)
+    expect(navWithout - navWith).toBeGreaterThan(0.05)
+  })
+
+  it('pure-CHF portfolio is unaffected by FX layer', () => {
+    const prices: PriceFrame = makeFrame()   // synthetic CHF instruments
+
+    const fxFrame: FxFrame = {
+      USDCHF: buildFxSeries('2018-01-02', 1300, 0.90, -0.0005),
+      EURCHF: buildFxSeries('2018-01-02', 1300, 1.02, -0.0003),
+    }
+
+    const shared = baseParams(prices)
+    // All instruments declared as CHF → FX layer is a no-op
+    const withFx = runWalkForward({
+      ...shared,
+      currencyByTicker: { AAA: 'CHF', BBB: 'CHF', CCC: 'CHF' },
+      fx: fxFrame,
+    })
+    const withoutFx = runWalkForward(shared)
+
+    const navWith    = withFx.series.model.navs.at(-1)!
+    const navWithout = withoutFx.series.model.navs.at(-1)!
+    expect(navWith).toBeCloseTo(navWithout, 8)
   })
 })
 

@@ -18,7 +18,8 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { loadHistoricalPrices } from '../lib/backtest/data'
 import { runWalkForward, type BenchmarkId } from '../lib/backtest/engine'
-import { ALL_INSTRUMENTS } from '../lib/backtest/universe'
+import { loadFxRates } from '../lib/backtest/fx'
+import { ALL_INSTRUMENTS, metaFor } from '../lib/backtest/universe'
 
 interface SamplePortfolio {
   id:               string
@@ -62,7 +63,7 @@ function ensure(weights: Record<string, number>): Record<string, number> {
   return Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, v / sum]))
 }
 
-async function buildOne(p: SamplePortfolio) {
+async function buildOne(p: SamplePortfolio, fx: Awaited<ReturnType<typeof loadFxRates>>) {
   console.log(`\n[backtest] building ${p.id}: ${p.instruments.join(', ')}`)
   const prices = await loadHistoricalPrices({
     tickers: p.instruments,
@@ -84,6 +85,12 @@ async function buildOne(p: SamplePortfolio) {
 
   console.log(`[backtest]   data starts ${earliestUsableStart}, first rebalance ${firstRebalance}`)
 
+  // Build ticker → currency map from universe metadata for the FX layer
+  const currencyByTicker: Record<string, string> = {}
+  for (const t of p.instruments) {
+    currencyByTicker[t] = metaFor(t)?.currency ?? 'CHF'
+  }
+
   const result = runWalkForward({
     startDate:       firstRebalance,
     endDate:         END_DATE,
@@ -95,6 +102,8 @@ async function buildOne(p: SamplePortfolio) {
     maxWeight:       Math.max(0.40, 1 / p.instruments.length + 0.05),
     nMonteCarlo:     2000,
     seed:            42,
+    currencyByTicker,
+    fx,
   })
 
   // Compact the output: every 5th NAV point keeps file size sane (~weekly resolution)
@@ -130,9 +139,13 @@ async function buildOne(p: SamplePortfolio) {
 }
 
 async function main() {
+  console.log('[backtest] loading FX rates (USDCHF, EURCHF)…')
+  const fx = await loadFxRates(START_DATE, END_DATE)
+  console.log(`[backtest]   USDCHF: ${fx.USDCHF.length} days, EURCHF: ${fx.EURCHF.length} days`)
+
   const results = []
   for (const p of SAMPLE_PORTFOLIOS) {
-    results.push(await buildOne(p))
+    results.push(await buildOne(p, fx))
   }
 
   // Aggregate across the 3 portfolios — pool per-period stats vs each benchmark
@@ -194,7 +207,7 @@ async function main() {
   await fs.writeFile(file, JSON.stringify(aggregate, null, 2), 'utf8')
   console.log(`\n[backtest] wrote ${file}`)
   console.log('[backtest] done')
-  void ALL_INSTRUMENTS  // keep import for future universe-coverage checks
+  void ALL_INSTRUMENTS  // universe import kept for future coverage checks
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
