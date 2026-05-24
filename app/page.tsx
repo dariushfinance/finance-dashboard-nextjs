@@ -243,15 +243,6 @@ export default function UnifiedLanding() {
         <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, fontFamily: 'var(--font-mono)' }}>
           Built in Switzerland.
         </p>
-        <div style={{ marginTop: 18, display: 'inline-flex', gap: 16, fontSize: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/privacy" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Privacy</Link>
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <Link href="/terms" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Terms</Link>
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <Link href="/support" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Support</Link>
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <Link href="/advisor-legal" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Advisor Terms</Link>
-        </div>
         <p style={{ marginTop: 22, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
           Not investment advice. Past accuracy does not guarantee future precision.
         </p>
