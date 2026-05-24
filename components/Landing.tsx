@@ -97,12 +97,12 @@ export default function Landing() {
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#features" style={navLink}>Features</a>
-            <Link href="/how-it-works" style={navLink}>How it works</Link>
-            <Link href="/blog" style={navLink}>Blog</Link>
+            <Link href="/portfolio/how-it-works" style={navLink}>How it works</Link>
+            <Link href="/portfolio/blog" style={navLink}>Blog</Link>
             <a href="#pricing"  style={navLink}>Pricing</a>
             <a href="#about"    style={navLink}>About</a>
             <ThemeToggle />
-            <Link href="/login" className="lp-cta" style={{
+            <Link href="/portfolio/login" className="lp-cta" style={{
               ...navLink,
               padding: '8px 16px', borderRadius: 9,
               background: 'var(--grad-brand)',
@@ -151,13 +151,13 @@ export default function Landing() {
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/register" className="lp-cta" style={ctaPrimary}>
+            <Link href="/portfolio/register" className="lp-cta" style={ctaPrimary}>
               Start free
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </Link>
-            <Link href="/how-it-works" className="lp-ghost" style={ctaGhost}>
+            <Link href="/portfolio/how-it-works" className="lp-ghost" style={ctaGhost}>
               See backtests
             </Link>
           </div>
@@ -472,7 +472,7 @@ export default function Landing() {
               <span className="lp-grad-text">Start measuring.</span>
             </h2>
             <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/register" className="lp-cta" style={ctaPrimary}>
+              <Link href="/portfolio/register" className="lp-cta" style={ctaPrimary}>
                 Create your account
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7" />

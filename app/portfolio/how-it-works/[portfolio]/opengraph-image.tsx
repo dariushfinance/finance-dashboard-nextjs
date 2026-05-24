@@ -71,7 +71,7 @@ export default async function PortfolioOG({ params }: { params: { portfolio: str
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 22, color: '#64748b' }}>
-          <div>quantfoli.com/how-it-works</div>
+          <div>quantfoli.com/portfolio/how-it-works</div>
           <div>Simulated · not investment advice</div>
         </div>
       </div>

@@ -25,13 +25,13 @@ function LoginPageInner() {
     if (tab === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError(error.message)
-      else { router.push('/'); router.refresh() }
+      else { router.push('/portfolio'); router.refresh() }
     } else {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/portfolio`,
           data: { full_name: name.trim() },
         },
       })

@@ -18,7 +18,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const post = await getPostBySlug(params.slug)
   if (!post) return {}
-  const url = `${SITE_URL}/blog/${post.slug}`
+  const url = `${SITE_URL}/portfolio/blog/${post.slug}`
   const image = post.image || `${SITE_URL}/opengraph-image`
   return {
     title: post.title,
@@ -52,7 +52,7 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
   const post = await getPostBySlug(params.slug)
   if (!post) notFound()
 
-  const url = `${SITE_URL}/blog/${post.slug}`
+  const url = `${SITE_URL}/portfolio/blog/${post.slug}`
   const image = post.image || `${SITE_URL}/opengraph-image`
 
   const articleSchema = {
@@ -86,7 +86,7 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
       )}
 
       <nav style={{ marginBottom: 32, fontSize: 14 }}>
-        <Link href="/blog" style={{ color: '#ffffff', textDecoration: 'none' }}>
+        <Link href="/portfolio/blog" style={{ color: '#ffffff', textDecoration: 'none' }}>
           ← Blog
         </Link>
       </nav>

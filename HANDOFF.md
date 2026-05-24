@@ -1,732 +1,477 @@
-# HANDOFF — Quantfoli (Sessions 8 → 11)
+# HANDOFF — Quantfoli (Sessions 8 → 14)
 
-**Date last touched:** 2026-05-19
-**Branch:** `main`
-**Last commit:** `ad28b62` — ProGate: blurred-preview pattern + free-tier headline metric
+**Date last touched:** 2026-05-24
+**Branch:** `refactor/unified-landing` (awaiting Dariush review + merge to `main`)
+**Last commit:** session 14 work uncommitted at handoff time; spec in `docs/MERGE_ARCHITECTURE.md`
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
-**DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`). Migrated in session 8.
+**DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`).
 **Owner:** Dariush Tahajomi (`dariush.tahajomi@gmail.com`), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen.
+**LinkedIn:** https://www.linkedin.com/in/dariush-tahajomi-09348b370/
 
-> Read this file end-to-end before touching anything. Older session content (1–7) is in git history. Sessions 8 + 9 + 10 happened on 2026-05-17. Session 11 happened on 2026-05-19 and is documented first below. **Session 12 (background-task batch) happened on 2026-05-20** and is documented immediately below Session 11.
+> Read this file end-to-end before touching anything. Sessions 1–7 in git history. Sessions 8–13 documented below Session 14.
 
 ---
 
-## 2.5 Session 12 (2026-05-20) — Background-task batch (NO CODE CHANGES)
+## Session 14 (2026-05-24) — Unified Quantfoli landing · /portfolio prefix migration
 
-Sunday work block while Dariush studied for Matura. **No git pushes, no production code changes.** All deliverables are spec/audit docs in `docs/`.
+### What was done
+
+Quantfoli now hosts two products under one domain. The existing portfolio app moved under `/portfolio`. A new unified host landing at `/` introduces both Portfolio Analytics and Analysts Lens (Hugo's product, built later at `/learn`).
+
+**Spec:** `docs/MERGE_ARCHITECTURE.md` — read this first.
+**Auth migration:** `docs/AUTH_MIGRATION.md` — Supabase dashboard steps for Dariush, post-merge.
+
+### Route changes
+
+| Old | New |
+|---|---|
+| `/` (conditional Landing/Dashboard) | `/portfolio` (same pattern) |
+| `/login`, `/register` | `/portfolio/login`, `/portfolio/register` |
+| `/how-it-works`, `/how-it-works/[portfolio]` | `/portfolio/how-it-works/...` |
+| `/blog`, `/blog/[slug]`, `/blog/sitemap.xml` | `/portfolio/blog/...` |
+| `/backtests`, `/finances` | `/portfolio/...` |
+| `/opengraph-image.tsx` | `/portfolio/opengraph-image.tsx` (and new root OG for unified landing) |
+
+**Stays at root:** `/`, `/learn`, `/privacy`, `/terms`, `/support`, `/advisor-legal`, `/api/*`, `/sitemap.xml`, `/robots.txt`, `/opengraph-image`.
+
+### Files touched
+
+| Area | Files |
+|---|---|
+| New | `app/page.tsx` (unified landing), `app/learn/page.tsx` (placeholder), `app/opengraph-image.tsx` (new root OG), `docs/MERGE_ARCHITECTURE.md`, `docs/AUTH_MIGRATION.md` |
+| Moved (git mv) | 14 files into `app/portfolio/` |
+| URL rewrites | `middleware.ts`, `app/sitemap.ts`, `app/api/stripe/{checkout,portal}/route.ts`, `app/api/welcome/route.ts`, `app/portfolio/login/page.tsx`, `app/portfolio/register/page.tsx`, `app/portfolio/backtests/page.tsx`, `app/portfolio/blog/{page,[slug]/page,sitemap.xml/route}.tsx`, `app/portfolio/how-it-works/{page,opengraph-image,[portfolio]/opengraph-image}.tsx`, `app/portfolio/opengraph-image.tsx`, `components/{Landing,LandingClient,FinancesSheet}.tsx` |
+| 301 redirects (legacy → new) | `next.config.js` `redirects()` array — `/how-it-works`, `/blog`, `/login`, `/register`, `/backtests`, `/finances` and slug variants |
+| Design tokens | `app/globals.css` — added `--accent-pro`, `--accent-pro-soft`, `--accent-learn`, `--accent-learn-soft` (warm amber for Analysts Lens, placeholder until Hugo confirms) |
+| Tests | `lib/backtest/fidleg-lint.test.ts` — `SCAN_ROOTS` updated to `app/portfolio/how-it-works` |
+
+### Copy — FIDLEG review
+
+`@agent-fidleg-reviewer` ran on the new landing copy before writing the page. 3 medium-risk violations flagged and fixed:
+1. "institutional finance tools accessible" → "professional-grade finance tools accessible"
+2. "analyst-grade" + "valuation mastery" → "professional-grade" + "valuation frameworks"
+3. Bare "±0.2%" accuracy claim → "(historical accuracy ±0.2% on ZKB depot sample data)¹" + footnote "Past accuracy does not guarantee future precision."
+
+Hero headline `Finance, built for the next generation.` is placeholder — Dariush + Hugo to refine.
+
+### Verification
+
+- `npm test` — 62/62 ✅ (no test count change; FIDLEG-lint passes against `app/portfolio/how-it-works`)
+- `npm run build` — clean. New page count includes `/`, `/learn`, `/portfolio`, and all `/portfolio/*` subroutes.
+- Manual smoke tests not yet run — see `docs/AUTH_MIGRATION.md` §5 for the post-deploy checklist Dariush should run.
+
+### Manual steps required (Dariush, post-merge)
+
+See `docs/AUTH_MIGRATION.md`. Summary:
+1. Supabase Dashboard → Authentication → URL Configuration: Site URL `https://quantfoli.com/portfolio`; Redirect URLs add `https://quantfoli.com/portfolio/**`.
+2. Stripe Dashboard: no change needed.
+3. Google Search Console: re-submit sitemap.
+4. Run smoke checklist.
+
+### Branch status
+
+`refactor/unified-landing` — all work committed locally, **not pushed**. Dariush to review, then either:
+- `git push origin refactor/unified-landing` and open a PR for one final pass, OR
+- `git checkout main && git merge --ff-only refactor/unified-landing && git push` to ship.
+
+---
+
+## Session 13 (2026-05-22) — SEO register route · Light mode landing · ETF FX fix · Welcome email
+
+### What was requested / incident brief
+
+Session started with a "production crash" brief claiming `components/Landing.tsx` had been overwritten with a naked login form. **This turned out to be inaccurate.** Audit confirmed Landing.tsx and `app/page.tsx` were both identical to `90ff00b` (the last known good commit). The actual issues were smaller and surgical.
+
+### Actual bugs found and fixed
+
+| # | File | Was | Fixed to |
+|---|---|---|---|
+| 1 | `app/register/page.tsx` | Bare `permanentRedirect('/login?tab=signup')`, no metadata. Google got a 308 with no title/description/canonical. | Exports `metadata` (German title, description, canonical). Changed to `redirect()`. Metadata is in prerendered HTML — Google reads it. |
+| 2 | `components/Landing.tsx` line 153 | Hero "Start free" → `/login?tab=signup` (bypasses shadow SEO route) | → `/register` |
+| 3 | `components/Landing.tsx` line 455 | Final CTA "Create your account" → `/login?tab=signup` | → `/register` |
+
+### Light mode for landing page
+
+The dashboard already had full light/dark toggle (`pi_theme` key in localStorage, `data-theme` on `<html>`). Landing page had no toggle — users who set light in dashboard would snap back to dark on the landing.
+
+**Changes:**
+- `components/LandingClient.tsx` — new `ThemeToggle` export. Reads `pi_theme` from localStorage on mount, sets `data-theme` on `<html>`, sun/moon icon button. Shares the same key as Dashboard.
+- `components/Landing.tsx` — imports `ThemeToggle`, renders it in nav (between About and Sign in). Dot grid changed from hardcoded `oklch(1 0 0 / 0.025)` (white, invisible on light) to `var(--lp-dot)`.
+- `app/globals.css` — `--lp-dot: oklch(1 0 0 / 0.025)` in `:root` (dark), `oklch(0 0 0 / 0.045)` in `[data-theme="light"]`.
+
+All other landing page colors already use CSS tokens (`var(--bg)`, `var(--ink)`, `var(--line-soft)`) which the existing `html[data-theme="light"]` block overrides. No further changes needed.
+
+### ETF FX bug fix (🔴 from session 12 audit)
+
+**What was wrong:** `lib/backtest/engine.ts:periodReturns()` and `returnsMatrix()` combined daily returns of CHF, USD, and EUR assets as if they were the same currency. A Swiss-CHF investor's actual return on a USD asset is `(1 + r_usd)(1 + Δ_usdchf) − 1`. The Markowitz optimizer was also solving on native-currency Sharpe instead of CHF Sharpe.
+
+**Affected portfolios:** Conservative 60/40 (VWRL.SW + AGGG.L) and Growth ETF (4 ETFs across CHF/USD/EUR). Concentrated SMI was pure-CHF and unaffected.
+
+**Fix — new files and changes:**
+
+| File | Change |
+|---|---|
+| `lib/backtest/fx.ts` | **NEW.** Fetches `USDCHF=X` and `EURCHF=X` from Yahoo with same 7-day disk-cache pattern as `data.ts`. Exports `loadFxRates(from, to)`, `buildFxDeltaMaps(fx)` (precomputes date→delta Maps for O(1) lookup), `toChfReturn(r, fxDelta)`. |
+| `lib/backtest/engine.ts` | `WalkForwardParams` gains optional `currencyByTicker?: Record<string, string>` and `fx?: FxFrame`. Internal `applyFx()` helper. `returnsMatrix()` and `periodReturns()` both accept `ccyMap` + `fxMaps` — apply `(1+r)(1+Δfx)−1` per non-CHF ticker. Backwards compatible: omit both params = no FX conversion. |
+| `scripts/build-backtests.ts` | Imports `loadFxRates` + `metaFor`. Loads FX once in `main()`, builds `currencyByTicker` from universe metadata per portfolio, passes both to `runWalkForward`. |
+| `lib/backtest/engine.test.ts` | 2 new FX regression tests: (1) proves FX drag reduces CHF NAV when USD weakens (synthetic monotone series, no Yahoo needed); (2) proves pure-CHF portfolio is unaffected by FX layer. |
+| `public/backtests/*.json` | Regenerated with FX-corrected numbers. |
+
+**New headline numbers** (auto-displayed on `/how-it-works` from JSON):
+- Was: +Sharpe in 56% of quarters, mean Δ +0.022
+- Now: **+Sharpe in 64% of quarters, mean Δ +0.057**
+
+Improvement is correct: Markowitz now optimizes on CHF Sharpe (the right objective), so it picks better weights from a Swiss investor's perspective.
+
+**FIDLEG review post-fix:** `@agent-fidleg-reviewer` ran on the full `/how-it-works` surface. **PASS — zero violations.** Copy is metric-agnostic and relative; higher numbers don't create new risk. Preventive flag: if mean Δ ever exceeds +0.10 or wins >85%, re-run the reviewer.
+
+### Welcome email
+
+**What was built:**
+
+| File | What |
+|---|---|
+| `app/api/welcome/route.ts` | **NEW.** POST endpoint. Rate-limited (3/IP/10min via `lib/rate-limit.ts`). Validates email format. Sends branded dark-themed HTML welcome email via `lib/resend.ts`. Non-fatal if Resend fails — signup already succeeded. |
+| `app/login/page.tsx` | Fire-and-forget `fetch('/api/welcome', ...)` after successful `supabase.auth.signUp()`. Client-side, non-blocking, `.catch()` swallows failures silently. |
+
+Email content: branded Q logo, firstName greeting, "confirm your email → import CSV → see the math" 3-step guide, legal footer. No FIDLEG-sensitive language.
+
+**`RESEND_FROM` env var:** Dariush set in Vercel dashboard as `Quantfoli <support@quantfoli.com>`. This is now live — outbound email will send from the branded address instead of `onboarding@resend.dev`.
+
+### LinkedIn link
+
+Added to `components/Landing.tsx` founder/about section — LinkedIn icon + link below the "HSG St. Gallen '27 · Zurich" line. Points to https://www.linkedin.com/in/dariush-tahajomi-09348b370/
+
+### Test count
+
+62 tests passing (was 51 before this session — jump includes rate-limit tests from `98ad210` + 2 new FX tests).
+
+### Build
+
+40 pages (was 39 — new `/api/welcome` route). `npm run build` clean. `npm test` 62/62.
+
+### Commits this session
+
+Dariush pushed manually. Changes batched across multiple commits (exact hashes in git log). Working tree clean at end of session.
+
+---
+
+## Session 12 (2026-05-20) — Background-task batch (NO CODE CHANGES)
+
+Sunday work block. No git pushes, no production code changes. All deliverables are spec/audit docs in `docs/`.
 
 ### Deliverables produced
 
 | File | Type | Highlight |
 |---|---|---|
-| `docs/ETF_MATH_AUDIT.md` | 🔴 high-severity audit | Confirmed bug: backtest engine mixes CHF/USD/EUR daily returns without FX conversion. Affects 2 of 3 published `/how-it-works` portfolios (Conservative 60/40 + Growth ETF). Concentrated SMI portfolio is pure-CHF and unaffected. Sharpe deltas vs. benchmark partially survive (both legs share the bug) but absolute returns/vol/Sharpe printed do not represent CHF-investor reality. Proposed fix: new `lib/backtest/fx.ts` + composition formula in `engine.ts:periodReturns()` and `returnsMatrix()`. Effort: 2-4 hours including tests T1+T2. |
-| `docs/PROGATE_REDESIGN.md` §10 (v2 appended) | spec extension | Per-chart paywall pattern. 9 new CTA strings inventoried per chart (Risk R2/R3/R4, Stress S2-S5, Frontier F2/F3). Implementation pattern: new `ProChart` component wrapping each gated visualization individually. `@agent-fidleg-reviewer` pre-pass dispatched on the 9 strings. |
-| `docs/DESIGN_AUDIT.md` | audit | Quantfoli vs. Linear/Vercel/Stripe. Highest-leverage finding: typography (drop Inter Tight, adopt Söhne or GT Walsheim Pro or free Public Sans as `--font-display`). Three-phase implementation plan: Phase 1 = type+spacing (low risk, half-day), Phase 2 = component refinement, Phase 3 = surface-by-surface. Brand-locked: Advisor purple `--accent-advisor`, Pro gold `--accent-pro`. |
-| `docs/FINYON_BRIEFING.md` | strategic briefing | Internal-only prep for Vollenweider meeting 2026-06-19. **Address discrepancy flagged:** Apollostrasse 2 is Zürich-Hottingen (Kreuzplatz, 8032), NOT Oerlikon (8050) — confirm 24-48h before meeting. Strongest insight: HSG is the connective tissue (Vollenweider HSG-grad, Dariush HSG-bound 2027) — meeting is likely curiosity + talent scouting, not commercial. 7 peer-level questions, 8 topics to avoid. Includes data-gap report (WebFetch denied throughout). |
-| `docs/QUANTFOLI_RESEARCH_SOURCES.md` (updated) | persona research | Persona 1 (Marc, ZKB IT-Consultant) — 4 quotes filled, threshold of 5 not met. Sources: 3× Mustachian Post forum (ZKB CSV pain, no Swiss bank APIs), 1× Trustpilot ZKB fees ("not to be surpassed in audacity"). Themes: ZKB CSV export broken for trackers; no API forces manual Excel entry; ZKB depot fees among highest in CH. 9 high-signal domains (insideparadeplatz, thepoorswiss, schwiizerfranke, forum.cash.ch, trustpilot, saldo.ch, moneyland forum, srf.ch, nzz.ch) all returned HTTP 403 to WebFetch — unblock requires manual extraction. |
-| `docs/content-ideas/2026-05-19-batch-2.md` | content brief | 20 ideas across 4 clusters (LinkedIn build-in-public 5, TikTok/Reels 5, SEO articles 5, Mustachian/Reddit threads 5). Top 3 to execute: (1) FX-adjusted return reveal TikTok, (2) Concentrated SMI 45%-win Mustachian thread, (3) "66 real rebalances" LinkedIn post. All ICP-fit 9, low effort. |
+| `docs/ETF_MATH_AUDIT.md` | 🔴 high-severity audit | Confirmed bug: backtest engine mixes CHF/USD/EUR daily returns without FX conversion. **Fixed in session 13.** |
+| `docs/PROGATE_REDESIGN.md` §10 (v2 appended) | spec extension | Per-chart paywall pattern. 9 new CTA strings inventoried per chart (Risk R2/R3/R4, Stress S2-S5, Frontier F2/F3). `@agent-fidleg-reviewer` pre-pass done — 7/9 pass, 2 rewrites applied (R2 "Spot" → "Shows"; F3 "Suggested" → "Computed"). Table shippable. |
+| `docs/DESIGN_AUDIT.md` | audit | Quantfoli vs. Linear/Vercel/Stripe. Highest-leverage finding: typography (drop Inter Tight, adopt Söhne or GT Walsheim Pro or free Public Sans as `--font-display`). Three-phase implementation plan. |
+| `docs/FINYON_BRIEFING.md` | strategic briefing | Internal-only prep for Vollenweider meeting 2026-06-19. **Address discrepancy flagged:** Apollostrasse 2 is Zürich-Hottingen (Kreuzplatz, 8032), NOT Oerlikon (8050) — confirm 24-48h before meeting. |
+| `docs/QUANTFOLI_RESEARCH_SOURCES.md` | persona research | Persona 1 (Marc, ZKB IT-Consultant) — 4 quotes filled. Sources blocked (403) limited yield. |
+| `docs/content-ideas/2026-05-19-batch-2.md` | content brief | 20 ideas across 4 clusters. Top 3: FX-adjusted return reveal TikTok, Concentrated SMI 45%-win Mustachian thread, "66 real rebalances" LinkedIn post. |
 
-### Blocked / not produced
+---
 
-- **Swissquote parser feasibility spec (Task 4)** — deferred. Wasn't urgent and the session ran long on the higher-value tasks. Pickup any time.
-- **`docs/QUANTFOLI_RESEARCH_SOURCES.md`** for Personas 2-7 — not started; Persona 1 was the explicit ask.
-- **ProGate per-chart code** — spec-only this session. `@agent-fidleg-reviewer` pre-pass dispatched on §10.4 strings; awaiting result + caveman approval before any code lands.
+## Session 11 (2026-05-19) — Onboarding audit + ProGate redesign + FIDLEG cleanup
 
-### Background agents dispatched this session
+### Key commits
 
-| Agent | Output | Status |
-|---|---|---|
-| persona-research | `docs/QUANTFOLI_RESEARCH_SOURCES.md` Persona 1 table | done; 4/5 quotes (sources blocked, see above) |
-| content-ideator | `docs/content-ideas/2026-05-19-batch-2.md` | done |
-| general-purpose (Finyon) | `docs/FINYON_BRIEFING.md` | done; data-gaps documented |
-| fidleg-reviewer | §10.4 CTA strings audit | done — 7/9 pass, 2 rewrites applied (R2 "Spot" → "Shows"; F3 "Suggested" → "Computed"). Table shippable. |
+| Commit | Scope |
+|---|---|
+| `f274cdb` | Hero subhead rewrite |
+| `7c0eadb` | Blog colour fix + `app/finances/page.tsx` committed |
+| `f58dcdd` | HANDOFF rewrite, `FinancesSheet.tsx` committed, 2 new agent definitions |
+| `48e7154` | Blog: all article text set to pure white |
+| `acbe3a9` | FIDLEG fix — StressTest, SamplePortfolioCard, how-it-works |
+| `beb8656` | FIDLEG fix #2 — CTACards whyText + rebalancing copy |
+| `ad28b62` | **Main deliverable:** ProGate redesign — blurred-preview pattern + free-tier headline metric. 51/51 tests passing, tsc clean. |
 
-### Top 3 items needing Dariush attention first
+### ProGate redesign (ad28b62)
 
-1. **🔴 ETF FX bug.** Decide whether to ship Fix 1 (FX layer in `lib/backtest/`) before next marketing claim or whether to disclose the limitation in `/how-it-works` copy. Numbers on the page right now overstate Swiss-CHF reality for the 2 ETF-heavy backtests.
-2. **🟠 Finyon meeting prep.** Confirm exact meeting address (Hottingen vs. Oerlikon). Pick 4-5 questions from §D. Decide one specific outcome to optimize the meeting for (HSG-network intros recommended).
-3. **🟡 Type-face decision.** Söhne/GT Walsheim ($200-1500 one-time) vs. Public Sans (free) for `--font-display`. Lowest-effort highest-impact design improvement.
+New ProGate API: `featureName`, `featureSubcopy`, `ctaLabel`, `headlineMetric`, `onUpgrade`, `children`. Layout: crisp headline metric at top, full content blurred behind, gold CTA overlay. Three new headline components: `RiskHeadline.tsx`, `StressHeadline.tsx`, `FrontierHeadline.tsx`. Dashboard wired. Free user with no positions: Upgrade sidebar hidden (E2 fix).
 
-### Cost transparency (rough)
+**Per-chart paywall refinement is still pending** — see sprint backlog below.
 
-| Task | Approx. duration | Notes |
-|---|---|---|
-| ETF Math Audit | 1 long inline session | High-value finding |
-| Design Audit | 1 inline session | Knowledge-based; no new dependencies introduced |
-| ProGate v2 spec | 1 inline session | Awaiting fidleg-reviewer pass |
-| Persona 1 research | 1 background agent run | WebFetch blocks limited yield |
-| Content ideas | 1 background agent run | Output saved by parent agent (subagent write-blocked) |
-| Finyon briefing | 1 background agent run | Same; reconstructed from search excerpts |
-| fidleg-reviewer pre-pass | 1 background agent run | Triggered late |
+---
 
-### No-code constraint respected
+## Session 10 (2026-05-17 evening) — Landing-page audit + signup-funnel fix
 
-- No `npm test` / `npm run build` regressions introduced — nothing built.
-- No new dependencies.
-- No git commits, no pushes.
-- No edits to `/app/**`, `/components/**`, `/lib/**`. Only `/docs/**` writes.
+Critical finding: `/register` didn't exist, all CTAs routed to `/login` Sign In tab. Fixed C.1–C.5.
+
+| Commit | Fix |
+|---|---|
+| `b563343` | C.1 — `?tab=signup` param, `/register` redirect, middleware whitelist, all CTAs |
+| `cb1be91` | C.2–C.5 — prose tab-switcher, autoFocus, Free card reassurance |
+| `7e33e72` | H1 swap: **"The portfolio tool your quant friend uses."** |
+
+---
+
+## Sessions 8 + 9 (2026-05-17)
+
+Session 8: SEO infrastructure, Sentry (dormant), Resend email, Cloudflare DNS migration.
+Session 9: `/how-it-works` backtest landing page — full engine (`lib/backtest/`), 3 sample portfolios, scripts, components.
 
 ---
 
 ## 1. What Quantfoli is
 
-A Swiss-focused portfolio analytics SaaS for self-directed investors.
+Swiss-focused portfolio analytics SaaS for self-directed investors.
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Supabase (Postgres + Auth) · Stripe · Vercel (Frankfurt) · Resend (transactional email) · Cloudflare (DNS) · Sentry (error monitoring, dormant)
 
 **Tiers:**
-- **Free** — CHF 0: tracker, EOD prices (Yahoo Finance), S&P 500 benchmark, Swiss broker CSV import, multi-currency display.
-- **Pro** — CHF 15/mo · CHF 150/yr (≈17% off). Markowitz frontier, stress tests, full risk metrics.
-- **Advisor** — CHF 50/mo · CHF 500/yr. Pro + monthly walk-forward report on user's actual portfolio.
+- **Free** — CHF 0: tracker, EOD prices, S&P 500 benchmark, Swiss broker CSV import, multi-currency display.
+- **Pro** — CHF 15/mo · CHF 150/yr. Markowitz frontier, stress tests, full risk metrics.
+- **Advisor** — CHF 50/mo · CHF 500/yr. Pro + monthly walk-forward report.
 
-**Defensible differentiator:** Markowitz frontier + historical stress test + Sharpe/Sortino/Beta/Alpha on top of FX-aware ZKB/Yuh/Neon CSV imports, accurate to ±0.2% vs. the broker statement. No Swiss retail competitor ships this combo.
-
-**Real ICP:** engineer/quant-adjacent Swiss male, 30–55, six-figure portfolio at ZKB/Yuh, technically literate, frustrated by Swiss bank reporting. Mom is the "designed first user" for usability — NOT product-market fit.
-
-**Owner legal status:** Einzelunternehmen Schaffhausen. Not registered in Handelsregister (only required > CHF 100k turnover/year). Not MWST-registered. Currently invisible to FINMA — at current scale (1–2 paying users) no regulatory action is realistic.
+**Real ICP:** engineer/quant-adjacent Swiss male, 30–55, six-figure portfolio at ZKB/Yuh, technically literate, frustrated by Swiss bank reporting.
 
 ---
 
-## 2. The big picture goal of this work block
+## 2. Outstanding blockers / known issues
 
-The further-instructions doc (`C:/AI_System/further instructions.txt`) defined two deliverables for sessions 9–10:
-
-- **PRIORITY 1** — Spec + ship `/how-it-works`, a backtesting landing page that uses honest walk-forward backtests as the central marketing artifact. Methodology IS the marketing.
-- **PRIORITY 2** — `docs/MARKETING_PLAN.md` scaffolding doc (mostly empty tables for Dariush to fill in via his own research; Claude in advisory role afterwards).
-
-**Status:** Priority 1 is fully shipped + live. The signup funnel that feeds it was diagnosed as broken (audit doc `docs/LANDING_AUDIT.md`) and fix items C.1–C.5 are all shipped + live. Priority 2 has NOT been started yet — that's the immediate next deliverable.
-
----
-
-## 3. Session 11 (2026-05-19) — Onboarding audit + ProGate redesign + FIDLEG cleanup
-
-### Execution order (commits, chronological)
-
-| Time | Commit | Scope |
+| Severity | Issue | Status |
 |---|---|---|
-| 14:19 | `f274cdb` | Hero subhead rewrite — leads with the ZKB Depotauszug pain point instead of feature counts. `components/Landing.tsx` 1-line change. |
-| 14:27 | `7c0eadb` | Blog colour fix; **`app/finances/page.tsx` finally committed** (was deferred 3 sessions). |
-| 14:30 | `f58dcdd` | "fix whatevers broken" — HANDOFF rewrite (+768/−401), `components/FinancesSheet.tsx` committed (307 lines), **two new agent definitions** added under `.claude/agents/`: `fidleg-reviewer.md` and `landing-copy-reviewer.md`. |
-| 14:40 | `48e7154` | Blog: all article text set to pure white. Was using slate greys (#475569, #64748b, #1e293b) that read as off-white on the dark background. |
-| 14:49 | `acbe3a9` | **FIDLEG fix** — `components/StressTest.tsx` + `components/backtest/SamplePortfolioCard.tsx` + `app/how-it-works/page.tsx`: replaced "outperformed/underperformed" with neutral Sharpe-delta / return comparisons, removed "would have performed" counterfactual from StressTest header, neutralized ▲/▼ colour coding on scenario excess. |
-| 15:01 | `beb8656` | **FIDLEG fix #2** — `app/how-it-works/page.tsx` + `components/backtest/CTACards.tsx`: concentrated-portfolio whyText now describes correlation/diversification deficit instead of "instruments that would add cross-sectional variation"; CTA copy "rebalancing weights" instead of "rebalancing decisions". |
-| 23:47 | `ad28b62` | **Main deliverable** — ProGate redesign: blurred-preview pattern + free-tier headline metric. Audit doc, spec doc, three new headline components, Dashboard wiring, FIDLEG lint glob extension. **51/51 tests passing, tsc clean.** Pre-reviewed AND post-reviewed by `@agent-fidleg-reviewer`. |
-
-### The ProGate redesign (the substantive work this session)
-
-#### Why
-
-Dariush asked for an onboarding audit against the principle "user must hit a clear value moment BEFORE any Pro modal." Diagnosis written first to `docs/ONBOARDING_AUDIT.md` (189 lines, no code). Findings:
-
-- **No forced paywall** fires before value moment (no modal, no time gate). Good.
-- BUT the persistent sidebar "Upgrade to Pro" CTA renders the moment the dashboard mounts — before the user has imported anything. Passive, not blocking, but a first-impression leak. ("E2")
-- BUT the free value moment is **tracker-grade** (value, P&L, allocation, history, benchmark). The math the ICP came for (Sharpe, Sortino, Beta, Markowitz, stress test) is **100% Pro-gated**. He sees that the CSV parser works, NOT that the math works on his data. ("E3")
-- The ICP specifically wants: "okay, does YOUR Sharpe match what I'd compute myself?" — and the current answer is "pay CHF 15 to find out."
-
-Audit produced three fixes ranked by impact. Dariush approved E2 + E3, asked for a spec doc first.
-
-#### Spec
-
-`docs/PROGATE_REDESIGN.md` (205 lines) — full implementation plan, including:
-- New ProGate API: `featureName`, `featureSubcopy`, `ctaLabel`, `headlineMetric`, `onUpgrade`, `children`.
-- Layout: tab title + headline metric **crisp at top**, full Pro content **blurred (filter: blur(8px))** behind it, gold CTA card centered overlay.
-- Per-tab headline numbers, all on real positions:
-  - **Risk:** 21d annualised volatility + Sharpe(1Y), side by side.
-  - **Stress Test:** worst historical drawdown + scenario name.
-  - **Frontier:** historical-mean return + volatility coordinates (chart itself stays blurred).
-- §6 FIDLEG audit table (F1–F13) of every new customer-facing string.
-
-`@agent-fidleg-reviewer` ran on §6 BEFORE code. Verdict: all 13 strings pass. Pre-emptively switched "expected return" → "historical-mean return" in F6/F7 per the reviewer's recommendation (the spec was edited by Dariush to lock that in).
-
-#### Shipped code (commit `ad28b62`)
-
-| File | What |
-|---|---|
-| `components/ProGate.tsx` | Rewritten. New API. Blur + CTA card. Reuses `--accent` (gold for Pro) via existing tier tokens — no new CSS. |
-| `components/RiskHeadline.tsx` | NEW. Fetches `/api/history`, renders 21d rolling annualised vol (last value, returns capped ±25% same as RiskTab) + Sharpe(1Y) from API. |
-| `components/StressHeadline.tsx` | NEW. Fetches `/api/stress`, picks scenario with `max(s.portMaxDD)`, renders `−X.X%` + scenario name. |
-| `components/FrontierHeadline.tsx` | NEW. Fetches `/api/frontier`, renders `data.current.expectedReturn` and `data.current.volatility` as text (chart blurred behind). |
-| `components/Dashboard.tsx` | Three Pro tabs wired with new ProGate props. **Sidebar Upgrade CTA hidden when `userTier === 'free' && positions.length === 0`** (E2). Existing payers keep "Manage plan" regardless. |
-| `lib/backtest/fidleg-lint.test.ts` | New `SCAN_FILES` array for individual files outside the dir scan: `ProGate`, `RiskTab`, `RiskHeadline`, `StressTest`, `StressHeadline`, `FrontierChart`, `FrontierHeadline`, `Dashboard`. Linter still passes. |
-
-#### Behavior implications
-
-- Free user uploads CSV → sees Overview metrics (tracker-grade) immediately, just like before. **No regression to the free path.**
-- Free user clicks Risk / Stress / Frontier tab → now sees the actual headline number on their portfolio at the top, with the full chart/table blurred below + Pro CTA overlay. Previously: everything blurred, lock card with no real data.
-- Free user with no positions yet (just signed up): **no Upgrade button in sidebar.** First impression is "load your data", not "pay me."
-- Pro/Advisor user: no visible change — the gate just isn't rendered.
-- Double-fetch tradeoff accepted: the full Pro tab still mounts behind the blur and fetches its own data, AND the headline component fetches separately. Same endpoints, browser caches, low cost. Means tier-upgrade reveals the full tab instantly with no reload.
-
-#### Post-implementation FIDLEG sweep (run after `ad28b62` landed)
-
-`@agent-fidleg-reviewer` ran a second pass on the shipped code. **PASS on all five files** (ProGate, RiskHeadline, StressHeadline, FrontierHeadline, Dashboard). All F1–F13 strings implemented verbatim from spec, "historical-mean return" preserved. One low-risk flag: `components/FrontierChart.tsx:359` axis label says "expected return" — internal Recharts label, not customer copy. Lint regex doesn't catch it. Acceptable; rename if/when FrontierChart gets a refactor.
-
-### Other shipped work this session
-
-- **Two agent definitions added** under `.claude/agents/`:
-  - `fidleg-reviewer.md` — Swiss FIDLEG copy auditor (used twice this session for the ProGate redesign).
-  - `landing-copy-reviewer.md` — ICP / brand-voice scorer for landing-page copy.
-- **`app/finances/` + `components/FinancesSheet.tsx` finally committed** (in `f58dcdd` / `7c0eadb`). Was deferred 3 sessions. Currently unguarded — no auth gating. **Worth deciding next session whether this should be admin-only or Pro-only.**
-
-### Untracked artifacts at end of session
-
-```
-.claude/agent-memory/                       Per-agent memory files (auto-generated)
-docs/FIDLEG_AUDIT.md                        Earlier FIDLEG sweep findings — keep
-docs/QUANTFOLI_RESEARCH_SOURCES.md          Persona research log — likely populated by persona-research agent
-docs/content-ideas/                         Output from content-ideator agent (LinkedIn / TikTok / blog ideas)
-```
-
-None of these are blockers. Most are Claude-agent outputs Dariush will sort through manually. They don't affect production builds.
-
-### Sprint backlog (carried into next session)
-
-#### Open item: per-chart paywall refinement
-
-Current ProGate (shipped today) blurs the **entire Pro tab content** as one blob with one CTA. But each Pro tab contains multiple distinct visualizations:
-
-- **Risk tab:** Rolling Volatility chart + Correlation Matrix + Monthly Returns Calendar + the 6-stat-box top row.
-- **Stress Test tab:** Four scenario cards (each is a card with port-vs-S&P boxes and a mini chart).
-- **Frontier tab:** Markowitz scatter + Volatility Insights section (`VolatilityInsights`).
-
-Refinement: apply blur + Pro CTA **per chart**, not as one tab-spanning overlay. Each per-chart CTA describes what THAT specific visualization unlocks (e.g. Markowitz CTA: "constraint-aware optimisation with Pro"; rolling-vol CTA: "time-series regime detection with Pro"; correlation-matrix CTA: "per-position correlation with Pro").
-
-**Tasks (next session):**
-1. Update `docs/PROGATE_REDESIGN.md` with the per-chart pattern (extend, don't replace).
-2. Inventory every distinct Pro-gated chart across Risk / Stress / Frontier.
-3. Write new CTA copy per chart — descriptive, FIDLEG-safe.
-4. Run `@agent-fidleg-reviewer` on new CTA strings BEFORE code.
-5. Implementation.
-6. Extend `lib/backtest/fidleg-lint.test.ts` glob to cover any new component files.
-
-**Constraint to remember:** the per-chart pattern needs to preserve the "headline metric outside blur" guarantee from this session — at least ONE crisp real-data number per tab must remain unobscured. The refinement is about granularity of the blur, not removing the headline.
-
-### Lessons captured this session
-
-- **Audit-before-implementation** worked again. `docs/ONBOARDING_AUDIT.md` shipped first, no code, just diagnosis. Same pattern as `LANDING_AUDIT.md`. Dariush approved E2/E3, rejected E1 (cannibalisation risk on Sharpe-in-Overview). Saved a rebuild later.
-- **Spec-doc-before-code** worked again. `docs/PROGATE_REDESIGN.md` ran the FIDLEG reviewer on copy strings BEFORE any implementation, caught "expected return" framing, switched to "historical-mean return". Code shipped clean on the first commit.
-- **Lint glob is for marketing surfaces only — not arbitrary code.** Extended carefully: `Dashboard.tsx`, `ProGate.tsx`, three headlines, three Pro tabs. NOT extended to `lib/yahoo.ts` or other math (would generate noise from forbidden words appearing in symbol names like `outperformed`).
-- **Variable names like `outperformed` are not FIDLEG violations.** Only user-facing strings count. Confirmed by reviewer.
-- **Double-fetch is fine here.** Don't over-architect. The Pro content mounts behind the blur and fetches; the headline mounts and fetches separately. Same endpoints, hot in browser cache.
+| 🟠 | Per-chart ProGate blur | Spec done (`docs/PROGATE_REDESIGN.md` §10). FIDLEG pre-pass done (9 strings, 2 rewrites applied). Code not yet written. |
+| 🟠 | Google Search Console | `/sitemap.xml` live. DNS TXT verify via Cloudflare → submit sitemap. **Dariush action.** |
+| 🟡 | Sentry activation | Add `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` to Vercel → redeploy. 5 min. |
+| 🟡 | `track('signup_submit')` | Conversion-event analytics. ~15 min in `app/login/page.tsx`. |
+| 🟡 | RLS hardening | `portfolio` + `user_tiers` are frontend-gated only. Harden before >10 paying users. |
+| 🟡 | Supabase migration duplicate policy | `ERROR: policy "users_read_own_tier" for table "user_tiers" already exists`. Do NOT re-run `20260516_advisor_tier_and_disclaimer.sql` without prepending `DROP POLICY IF EXISTS "users_read_own_tier" ON user_tiers;` |
+| 🟢 | C.6 from LANDING_AUDIT | Wire `?plan=pro|advisor` post-signup auto-checkout. ~1–2h. |
+| 🟢 | C.7 from LANDING_AUDIT | Open `UpgradeModal` inline on landing Advisor CTA. ~1h. |
+| 🟢 | Welcome email text | No plain-text copy shown if HTML fails — add `text` param improvement if needed. |
+| 🟢 | McAfee WebAdvisor | Submit to TrustedSource for re-categorisation. |
+| 🟢 | Stripe support phone | `+41 000 000 0000` placeholder. Replace before scaling. |
+| 🟢 | DMARC `p=none;` | Tighten to `p=quarantine` once email volume grows. |
 
 ---
 
-## 4. Session 10 (2026-05-17 evening) — Landing-page audit + signup-funnel fix
+## 3. Sprint backlog (next session priority order)
 
-### What triggered it
+### 3.1 Per-chart ProGate refinement (🟠 most valuable next)
 
-Dariush dropped fresh Vercel Analytics (last 24h, ~540 visits): 70% Swiss, top pages `/` (292) + `/login` (209), `/register` NOT in top pages (<20 visits). Asked for a landing audit with diagnosis + fix proposal before any code change.
+Current ProGate blurs the **entire Pro tab** as one blob. Spec in `docs/PROGATE_REDESIGN.md` §10 defines per-chart blur+CTA:
 
-### Audit output
+- **Risk tab:** Rolling Volatility chart · Correlation Matrix · Monthly Returns Calendar · 6-stat-box row
+- **Stress Test tab:** Four scenario cards individually
+- **Frontier tab:** Markowitz scatter · VolatilityInsights section
 
-`docs/LANDING_AUDIT.md` written first, no code. Sections:
-- A — current hero / signup UX / value-prop / pricing state
-- B — 7 hypotheses ranked BLOCK / FRICTION / POLISH with evidence
-- C — 7 fixes ranked by impact + time
-- D — 10 things working that should NOT be touched
+9 CTA strings inventoried, FIDLEG pre-approved (R2 "Shows", F3 "Computed" rewrites applied). Ready to implement.
 
-**The critical finding (top of audit):** `/register` doesn't exist as a route AT ALL. Codebase has zero `/register` references. AND every signup-intent CTA on the landing routes to `/login`, which defaults to the Sign In tab — so a first-time visitor clicking "Start free" lands on a sign-in form they cannot use. Three extra clicks before the form is even fillable. That was the structural leak the analytics were measuring.
+**Constraint:** at least ONE crisp real-data number per tab must remain unobscured (the headline metric from RiskHeadline/StressHeadline/FrontierHeadline). Refinement is about granularity of blur, not removing the headline.
 
-### Fixes shipped
+Tasks:
+1. Extend `docs/PROGATE_REDESIGN.md` with per-chart pattern (already drafted in §10)
+2. New `ProChart` component wrapping each gated visualization individually
+3. Extend `lib/backtest/fidleg-lint.test.ts` glob to cover new component files
 
-| Commit | Fix | Scope |
-|---|---|---|
-| `b563343` | **C.1 — signup funnel** | `?tab=signup` query param → init tab; new `app/register/page.tsx` permanent-redirects to `/login?tab=signup`; middleware allows `/register`; all 5 "Start free / Create your account / Get Pro / Get Advisor" CTAs across `Landing.tsx` + `LandingClient.tsx` now use `/login?tab=signup` (pricing cards also append `&plan=pro` / `&plan=advisor` as future hooks). |
-| `cb1be91` | **C.2–C.5 — polish** | Prose tab-switcher link below submit button ("Don't have an account? Create one →" / "Already have an account? Sign in →"), `autoFocus` on Email (Sign In tab) and Name (Create Account tab), Free pricing card gets green mono reassurance "No credit card · No trial expiry". |
-| `cb1be91` | **C.3 — first H1 swap** | Tried "Markowitz, Sharpe, and stress tests — on your actual ZKB depot." (matched `/how-it-works` hero). |
-| `7e33e72` | **H1 swap #2** | Dariush pushed back — too narrow for non-CH traffic, arbitrary among the 3 importers. Swapped to **"The portfolio tool your quant friend uses."** Subhead carries the Swiss specificity: "Institutional-grade analytics on your actual ZKB, Yuh or Neon positions. FX-aware to ±0.2%. Six risk metrics, one efficient frontier, four crisis stress tests. From CHF 0." `/how-it-works` keeps its ZKB-specific hero (deeper funnel, specificity helps). |
+### 3.2 Google Search Console (5 min — Dariush action)
 
-### Items in the audit deferred to a later session
+1. Go to search.google.com/search-console
+2. Add property → URL prefix → `https://quantfoli.com`
+3. Verify via DNS TXT in Cloudflare (no code needed)
+4. Submit `https://quantfoli.com/sitemap.xml`
 
-- **C.6** — Wire `?plan=pro|advisor` query param into a post-signup auto-checkout flow. Needs a Supabase auth-state-change listener that reads the param after email-confirm and triggers Stripe checkout. ~1–2 hour build, deliberately deferred.
-- **C.7** — Surface the Advisor T&C accept-gate from `UpgradeModal.tsx` on the landing-page Advisor CTA. Cleanest path is to open `UpgradeModal` inline from landing (requires lifting it out of its Dashboard-only context). ~1 hour, deferred.
+### 3.3 Future / backlog
 
-### What to watch in analytics over the next 24–48h
-
-- `/` → `/login` click-through rate (should stay ~70%+)
-- `/register` appearing in top pages (proves the vanity route is catching real direct/bookmark traffic)
-- Drop in `/login` bounce rate (proxy for "landed on wrong tab" leak being fixed)
-- If you want hard conversion numbers, instrument a `signup_submit` event in `/login/page.tsx` next — Vercel Analytics supports `track()` calls.
-
----
-
-## 5. Session 9 (2026-05-17 daytime) — Backtesting landing page
-
-### What was built
-
-`/how-it-works` — a fully server-rendered Advisor-purple page that uses honest walk-forward backtests as marketing. Spec was approved first (`docs/BACKTESTING_LANDING_PAGE.md`), then code shipped in one bundled commit (`cbf10de`).
-
-### Engine layer (`lib/backtest/`)
-
-| File | Purpose |
-|---|---|
-| `universe.ts` | Curated SMI large-caps (NESN, NOVN, ROG, UBSG, ZURN, ABBN) + Swiss-broker-accessible UCITS ETFs (VWRL, CSPX, EUNL, EIMI, AGGH, AGGG) + benchmark indices. Each annotated with `firstTrade` date and `domicile` for stamp-duty (CH = 0.15%, foreign = 0.30%). |
-| `data.ts` | `loadHistoricalPrices()` wrapping `lib/yahoo.ts` `getHistoricalPrices()` with a 7-day disk JSON cache at `data/backtests-cache/` (gitignored). Single chokepoint: `pricesBefore(frame, ticker, asOf)` is the only function the engine uses to read history. |
-| `costs.ts` | `tradeCost`, `entryCost`, `rebalanceCost`. Constants: 0.50% commission + 0.10% spread + 0.15% (CH) / 0.30% (foreign) stamp duty per leg, 0.50% FX spread (currently unused — placeholder for v2). Cited in file header; if numbers change, update `docs/BACKTESTING_LANDING_PAGE.md` §B.3 in the same commit. |
-| `engine.ts` | `runWalkForward()`. Mulberry32 deterministic RNG (seed: 42 default). Markowitz Monte Carlo solver (private copy — does NOT reuse `app/api/frontier/route.ts` to keep request paths uncoupled). Lookahead-bias runtime assertion + comment block at top of file. |
-| `engine.test.ts` | 13 tests. Two lookahead-bias regression tests: weak (shift in-window prices, output MUST change) + strong (mutate only post-`endDate` prices, output MUST be identical). Determinism, cap correctness (incl. infeasible-cap fallback), cost-model sanity. |
-| `fidleg-lint.test.ts` | Walks every `.tsx` under `app/how-it-works/` and `components/backtest/`, fails on forbidden prescriptive phrasing. Allow-list via `// eslint-allow-fidleg: <reason>`. Plus disclaimer-presence + `ADVISOR_TERMS_VERSION` wiring assertion. |
-
-### Generation scripts (`scripts/`)
-
-| File | Purpose |
-|---|---|
-| `build-backtests.ts` | Runs 3 sample portfolios (Conservative 60/40, Growth ETF, Concentrated SMI) through the engine and writes `public/backtests/{conservative,growth,concentrated,aggregate}.json`. Run with `npm run build:backtests`. |
-| `verify-backtest-jsons.ts` | Re-derives aggregate from per-portfolio JSONs, fails on drift. **Wired into `npm run build`** as a precheck — `next build` will not start if the aggregate is stale. |
-
-### Page + components
-
-| File | Purpose |
-|---|---|
-| `app/how-it-works/page.tsx` | Server component, `<main data-tier="advisor">` for the purple `--accent*` cascade. Hero (chart of concentrated portfolio), methodology section, screenshot-quotable aggregate-stats block with copy-link button, three sample-portfolio cards, dual Pro/Advisor CTA, disclaimer importing `ADVISOR_TERMS_VERSION` from `lib/advisor-terms.ts`. |
-| `app/backtests/page.tsx` | 308 permanent redirect to `/how-it-works` (SEO-tight alias). |
-| `app/how-it-works/[portfolio]/page.tsx` | Permalink → redirects to `/how-it-works#portfolio-<id>`. |
-| `app/how-it-works/opengraph-image.tsx` | OG card showing the actual headline aggregate stat ("+Sharpe in X% of N quarters"), not generic branding. Pattern matches `app/opengraph-image.tsx`. |
-| `app/how-it-works/[portfolio]/opengraph-image.tsx` | Per-portfolio OG card. |
-| `components/backtest/HeroChart.tsx` | Client island. Recharts NAV line chart with model + 2 benchmarks, rebalance reference lines, hover tooltip in mono font matching `FrontierChart.tsx`. |
-| `components/backtest/SamplePortfolioCard.tsx` | Server component. Verdict badge (won / tied / underperformed) derived from wins% AND median Sharpe Δ. Median printed next to mean. One-line "Why:" explanation per portfolio passed in from the page. |
-| `components/backtest/CTACards.tsx` | Reuses `PRO_INTERVALS` / `ADVISOR_INTERVALS` from `lib/stripe.ts`, hits existing `/api/stripe/checkout` + Advisor `/api/advisor/accept-disclaimer` endpoints. Don't duplicate logic. |
-| `components/backtest/Disclaimer.tsx` | Mobile-collapsible. Imports `ADVISOR_TERMS_VERSION`. LocalStorage key `quantfoli:backtest-disclaimer:dismissed`. |
-| `components/backtest/CopyLinkButton.tsx` | Clipboard copy with `window.prompt` fallback. |
-
-### Honesty patch (during session 9, after Dariush reviewed)
-
-First version of `SamplePortfolioCard.tsx` framed a 45%-win, ending-NAV-below-starting-allocation result as net-positive ("Model improved Sharpe in 45% of measured periods · mean Sharpe delta +0.027"). Dariush called it out — that violated `docs/BACKTESTING_LANDING_PAGE.md` §D ("acknowledge limits openly").
-
-Fixed in the same commit:
-- Per-card verdict badge with three states.
-- Opening sentence flips based on verdict — never leads with "wins in X%" when wins < 50%.
-- Median Sharpe Δ printed alongside the mean.
-- One-line "Why:" explanation per portfolio. Concentrated SMI's "Why" explicitly upsells the Advisor diagnostic ("the report flags exactly this kind of structural concentration").
-- Advisor CTA copy: "Monthly walk-forward report: what the model computes on your portfolio — and, just as importantly, where it doesn't help and why."
-
-### Numbers that landed on the page
-
-66 pooled rebalances (3 portfolios × 22 each), 2019-06 → 2024-12:
-- Vs. equal-weight: **+Sharpe in 56% of quarters**, mean Δ +0.022.
-- Vs. starting allocation: 47% of quarters, mean Δ +0.029.
-- Concentrated SMI: model **loses** (45% wins, ending NAV 1.779 vs starting-allocation 1.812). Surfaced honestly with the "Model underperformed" badge.
-- Conservative + growth portfolios: model wins. Page tells both stories.
-
-### Nav + middleware fixes that followed
-
-| Commit | Fix |
-|---|---|
-| `0f74bfe` | Added "How it works" nav link on the landing; replaced dead "See features" ghost CTA in the hero with "See backtests" → `/how-it-works`. |
-| `3c3851c` | Middleware was gating `/how-it-works` and `/backtests` as auth-required, redirecting anonymous visitors to `/login`. Added both to the public-routes list. **Lesson: any new public route MUST be added to `middleware.ts` in the same commit.** |
+- Swissquote CSV parser feasibility spec (deferred since session 12)
+- Persona research for Personas 2–7 in `docs/QUANTFOLI_RESEARCH_SOURCES.md`
+- `docs/MARKETING_PLAN.md` scaffolding (Priority 2 from further-instructions — still not started)
+- Magic link signin (drop password requirement)
+- Replace Alpha Vantage with Financial Modeling Prep ($14/mo) — revive Fundamentals tab
+- Markowitz shrinkage estimator (Ledoit-Wolf / James-Stein replacing raw historical means)
+- Automated Advisor report generation (Claude API) when Advisor subscribers > 3
+- Swiss legal opinion on FIDLEG (~CHF 2–5k) once Advisor revenue > CHF 5k/mo
+- Annual revenue + LTV dashboard for Dariush's own use
+- Beraterregister registration when Advisor subscribers > 10–20
 
 ---
 
-## 6. Session 8 (2026-05-17 morning) — Infrastructure work (condensed)
-
-Single commit `c53bb84` — full detail in git log. Summary:
-
-- **SEO** — enriched `app/layout.tsx` metadata, new `app/sitemap.ts` + `app/robots.ts` routes, dynamic `app/opengraph-image.tsx` (purple gradient). `metadataBase`, OG with `en_CH` locale, Twitter `summary_large_image`.
-- **Sentry** — SDK installed (`@sentry/nextjs ^10.53.1`), 3 configs (client, server, edge), `instrumentation.ts` runtime hook, `next.config.js` conditional `withSentryConfig` wrap. **Dormant** until `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` env vars set in Vercel.
-- **Founder-notification email on Advisor signup** — `lib/resend.ts` generic helper, `app/api/webhooks/stripe/route.ts` checks `prevTier` BEFORE upsert to fire the notification exactly once per upgrade transition.
-- **Cloudflare DNS migration** — 4 Resend records (DKIM TXT, SPF TXT, SPF MX, DMARC TXT) re-created in Cloudflare, nameservers switched in Namecheap. Resend domain verification went green.
-- **Resend** — domain `quantfoli.com` verified, support form tested end-to-end, outbound sending live. `RESEND_API_KEY` set in Vercel Production. `RESEND_FROM` still pending — falls back to `onboarding@resend.dev` (rate-limited).
-
----
-
-## 7. Current state of files Claude touched today
-
-All committed unless flagged. Working tree clean after session 10 commits.
-
-### New this session
-
-```
-docs/
-  BACKTESTING_LANDING_PAGE.md           Full spec, sections A–F. Approved before code.
-  LANDING_AUDIT.md                      Diagnosis + 7 fixes ranked by impact.
-
-lib/backtest/
-  universe.ts                           Curated SMI + ETF + benchmark list w/ stamp-duty domicile
-  data.ts                               7-day disk-cached price loader; pricesBefore() chokepoint
-  costs.ts                              Swiss cost model (commission/spread/stamp duty/FX)
-  engine.ts                             runWalkForward + lookahead guard + mulberry32 RNG
-  engine.test.ts                        13 tests incl. weak + strong lookahead regression
-  fidleg-lint.test.ts                   Forbidden-phrase scanner + disclaimer-presence
-
-scripts/
-  build-backtests.ts                    Generates 3 portfolio JSONs + aggregate.json
-  verify-backtest-jsons.ts              Re-derives aggregate; fails on drift; wired into npm run build
-
-public/backtests/
-  conservative.json  growth.json  concentrated.json  aggregate.json   (22 rebalances each, 66 pooled)
-
-app/
-  how-it-works/page.tsx                          Main page
-  how-it-works/opengraph-image.tsx               OG card w/ aggregate stat
-  how-it-works/[portfolio]/page.tsx              Permalink → #anchor
-  how-it-works/[portfolio]/opengraph-image.tsx   Per-portfolio OG card
-  backtests/page.tsx                             308 → /how-it-works
-  register/page.tsx                              308 → /login?tab=signup
-
-components/backtest/
-  HeroChart.tsx
-  SamplePortfolioCard.tsx                Verdict badge + median Δ + "Why"
-  CTACards.tsx                           Reuses /api/stripe/checkout + Advisor accept-disclaimer
-  Disclaimer.tsx                         Mobile-collapsible w/ ADVISOR_TERMS_VERSION
-  CopyLinkButton.tsx
-```
-
-### Modified this session
-
-```
-.gitignore                  + data/backtests-cache/
-app/sitemap.ts              + /how-it-works @ priority 0.9
-app/login/page.tsx          ?tab=signup query-param init (Suspense-wrapped), prose tab switcher, autoFocus
-middleware.ts               + /how-it-works, /backtests, /register to public routes
-components/Landing.tsx      Universal H1 + Swiss-specific subhead, /login?tab=signup CTAs, "How it works" nav, "See backtests"
-components/LandingClient.tsx Free-tier "No credit card · No trial expiry" reassurance, all pricing CTAs → /login?tab=signup&plan=…
-package.json                + tsx devDep, + build:backtests / verify:backtests scripts, npm run build now pre-verifies
-package-lock.json
-HANDOFF.md                  (this file)
-```
-
-### DO NOT TOUCH
-
-| File | Why |
-|---|---|
-| `lib/yahoo.ts` | Portfolio + TWR + Beta/Alpha math. 36 passing tests guard the ±0.2% accuracy invariant. Wrap, don't modify. |
-| `app/api/frontier/route.ts` | The engine deliberately keeps its own Markowitz copy in `lib/backtest/engine.ts` rather than reusing this route — keeps request paths uncoupled from the backtest path. |
-
-### Finances page — committed (session 10)
-
-`app/finances/page.tsx` and `components/FinancesSheet.tsx` were committed in session 10 (commit `f58dcdd` / earlier). Auth-gating decision still open — confirm with Dariush whether the page should remain admin-only, Pro-only, or public.
-
----
-
-## 8. Approaches tried in earlier sessions that failed (and how they were fixed)
-
-| Attempt | Why it failed | Resolution |
-|---|---|---|
-| `randomWeights` with `effectiveCap = Math.max(cap, 1/n)` + safety renormalize at end | When cap × n < 1 the cap is mathematically infeasible. My renormalize broke the cap invariant (e.g. for n=3, cap=0.30 it produced weights with values up to 0.36). | Special-cased the infeasible branch to return uniform `[1/n, ...]` directly. Feasible branch removed the safety renormalize; the iterative cap loop is correct on its own. |
-| First lookahead-bias test: shift input series by dropping row 0 | Dropping row 0 doesn't change anything within the lookback window (last 504 trading days before T). Engine output stayed identical → test failed → made it look like a lookahead leak when there wasn't one. | Replaced with two tests. **Weak guard:** shift closes forward by one trading day within the lookback window — output MUST change. **Strong guard:** mutate only prices strictly AFTER `endDate` — output MUST be bit-identical. The strong guard is the canary. Do NOT weaken it. |
-| `/how-it-works/opengraph-image` as default `runtime = 'nodejs'` at build time | `next build` failed with "Invalid URL" from `@vercel/og` when prerendering on the Node runtime. The `fs.readFile` of aggregate.json works at request time but not at build time. | Added `export const dynamic = 'force-dynamic'` to both OG image routes. Vercel edge-caches at request time, so no per-pageview compute cost. |
-| First H1 rewrite: "Markowitz, Sharpe, and stress tests — on your actual ZKB depot." | Too narrow. ZKB is one of 3 supported importers — arbitrary to name one. 30% of analytics traffic is non-Swiss. Also locks the H1 in for a market expansion you can't yet serve. | Moved specificity to subhead ("ZKB, Yuh or Neon positions") and made H1 universal: **"The portfolio tool your quant friend uses."** (Variant A from `BACKTESTING_LANDING_PAGE.md` §F.) `/how-it-works` keeps the ZKB-specific hero because by then visitor has self-selected. |
-| First version of sample-portfolio card copy | Framed a 45%-win, ending-NAV-below-starting-allocation result as net-positive. Violated `docs/BACKTESTING_LANDING_PAGE.md` §D ("acknowledge limits openly"). | Added verdict badge (won / tied / underperformed), median Sharpe Δ alongside mean, opening sentence flips based on verdict, one-line "Why:" explanation per portfolio. Concentrated SMI's "Why" upsells the Advisor diagnostic. |
-| `/how-it-works` shipped without adding it to `middleware.ts` public routes | Middleware redirected anonymous visitors to `/login` — exactly the wrong behavior for a marketing page. Caught by Dariush within minutes of going live. | Added `/how-it-works` + `/backtests` to public routes in `3c3851c`. **Process lesson:** every new public route MUST land in `middleware.ts` in the same commit as the route. |
-| Discovered `/register` didn't exist as a route, AND every signup CTA on landing routed to `/login` Sign In tab | Found during landing audit. First-time visitors clicking "Start free" landed on a sign-in form they couldn't use. Structural funnel leak invisible in pageview analytics. | Shipped C.1: `?tab=signup` query-param init, new `/register` vanity route (permanent redirect), middleware whitelist, all signup CTAs flipped to `/login?tab=signup` with `&plan=…` future hooks. |
-
-**Approaches from prior sessions that are still relevant (not re-tried today):**
-
-- Putting demo MP4 (~81 MB) into the repo — still deferred.
-- Action-shaped Advisor wording — corrected in session 7, do not regress.
-- End-to-end Advisor testing with real money — refunded last time, **never repeat in live mode**.
-
----
-
-## 9. Current production state
-
-### 9.1 Stripe — ✅ live (no change)
-
-Free / Pro M (CHF 15) / Pro Y (CHF 150) / Advisor M (CHF 50) / Advisor Y (CHF 500) all live with verified env vars. Customer Portal cancel works. Refund works. Webhook handler sends founder notification on Advisor transition.
-
-### 9.2 Resend — ✅ live
-
-Domain `quantfoli.com` verified. DKIM + SPF + DMARC green. Sending live. **`RESEND_FROM` still pending** in Vercel — falls back to `onboarding@resend.dev` (rate-limited, unbranded).
-
-### 9.3 Sentry — ⚪ dormant
-
-SDK installed, configs gated on DSN env vars. Activate by adding `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` in Vercel + redeploy (5 min).
-
-### 9.4 SEO — ✅ live + extended
-
-`/sitemap.xml`, `/robots.txt`, `/opengraph-image` all live. **New since session 8:** `/how-it-works` in sitemap @ priority 0.9, `/how-it-works/opengraph-image` (headline aggregate stat), per-portfolio OG cards. **Pending Dariush action:** submit sitemap to Google Search Console + Bing Webmaster Tools.
-
-### 9.5 Supabase — unchanged
-
-`20260516_advisor_tier_and_disclaimer.sql` applied. `user_tiers` CHECK allows `'free' | 'pro' | 'advisor'`. `advisor_disclaimers` table exists with RLS.
-
-### 9.6 Backtest infrastructure — ✅ live (new this session)
-
-`/how-it-works` server-renders 3 sample portfolios with verdict badges. `npm run build` pre-verifies aggregate.json against per-portfolio JSONs. `npm run build:backtests` regenerates everything when needed.
-
-### 9.7 Signup funnel — ✅ fixed (new this session)
-
-`?tab=signup` deep-link works, `/register` vanity route catches direct/bookmark traffic, all landing CTAs land users on the right tab. Prose switcher recovers wrong-tab landings. Autofocus on Email / Name reduces click count.
-
----
-
-## 10. Environment variables — full reference
-
-### 10.1 Required for production (set in Vercel)
-
-| Var | What |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase admin key (webhook uses for auth.admin.getUserById + bypassing RLS) |
-| `STRIPE_SECRET_KEY` | Stripe server-side |
-| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe client-side |
-| `STRIPE_PRO_PRICE_ID` / `STRIPE_PRO_YEARLY_PRICE_ID` | CHF 15 / 150 |
-| `STRIPE_ADVISOR_PRICE_ID` / `STRIPE_ADVISOR_YEARLY_PRICE_ID` | CHF 50 / 500 |
-| `RESEND_API_KEY` | Resend transactional email |
-
-### 10.2 Recommended add — `RESEND_FROM` (still pending from session 8)
-
-```
-RESEND_FROM=Quantfoli Support <support@quantfoli.com>
-```
-
-Without this, both `app/api/support/route.ts` and `lib/resend.ts` use the `onboarding@resend.dev` fallback.
-
-### 10.3 Optional — Sentry (currently unset)
-
-| Var | When |
-|---|---|
-| `NEXT_PUBLIC_SENTRY_DSN` | Activates client-side error capture |
-| `SENTRY_DSN` | Activates server + edge error capture |
-| `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Activates source-map upload |
-
----
-
-## 11. Outstanding blockers / known issues
-
-| Severity | Issue | Where to fix |
-|---|---|---|
-| 🟠 | `RESEND_FROM` not set in Vercel | Add env var → redeploy (5 min) |
-| 🟠 | No welcome email on signup | `lib/resend.ts` is unblocked, this is shipping-ready (~30 min) |
-| 🟡 | No error monitoring active | Activate Sentry (5 min, Dariush action) |
-| 🟡 | No conversion-event analytics | `track('signup_submit')` in `app/login/page.tsx` after a successful `supabase.auth.signUp()` would give real funnel numbers. ~15 min. |
-| 🟡 | `/how-it-works` + `/register` not submitted to Google Search Console | DNS TXT verification → submit sitemap (5 min) |
-| 🟡 | Untested I/O code in `lib/yahoo.ts` | `vi.mock('fetch')` when next refactored |
-| 🟡 | Markowitz frontier uses historical means as forward expected returns | Long-term: shrinkage estimator (Ledoit-Wolf / James-Stein) |
-| 🟡 | RLS not strictly enforced on `portfolio` / `user_tiers` (frontend-only Pro gating) | Harden before scaling > ~10 paying users |
-| 🟢 | McAfee WebAdvisor flags `quantfoli.com` as "not verified" on Dariush's machine | Submit to TrustedSource for re-categorisation (3–7 day review) |
-| 🟢 | Stripe customer-support phone is `+41 000 000 0000` placeholder | Replace with real number before scaling |
-| 🟢 | DMARC `p=none;` (monitoring only) | Tighten once email volume grows |
-
----
-
-## 12. Next concrete steps for next session (in priority order)
-
-### 12.1 Read the funnel impact (24–48h after deploy)
-
-Open Vercel Analytics. Specifically check:
-- `/register` should now appear in top pages (proves vanity route is catching real traffic).
-- `/login` arrival → form-submit rate (if instrumented). If not yet, add `track('signup_submit')` to `app/login/page.tsx` first.
-- `/how-it-works` visit count.
-- `/` → `/how-it-works` click-through.
-
-If the new H1 underperforms after 48h, swap to Variant B "See your portfolio the way a quant would." (Variant C — ZKB-specific — already ruled out as too narrow for the non-CH audience.)
-
-### 12.2 Marketing scaffolding doc — `docs/MARKETING_PLAN.md` (PRIORITY 2 from further-instructions)
-
-Now that the backtest landing page is live AND the funnel is fixed, the further-instructions doc says this is the next deliverable. Spec details in `C:/AI_System/further instructions.txt`. Key points:
-
-- Scaffolding only — empty tables for Dariush to fill with his own research.
-- Section A — UGC strategy (TikTok + Instagram, Higgsfield AI for B-roll, Remotion for programmatic video).
-- Section B — 7 personas (Marc, Sarah, Patrick, Thomas, Lukas, Andreas, Michael). Provide structural template; leave content fields empty with `[HYPOTHESIS — TO BE VALIDATED]` markers.
-- Section C — Research sources (BfS, SNB, Moneyland, Schwiizerfranke, Mustachian Post, Reddit r/SwissPersonalFinance) + search strings. Research log table per persona, rows blank.
-- Section D — Handoff back to Claude: "Once 5+ quotes per persona are collected, paste them here for pattern analysis."
-
-DO NOT hallucinate persona quotes. Wait for Dariush to populate before writing analytical conclusions.
-
-### 12.3 Decide `app/finances/` — commit (with what gating?) or remove
-
-Deferred 3 sessions now. Just ask. If commit, decide auth gating (admin-only? Pro-only? public?).
-
-### 12.4 Dariush actions still pending (5 min each)
-
-- Set `RESEND_FROM` env var in Vercel.
-- Activate Sentry — sign up at sentry.io, copy DSN, add `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` to Vercel.
-- Submit sitemap to Google Search Console (DNS TXT verify via Cloudflare).
-- Replace Stripe customer-support phone `+41 000 000 0000` with real number.
-
-### 12.5 Future / backlog (defer until justified)
-
-- **C.6 from `LANDING_AUDIT.md`:** wire `?plan=pro|advisor` post-signup auto-checkout (1–2 hr).
-- **C.7:** open `UpgradeModal` inline on landing Advisor CTA (1 hr).
-- Welcome email on signup (`lib/resend.ts` is ready; ~30 min).
-- RLS hardening on `portfolio` + `user_tiers` once paying users > 10.
-- `vi.mock('fetch')` tests for `lib/yahoo.ts` I/O functions.
-- Markowitz frontier: shrinkage estimator (Ledoit-Wolf or James-Stein) replacing raw historical means.
-- Email-based magic link signin (drop password requirement).
-- Replace Alpha Vantage with Financial Modeling Prep ($14/mo). Revive Fundamentals tab.
-- Annual revenue + LTV dashboard for Dariush's own use.
-- Submit `quantfoli.com` to McAfee TrustedSource + Norton Safe Web.
-- Swiss legal opinion on FIDLEG (~CHF 2–5k) once Advisor revenue > CHF 5k/mo.
-- Automated Advisor report generation (Markdown template + Claude API) when Advisor subscribers > 3.
-- Beraterregister registration when Advisor subscribers > 10–20.
-- Tighten DMARC from `p=none;` to `p=quarantine` once email volume justifies.
-- Refactor `app/api/support/route.ts` to use `lib/resend.ts` helper (currently duplicates fetch boilerplate).
-
----
-
-## 13. Architecture quick-ref
+## 4. Architecture quick-ref
 
 ```
 /
 ├── app/
 │   ├── page.tsx                          SERVER: auth check → <Landing /> or <Dashboard />
 │   ├── layout.tsx                        Enriched SEO metadata
-│   ├── sitemap.ts                        + /how-it-works @ priority 0.9
+│   ├── sitemap.ts                        /register @ priority 0.7, /how-it-works @ 0.9
 │   ├── robots.ts
-│   ├── opengraph-image.tsx               Site-wide OG card (purple gradient, Quantfoli brand)
-│   ├── login/page.tsx                    🔄 Suspense + useSearchParams + ?tab=signup + prose switcher + autoFocus
-│   ├── register/page.tsx                 🆕 308 → /login?tab=signup
-│   ├── support/page.tsx
-│   ├── privacy/page.tsx
-│   ├── terms/page.tsx
-│   ├── advisor-legal/page.tsx
-│   ├── how-it-works/page.tsx             🆕 Backtest landing — Advisor purple, hero, methodology, aggregate, 3 cards, CTA, disclaimer
-│   ├── how-it-works/opengraph-image.tsx  🆕 Aggregate-stat OG card
-│   ├── how-it-works/[portfolio]/page.tsx 🆕 Permalink → #anchor
-│   ├── how-it-works/[portfolio]/opengraph-image.tsx 🆕 Per-portfolio OG card
-│   ├── backtests/page.tsx                🆕 308 → /how-it-works
-│   ├── finances/page.tsx                 Committed (session 10)
-│   ├── globals.css                       --accent* tier tokens, [data-tier] overrides
+│   ├── opengraph-image.tsx
+│   ├── login/page.tsx                    🔄 Suspense + ?tab=signup + welcome email fire-and-forget
+│   ├── register/page.tsx                 🔄 SEO metadata (German) + redirect('/login?tab=signup')
+│   ├── how-it-works/page.tsx             Backtest landing — reads from public/backtests/*.json
+│   ├── how-it-works/opengraph-image.tsx
+│   ├── how-it-works/[portfolio]/page.tsx
+│   ├── backtests/page.tsx                308 → /how-it-works
+│   ├── finances/page.tsx                 Committed, unguarded auth (decide gating)
+│   ├── blog/                             SEO articles
 │   └── api/
+│       ├── welcome/route.ts              🆕 POST — branded welcome email on signup
 │       ├── support/route.ts
 │       ├── advisor/accept-disclaimer/route.ts
 │       ├── stripe/{checkout,portal,tier}/route.ts
-│       ├── webhooks/stripe/route.ts      + founder notification on Advisor transition
+│       ├── webhooks/stripe/route.ts      founder notification on Advisor transition
 │       └── portfolio/, history/, benchmark/, frontier/, stress/, risk/, fx/, isin/, fundamentals/
 ├── components/
-│   ├── Dashboard.tsx                     🔄 data-tier theming + ProGate redesign wiring + sidebar Upgrade hidden pre-import
-│   ├── Landing.tsx, LandingClient.tsx    🔄 Universal H1 + Swiss subhead, /login?tab=signup CTAs, Free-tier reassurance
-│   ├── Footer.tsx
-│   ├── UpgradeModal.tsx                  3-card layout + Advisor checkbox
-│   ├── ProGate.tsx                       🔄 Blurred-preview pattern + crisp headline metric (session 11)
-│   ├── RiskHeadline.tsx                  🆕 Vol(21d annualised) + Sharpe(1Y) headline
-│   ├── StressHeadline.tsx                🆕 Worst historical drawdown + scenario name
-│   ├── FrontierHeadline.tsx              🆕 Current portfolio (historical-mean return, vol) coords
-│   ├── FrontierChart.tsx
-│   ├── LegalLayout.tsx
-│   ├── FinancesSheet.tsx                 Committed (session 10)
-│   ├── backtest/                         🆕
-│   │   ├── HeroChart.tsx                 Recharts NAV chart w/ rebalance markers
-│   │   ├── SamplePortfolioCard.tsx       Verdict badge + median Δ + "Why"
-│   │   ├── CTACards.tsx                  Reuses Stripe + Advisor accept endpoints
-│   │   ├── Disclaimer.tsx                Mobile-collapsible, imports ADVISOR_TERMS_VERSION
-│   │   └── CopyLinkButton.tsx
-│   └── parsers UI: ZkbImport, YuhImport, NeonImport
+│   ├── Dashboard.tsx                     data-tier theming + ProGate redesign + sidebar Upgrade hidden pre-import
+│   ├── Landing.tsx                       🔄 /register CTAs · ThemeToggle in nav · LinkedIn in about · var(--lp-dot) dot grid
+│   ├── LandingClient.tsx                 🔄 ThemeToggle export added (reads/writes pi_theme localStorage)
+│   ├── ProGate.tsx                       Blurred-preview pattern + crisp headline metric
+│   ├── RiskHeadline.tsx                  Vol(21d annualised) + Sharpe(1Y)
+│   ├── StressHeadline.tsx                Worst historical drawdown + scenario name
+│   ├── FrontierHeadline.tsx              Current portfolio coords
+│   ├── FrontierChart.tsx                 ⚠️ axis label "expected return" — cosmetic, not FIDLEG violation
+│   ├── FinancesSheet.tsx                 Committed, auth-gating decision still open
+│   └── backtest/
+│       ├── HeroChart.tsx
+│       ├── SamplePortfolioCard.tsx       Verdict badge + median Δ + "Why"
+│       ├── CTACards.tsx
+│       ├── Disclaimer.tsx
+│       └── CopyLinkButton.tsx
 ├── lib/
 │   ├── stripe.ts                         Tier type, PRICE_IDS, INTERVALS
 │   ├── advisor-terms.ts                  ADVISOR_TERMS_VERSION = v1.1-2026-05-16
-│   ├── resend.ts                         Generic email helper
+│   ├── resend.ts                         Generic email helper — RESEND_FROM now set in Vercel ✅
+│   ├── rate-limit.ts                     In-memory rate limiter with IP extraction
 │   ├── supabase.ts, supabase-browser.ts
 │   ├── yahoo.ts                          ⚠️ DO NOT TOUCH — math
 │   ├── yahoo.test.ts                     36 passing tests
-│   ├── fx.ts, ticker-meta.ts
+│   ├── fx.ts                             Spot FX rates (EUR/USD to CHF, 15-min cache)
+│   ├── ticker-meta.ts
 │   ├── parsers/{zkb,yuh,neon}.ts
-│   └── backtest/                         🆕
-│       ├── universe.ts                   SMI + ETF + benchmarks w/ domicile for stamp duty
-│       ├── data.ts                       7-day disk cache wrapping lib/yahoo.ts, pricesBefore() chokepoint
-│       ├── costs.ts                      Swiss cost model (commission/spread/stamp duty/FX)
-│       ├── engine.ts                     runWalkForward + lookahead guard + mulberry32 RNG
-│       ├── engine.test.ts                13 tests incl. weak + strong lookahead regression
-│       └── fidleg-lint.test.ts           🔄 Forbidden-phrase scanner + disclaimer-presence; SCAN_FILES extended to ProGate/RiskTab/RiskHeadline/StressTest/StressHeadline/FrontierChart/FrontierHeadline/Dashboard (session 11)
-├── scripts/                              🆕
-│   ├── build-backtests.ts                Generates 3 portfolio JSONs + aggregate.json
-│   └── verify-backtest-jsons.ts          Re-derives aggregate; wired into npm run build
-├── public/backtests/                     🆕 conservative/growth/concentrated/aggregate.json
-├── docs/                                 🆕
-│   ├── BACKTESTING_LANDING_PAGE.md       Full spec (sections A–F)
-│   ├── LANDING_AUDIT.md                  Diagnosis + 7 fixes (C.1–C.5 shipped, C.6/C.7 deferred)
-│   ├── ONBOARDING_AUDIT.md               🆕 Session 11 — flow audit, value-moment diagnosis, 3 fixes (E1–E3)
-│   ├── PROGATE_REDESIGN.md               🆕 Session 11 — blurred-preview spec + FIDLEG audit table F1–F13
-│   ├── FIDLEG_AUDIT.md                   FIDLEG review notes
-│   └── QUANTFOLI_RESEARCH_SOURCES.md     Persona research log (scaffolded, awaiting Dariush quotes)
-├── data/backtests-cache/                 🆕 (gitignored) Price JSON cache, regenerable
+│   └── backtest/
+│       ├── universe.ts                   SMI + ETF + benchmarks w/ domicile + currency
+│       ├── data.ts                       7-day disk cache wrapping lib/yahoo.ts
+│       ├── costs.ts                      Swiss cost model
+│       ├── engine.ts                     🔄 FX layer: currencyByTicker + fx params → applyFx() in returnsMatrix + periodReturns
+│       ├── engine.test.ts                🔄 62 tests (was 51) — 2 new FX regression tests
+│       ├── fx.ts                         🆕 loadFxRates(), buildFxDeltaMaps(), toChfReturn()
+│       └── fidleg-lint.test.ts           Forbidden-phrase scanner + disclaimer-presence
+├── scripts/
+│   ├── build-backtests.ts                🔄 loads FX + currencyByTicker → passes to runWalkForward
+│   └── verify-backtest-jsons.ts          Wired into npm run build
+├── public/backtests/
+│   ├── conservative.json                 🔄 FX-corrected (VWRL.SW CHF + AGGG.L USD)
+│   ├── growth.json                       🔄 FX-corrected (4 ETFs, CHF/USD/EUR)
+│   ├── concentrated.json                 Unchanged (pure CHF)
+│   └── aggregate.json                    🔄 New headline: 64% wins, mean Δ +0.057
+├── app/globals.css                       🔄 --lp-dot variable added for theme-aware dot grid
+├── docs/
+│   ├── ETF_MATH_AUDIT.md                 ✅ Bug fixed in session 13
+│   ├── PROGATE_REDESIGN.md               §10 per-chart spec — ready to implement
+│   ├── DESIGN_AUDIT.md
+│   ├── LANDING_AUDIT.md
+│   ├── ONBOARDING_AUDIT.md
+│   ├── FINYON_BRIEFING.md
+│   ├── FIDLEG_AUDIT.md
+│   ├── SECURITY_FIX.md
+│   └── content-ideas/
+├── middleware.ts                         /how-it-works, /backtests, /register, /blog public routes
 ├── supabase/migrations/
 │   ├── 20260430_neon_transactions.sql
 │   ├── 20260507_stripe_tiers.sql
-│   └── 20260516_advisor_tier_and_disclaimer.sql
-├── sentry.{client,server,edge}.config.ts DSN-conditional, dormant until env vars set
-├── instrumentation.ts                    Sentry runtime hook
-├── next.config.js                        Conditional withSentryConfig wrap
-├── middleware.ts                         🔄 + /how-it-works, /backtests, /register public routes
-├── vitest.config.ts
-└── package.json                          🔄 + tsx devDep, + build:backtests / verify:backtests; npm run build pre-verifies
+│   └── 20260516_advisor_tier_and_disclaimer.sql  ⚠️ duplicate policy bug — see blockers
+└── package.json                          tsx devDep, build:backtests / verify:backtests
 ```
 
-### Test + build commands
+---
+
+## 5. DO NOT TOUCH
+
+| File | Why |
+|---|---|
+| `lib/yahoo.ts` | Portfolio + TWR + Beta/Alpha math. 36 passing tests guard ±0.2% accuracy. Wrap, don't modify. |
+| `app/api/frontier/route.ts` | Engine keeps its own Markowitz copy in `lib/backtest/engine.ts` — keeps request paths decoupled. |
+
+---
+
+## 6. Test + build commands
 
 ```bash
-npm test                  # one-shot test run (51 tests: 36 yahoo + 13 engine + 2 FIDLEG)
+npm test                  # 62 tests: 36 yahoo + 13 engine + 2 FX + 9 rate-limit + 2 FIDLEG
 npm run test:watch        # TDD mode
 npm run build             # tsx scripts/verify-backtest-jsons.ts && next build
-npm run build:backtests   # regenerate public/backtests/*.json
+npm run build:backtests   # regenerate public/backtests/*.json (fetches live Yahoo + FX data)
 npm run verify:backtests  # check aggregate drift only
 npm run dev               # localhost:3000
 ```
 
 ---
 
-## 14. Personal + working-style context for the fresh agent
+## 7. Environment variables — full reference
 
-- **Dariush is 18**, Matura in 2026, HSG St. Gallen starting 2027. Tool is proof-of-competence for his LinkedIn network + future IB/quant/consulting internships, and might become a startup / side business.
-- **Status:** Einzelunternehmen Schaffhausen. No formal registration required at current scale.
-- **First paying user (Pro, CHF 15/mo)** in an earlier session. Yearly tier shipped in session 6. Advisor tier shipped in session 7. **No paying Advisor customer yet** — Dariush is on Advisor himself until 12.06.2026 as his own end-to-end test, then drops to Free.
-- **Mom is the "designed first user"** for usability — NOT product-market fit. Real ICP per §1.
-- **Autonomy granted.** No confirmations needed for code changes. **Pushes require explicit `push`** (he says it every time he wants a push).
-- **Communication style:** brutally honest, terse, no fluff. Prefers reality checks over validation. Caveman feedback (`bad`, `too long`, `wrong`, `deeper`, `build`, `fix`, `push`, etc.) per `~/.claude/CLAUDE.md`.
-- **Email canonical address:** `dariush.tahajomi@gmail.com`. Resend account email is `dtahajomi2007@gmail.com`. All transactional + support email lands at the canonical address.
-- **Global rule:** load Obsidian brain at session start (`C:/AI_System/obsidian_vault/Obsidian/brain`). Mandatory per Dariush's global CLAUDE.md.
-- **Caveman style applies to CHAT ONLY.** Files (this handoff, code, docs) are written in full structured prose. Code is always clean and production-grade.
-- **Single bundled PR preferred over many small PRs** (confirmed in session 7, repeated in session 9 when shipping the backtest landing page as one commit).
-- **No `// removed` comments, no backwards-compat shims, no dead code paths.** Delete completely.
-- **Default to no code comments** — only the WHY when non-obvious. Multi-paragraph docstrings forbidden.
+### Required in Vercel (all set ✅)
 
-### Decisions made on Dariush's behalf this session (flag if any were wrong)
+| Var | What |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase admin key |
+| `STRIPE_SECRET_KEY` | Stripe server-side |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe client-side |
+| `STRIPE_PRO_PRICE_ID` / `STRIPE_PRO_YEARLY_PRICE_ID` | CHF 15 / 150 |
+| `STRIPE_ADVISOR_PRICE_ID` / `STRIPE_ADVISOR_YEARLY_PRICE_ID` | CHF 50 / 500 |
+| `RESEND_API_KEY` | Resend transactional email |
+| `RESEND_FROM` | **✅ Set in session 13:** `Quantfoli <support@quantfoli.com>` |
 
-- Used **mulberry32 with seed=42** as the RNG for the Markowitz Monte Carlo. Determinism > "true randomness" for marketing-page reproducibility. If Dariush ever wants stochastic outputs that differ per pageview, change the seed source.
-- Kept the **engine's Markowitz solver as a private copy** rather than extracting `app/api/frontier/route.ts` into a shared `lib/markowitz.ts`. Rationale: avoids regression risk on the live frontier API. Extract later if/when both code paths need to share a feature.
-- Chose **static JSON output** (`public/backtests/*.json`) over an API route for sample-portfolio data. Faster page, deterministic, diff-visible in git. Add an API route in v2 only if "try-on-your-own-portfolio" needs server-side compute.
-- **Verdict-badge thresholds**: wins ≥ 55% AND median > +0.02 → "won"; wins ≤ 45% OR median < −0.02 → "lost"; else "tied". Round-number heuristics, tune as needed once more portfolios are added.
-- **H1 final wording:** "The portfolio tool your quant friend uses." (Variant A from spec §F). Universal hook, Swiss specificity moved to subhead. If a different variant tests better, swap in `components/Landing.tsx`.
-- **`/register` redirects to `/login?tab=signup` permanently (308)** rather than serving its own signup page. Avoids duplicating the auth form. If you ever want a dedicated `/register` page, replace the redirect.
+### Optional — Sentry (not yet set)
 
----
-
-## 15. Files to read first if you're a fresh agent
-
-In this order:
-
-1. **`HANDOFF.md`** (this file)
-2. **`docs/BACKTESTING_LANDING_PAGE.md`** — backtest page spec
-3. **`docs/LANDING_AUDIT.md`** — landing-page audit + 7 fixes
-4. **`lib/stripe.ts`** + **`lib/advisor-terms.ts`** — pricing data model + `ADVISOR_TERMS_VERSION`
-5. **`lib/yahoo.ts`** + **`lib/yahoo.test.ts`** — math + regression suite (DO NOT MODIFY)
-6. **`lib/backtest/engine.ts`** + **`engine.test.ts`** — walk-forward engine + lookahead guards
-7. **`lib/backtest/{universe,data,costs}.ts`** — engine dependencies
-8. **`app/how-it-works/page.tsx`** — landing surface composing everything
-9. **`components/backtest/*`** — page components
-10. **`scripts/{build-backtests,verify-backtest-jsons}.ts`** — output generation
-11. **`app/page.tsx`** + **`components/Landing.tsx`** + **`components/LandingClient.tsx`** — main landing
-12. **`app/login/page.tsx`** — signup funnel surface
-13. **`middleware.ts`** — auth gate, public-routes list
-14. **`app/api/webhooks/stripe/route.ts`** — full subscription lifecycle + founder notification
-15. **`components/UpgradeModal.tsx`** + **`app/api/advisor/accept-disclaimer/route.ts`** — Advisor T&C flow
-16. **`app/globals.css`** — design system + `--accent*` tier tokens
-17. **`supabase/migrations/20260516_advisor_tier_and_disclaimer.sql`** — DB schema for Advisor
+| Var | When |
+|---|---|
+| `NEXT_PUBLIC_SENTRY_DSN` | Activates client-side error capture |
+| `SENTRY_DSN` | Activates server + edge error capture |
+| `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Source-map upload |
 
 ---
 
-## 16. Memory references
+## 8. Personal + working-style context for the fresh agent
 
-Persistent memory in `~/.claude/projects/C--Users-Dariush-Tahajomi/memory/`:
+- **Dariush is 18**, Matura in 2026, HSG St. Gallen starting 2027. Einzelunternehmen Schaffhausen.
+- **First paying user (Pro)** in an earlier session. No paying Advisor customer yet — Dariush is on Advisor himself until 12.06.2026, then drops to Free.
+- **Mom is the "designed first user"** for usability — NOT product-market fit.
+- **Autonomy granted.** No confirmations needed for code changes. **Pushes require explicit "push".**
+- **Communication:** caveman style in chat (short, no fluff). Files/code are full structured prose + clean production code.
+- **Preferred pattern:** audit doc first → spec doc → FIDLEG pre-pass on any copy → code. Proven across 5+ sessions.
+- **Single bundled commit preferred** over many small PRs.
+- **No `// removed` comments, no backwards-compat shims, no dead code paths.**
+- **Default to no code comments** — only the WHY when non-obvious.
 
-- `user_profile.md` — Dariush context
-- `project_obsidian.md` — Obsidian vault (referenced by global CLAUDE.md)
-- `feedback_autonomy.md` — autonomous file ops granted, push requires explicit ask
-- `feedback_tasks_format.md` — daily task file format (Obsidian, not this repo)
-- `feedback_obsidian_links.md` — Obsidian backlink conventions
-- `feedback_obsidian_permissions.md` — no confirmation prompts for Obsidian files
+---
 
-Global instructions in `~/.claude/CLAUDE.md`. Mandatory: load Obsidian brain at session start.
+## 9. Approaches tried that failed (historical, relevant to avoid repeating)
+
+| Attempt | Why it failed | Resolution |
+|---|---|---|
+| `randomWeights` with safety renormalize at end | Broke cap invariant when cap × n < 1 | Special-cased infeasible branch to return uniform `[1/n, ...]` directly |
+| First lookahead-bias test: shift input by dropping row 0 | Dropping row 0 doesn't change within-lookback-window values | Replaced with weak guard (shift closes forward) + strong guard (mutate only post-endDate prices) |
+| `/how-it-works/opengraph-image` on Node runtime at build | `next build` failed with "Invalid URL" from `@vercel/og` | Added `export const dynamic = 'force-dynamic'` to both OG routes |
+| First H1: "Markowitz, Sharpe, and stress tests — on your actual ZKB depot." | Too narrow — ZKB is 1 of 3 importers, 30% traffic non-Swiss | Moved specificity to subhead, H1 is now universal: "The portfolio tool your quant friend uses." |
+| `/how-it-works` shipped without adding to `middleware.ts` public routes | Middleware redirected anon visitors to `/login` | Now: every new public route MUST land in `middleware.ts` in the same commit |
+| SamplePortfolioCard framing 45%-win result as net-positive | Violated "acknowledge limits openly" principle | Added verdict badge (won/tied/underperformed), flipped opening sentence when wins < 50% |
+
+---
+
+## 10. Current production state
+
+| System | Status |
+|---|---|
+| Stripe | ✅ All tiers live (Free / Pro M+Y / Advisor M+Y). Customer Portal, refunds, founder notification on Advisor transition all working. |
+| Resend | ✅ Domain verified, DKIM+SPF+DMARC green. `RESEND_FROM` now `Quantfoli <support@quantfoli.com>`. Welcome email wired on signup. |
+| Sentry | ⚪ Dormant — SDK installed, gated on DSN env vars |
+| SEO | ✅ `/sitemap.xml`, `/robots.txt`, OG images live. `/register` in sitemap @ 0.7. Google Search Console not yet verified (Dariush action). |
+| Supabase | ✅ `user_tiers` + `advisor_disclaimers` tables live with RLS. |
+| Backtest infra | ✅ `/how-it-works` live with FX-corrected numbers. `npm run build` pre-verifies aggregate.json drift. |
+| Signup funnel | ✅ `?tab=signup` deep-link, `/register` shadow SEO route, all CTAs, prose switcher, autoFocus, welcome email. |
+| Light mode | ✅ Theme toggle on both landing and dashboard, shared `pi_theme` localStorage key. |
 
 ---
 
 **End of handoff. Immediate pickup point for next session:**
 
-1. **Load Obsidian brain** (mandatory per global CLAUDE.md).
-2. **Read this file end-to-end.**
-3. **Verify live deploys** — open `https://quantfoli.com` and `https://quantfoli.com/how-it-works` in incognito. Check the new H1 ("The portfolio tool your quant friend uses."), the "How it works" nav link, the green "No credit card · No trial expiry" line on the Free card. Click "Start free" — should land on Create Account tab with cursor in the Name field. Try `https://quantfoli.com/register` — should redirect to `/login?tab=signup`.
-4. **Pull fresh analytics** if 24h+ have passed since `b563343` deployed — read funnel impact (§11.1).
-5. **Start `docs/MARKETING_PLAN.md` scaffolding** (Priority 2 from further-instructions) — but ONLY scaffolding, no hallucinated persona quotes. Wait for Dariush to fill in research before writing analytical conclusions.
+1. Read this file end-to-end.
+2. Load Obsidian brain (`C:/AI_System/obsidian_vault/Obsidian/brain`) — mandatory per global CLAUDE.md.
+3. Highest-value next task: **per-chart ProGate blur** — spec is ready in `docs/PROGATE_REDESIGN.md` §10, FIDLEG pre-pass done, 9 CTA strings approved. Start with audit of current ProGate wiring in `components/Dashboard.tsx` to understand exact component boundaries before writing `ProChart`.
+4. Check Vercel Analytics if 24h+ since last session — see if `/register` appearing in top pages, `/how-it-works` traffic, signup funnel click-through.

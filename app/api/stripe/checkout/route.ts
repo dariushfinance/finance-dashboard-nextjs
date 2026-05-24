@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
           .update({ tier: PLAN_TIER[plan] })
           .eq('user_id', user.id)
 
-        return NextResponse.json({ url: `${origin}/?upgraded=1` })
+        return NextResponse.json({ url: `${origin}/portfolio?upgraded=1` })
       }
     }
 
@@ -98,8 +98,8 @@ export async function POST(req: NextRequest) {
       customer:             customerId,
       mode:                 'subscription',
       line_items:           [{ price: targetPriceId, quantity: 1 }],
-      success_url:          `${origin}/?upgraded=1`,
-      cancel_url:           `${origin}/`,
+      success_url:          `${origin}/portfolio?upgraded=1`,
+      cancel_url:           `${origin}/portfolio`,
 
       metadata:             { user_id: user.id, plan },
       subscription_data:    { metadata: { user_id: user.id, plan } },

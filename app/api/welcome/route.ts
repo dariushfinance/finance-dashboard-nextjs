@@ -64,7 +64,7 @@ export async function POST(req: Request) {
             </p>
 
             <!-- CTA -->
-            <a href="https://quantfoli.com"
+            <a href="https://quantfoli.com/portfolio"
                style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#6272f8,#7b5ea7);color:#f8f8fc;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:-0.01em;">
               Open Quantfoli →
             </a>
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
     to: email,
     subject: 'Welcome to Quantfoli',
     html,
-    text: `Welcome to Quantfoli, ${firstName}.\n\nYour account is set up. Confirm your email, then import your first portfolio at https://quantfoli.com.\n\nNot investment advice.`,
+    text: `Welcome to Quantfoli, ${firstName}.\n\nYour account is set up. Confirm your email, then import your first portfolio at https://quantfoli.com/portfolio.\n\nNot investment advice.`,
   })
 
   if (!result.ok) {

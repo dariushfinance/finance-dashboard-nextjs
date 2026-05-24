@@ -60,6 +60,12 @@
   /* Landing page specifics */
   --lp-dot: oklch(1 0 0 / 0.025);
 
+  /* Cross-product accent tokens — Quantfoli unified host shell */
+  --accent-pro:        oklch(0.68 0.180 258);          /* indigo, matches --brand-a */
+  --accent-pro-soft:   oklch(0.68 0.180 258 / 0.14);
+  --accent-learn:      oklch(0.78 0.150 75);           /* warm amber — placeholder, Hugo to confirm */
+  --accent-learn-soft: oklch(0.78 0.150 75 / 0.14);
+
   /* Geometry */
   --radius:    14px;
   --radius-sm: 10px;
@@ -112,6 +118,9 @@ html[data-theme="light"] {
   --shadow-hi: 0 20px 48px -12px oklch(0 0 0 / 0.16);
 
   --lp-dot: oklch(0 0 0 / 0.045);
+
+  --accent-learn:      oklch(0.65 0.150 75);
+  --accent-learn-soft: oklch(0.65 0.150 75 / 0.16);
 }
 
 /* ── Reset ───────────────────────────────────────────────────── */

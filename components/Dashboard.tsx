@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import type { Position } from '@/types'
 
 // ── Currency types ────────────────────────────────────────────
@@ -407,13 +408,13 @@ export default function Dashboard() {
 
       {/* Sidebar */}
       <aside className={`side ${sidebarOpen ? 'open' : ''}`}>
-        <div className="brand">
+        <Link href="/" className="brand" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }} title="Back to Quantfoli">
           <div className="brand__mark">Q</div>
           <div>
             <div className="brand__name">Quantfoli</div>
             <div className="brand__tag">{userTier === 'advisor' ? 'Advisor' : userTier === 'pro' ? 'Pro' : 'Free'} · v1.0</div>
           </div>
-        </div>
+        </Link>
 
         <nav className="nav">
           <div className="nav__label">Workspace</div>

@@ -122,7 +122,7 @@ export default function FinancesSheet() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={exportCSV} style={btnSecondary}>Export CSV</button>
-            <a href="/" style={btnSecondary}>← Dashboard</a>
+            <a href="/portfolio" style={btnSecondary}>← Dashboard</a>
           </div>
         </header>
 

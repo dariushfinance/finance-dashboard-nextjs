@@ -11,7 +11,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
 const SCAN_ROOTS = [
-  'app/how-it-works',
+  'app/portfolio/how-it-works',
   'components/backtest',
 ]
 
@@ -116,7 +116,7 @@ describe('FIDLEG copy lint', () => {
     const disclaimer = await fs.readFile(
       path.join(process.cwd(), 'components', 'backtest', 'Disclaimer.tsx'), 'utf8')
     const page = await fs.readFile(
-      path.join(process.cwd(), 'app', 'how-it-works', 'page.tsx'), 'utf8')
+      path.join(process.cwd(), 'app', 'portfolio', 'how-it-works', 'page.tsx'), 'utf8')
 
     // Disclaimer must accept the version as a prop, not hard-code it
     expect(disclaimer).toMatch(/termsVersion/)

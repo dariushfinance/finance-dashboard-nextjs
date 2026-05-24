@@ -13,10 +13,10 @@ export async function GET() {
   const posts = await getAllPostsMeta()
 
   const urls = [
-    `  <url><loc>${SITE_URL}/blog</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+    `  <url><loc>${SITE_URL}/portfolio/blog</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
     ...posts.map(
       (p) =>
-        `  <url><loc>${escapeXml(`${SITE_URL}/blog/${p.slug}`)}</loc><lastmod>${p.date}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`
+        `  <url><loc>${escapeXml(`${SITE_URL}/portfolio/blog/${p.slug}`)}</loc><lastmod>${p.date}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`
     ),
   ].join('\n')
 

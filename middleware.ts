@@ -24,19 +24,30 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isLoginPage  = path.startsWith('/login')
+  const isLoginPage  = path === '/portfolio/login' || path.startsWith('/portfolio/login/')
   const isApiRoute   = path.startsWith('/api')
-  const isPublicPage = path === '/' || path.startsWith('/privacy') || path.startsWith('/terms') || path.startsWith('/support') || path.startsWith('/advisor-legal') || path.startsWith('/how-it-works') || path.startsWith('/backtests') || path.startsWith('/register') || path.startsWith('/blog')
+  const isPublicPage =
+    path === '/' ||
+    path === '/learn' || path.startsWith('/learn/') ||
+    path.startsWith('/privacy') ||
+    path.startsWith('/terms') ||
+    path.startsWith('/support') ||
+    path.startsWith('/advisor-legal') ||
+    path === '/portfolio' || // portfolio host renders Landing for anon, Dashboard for auth
+    path.startsWith('/portfolio/how-it-works') ||
+    path.startsWith('/portfolio/backtests') ||
+    path.startsWith('/portfolio/register') ||
+    path.startsWith('/portfolio/blog')
 
   if (!user && !isLoginPage && !isApiRoute && !isPublicPage) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/portfolio/login'
     return NextResponse.redirect(url)
   }
 
   if (user && isLoginPage) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/portfolio'
     return NextResponse.redirect(url)
   }
 

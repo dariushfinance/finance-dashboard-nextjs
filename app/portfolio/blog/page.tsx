@@ -9,8 +9,8 @@ const DESC = 'Quant-driven portfolio insights for Swiss self-directed investors 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESC,
-  alternates: { canonical: `${SITE_URL}/blog` },
-  openGraph: { title: TITLE, description: DESC, type: 'website', url: `${SITE_URL}/blog` },
+  alternates: { canonical: `${SITE_URL}/portfolio/blog` },
+  openGraph: { title: TITLE, description: DESC, type: 'website', url: `${SITE_URL}/portfolio/blog` },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESC },
 }
 
