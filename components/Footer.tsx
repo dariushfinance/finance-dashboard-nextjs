@@ -19,8 +19,6 @@ export default function Footer() {
     >
       <span>© {year} Quantfoli</span>
       <span style={{ opacity: 0.4 }}>·</span>
-      <span>Dariush Tahajomi, Einzelunternehmen, Schaffhausen, Schweiz</span>
-      <span style={{ opacity: 0.4 }}>·</span>
       <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</Link>
       <span style={{ opacity: 0.4 }}>·</span>
       <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</Link>
