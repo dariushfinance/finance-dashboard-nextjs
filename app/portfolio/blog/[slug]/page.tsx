@@ -108,6 +108,25 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
         className={styles.prose}
         dangerouslySetInnerHTML={{ __html: post.html }}
       />
+
+      {post.faq.length > 0 && (
+        <section style={{ marginTop: 56, paddingTop: 32, borderTop: '1px solid var(--line-soft)' }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 24 }}>
+            Häufige Fragen
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {post.faq.map(({ q, a }) => (
+              <details key={q} style={{ borderBottom: '1px solid var(--line-soft)', padding: '16px 4px' }}>
+                <summary style={{ fontSize: 16, fontWeight: 600, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                  {q}
+                  <span aria-hidden style={{ color: 'var(--ink-4)', fontSize: 20, lineHeight: 1, flexShrink: 0 }}>+</span>
+                </summary>
+                <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.65, color: 'var(--ink-2)' }}>{a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   )
 }

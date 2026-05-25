@@ -4,6 +4,7 @@ import matter from 'gray-matter'
 import { remark } from 'remark'
 import remarkGfm from 'remark-gfm'
 import remarkHtml from 'remark-html'
+import { faqSchema, type FaqItem } from '@/lib/schema'
 
 const BLOG_DIR = path.join(process.cwd(), 'content', 'blog')
 
@@ -15,6 +16,7 @@ export interface BlogFrontmatter {
   author: string
   slug: string
   image?: string
+  faq?: FaqItem[]
 }
 
 export interface BlogPostMeta extends BlogFrontmatter {
@@ -23,10 +25,9 @@ export interface BlogPostMeta extends BlogFrontmatter {
 
 export interface BlogPost extends BlogPostMeta {
   html: string
+  faq: FaqItem[]
   faqSchema: object | null
 }
-
-const FAQ_FENCE = /```jsonld-faq\s*\n([\s\S]*?)\n```/g
 
 function countWords(md: string): number {
   return md.replace(/[`*_>#\-\[\]\(\)!]/g, ' ').split(/\s+/).filter(Boolean).length
@@ -72,25 +73,17 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     const fm = data as BlogFrontmatter
     if (fm.slug !== slug) continue
 
-    let faqSchema: object | null = null
-    const faqMatches = [...content.matchAll(FAQ_FENCE)]
-    if (faqMatches.length > 0) {
-      try {
-        faqSchema = JSON.parse(faqMatches[0][1])
-      } catch {
-        faqSchema = null
-      }
-    }
-    const body = content.replace(FAQ_FENCE, '').trim()
+    const faq = fm.faq ?? []
 
-    const processed = await remark().use(remarkGfm).use(remarkHtml, { sanitize: false }).process(body)
+    const processed = await remark().use(remarkGfm).use(remarkHtml, { sanitize: false }).process(content)
     const html = String(processed)
 
     return {
       ...fm,
-      readingMinutes: readingMinutes(body),
+      readingMinutes: readingMinutes(content),
       html,
-      faqSchema,
+      faq,
+      faqSchema: faq.length > 0 ? faqSchema(faq) : null,
     }
   }
   return null

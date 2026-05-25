@@ -5,6 +5,15 @@ keywords: ["Sharpe Ratio", "ZKB", "Yuh", "Portfolio Schweiz", "CHF Risk-Free Rat
 date: 2026-05-18
 author: "Dariush Tahajomi"
 slug: "sharpe-ratio-berechnen-schweiz"
+faq:
+  - q: "Welche Risk-Free-Rate gilt für ein Schweizer Depot?"
+    a: "Für ein CHF-denominiertes Depot ist die Rendite der Eidgenossen (Schweizer Bundesobligationen) die passende Referenz, nicht der US-Treasury-Satz. Im Mai 2026 liegt der 3-Monats-Satz bei rund 0.8 Prozent."
+  - q: "Muss ich die Sharpe Ratio in CHF oder in Lokalwährung rechnen?"
+    a: "In CHF. Bei einem ZKB- oder Yuh-Depot mit USD- oder EUR-Titeln zeigt die Bank oft die Performance in Lokalwährung. Für die Sharpe Ratio musst du die CHF-Rendite verwenden, damit das Wechselkursrisiko korrekt einfliesst."
+  - q: "Wie viel Historie brauche ich für eine verlässliche Sharpe Ratio?"
+    a: "Mindestens drei Jahre an monatlichen oder täglichen Returns. Mit weniger Daten ist die Schätzung der annualisierten Volatilität zu unzuverlässig, um aussagekräftig zu sein."
+  - q: "Was ist eine gute Sharpe Ratio?"
+    a: "Sharpe Ratios werden oft mit folgenden Bereichen beschrieben: unter 1 (niedrige Rendite-zu-Risiko-Quote), um 1 (moderate Quote), über 2 (hohe Quote). Das sind rein statistische Kategorisierungen ohne Wertung. Welche Quote für ein Depot angemessen ist, hängt von individuellen Zielen, Risikotoleranz und Marktumfeld ab — das ist kein statistisches, sondern ein persönliches Thema. Quantfoli bewertet nicht, welche Quote du anstreben solltest."
 ---
 
 Die Sharpe Ratio misst, wie viel Rendite ein Portfolio pro Einheit Risiko liefert. Für Schweizer Investoren gibt es einen Haken: die meisten Online-Rechner verwenden den US-Treasury-Satz als Risk-Free-Rate. Für ein CHF-denominiertes Depot ist das falsch.
