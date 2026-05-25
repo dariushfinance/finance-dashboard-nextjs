@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/LandingClient'
+import { organizationSchema, softwareApplicationSchema } from '@/lib/schema'
 
 // Unified Quantfoli host landing — introduces both products (/portfolio + /learn).
 // Hero copy is placeholder; Dariush + Hugo will refine.
@@ -22,17 +23,6 @@ export const metadata: Metadata = {
   },
 }
 
-const orgSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'Quantfoli',
-  url: 'https://quantfoli.com',
-  logo: 'https://quantfoli.com/icon.svg',
-  founder: [
-    { '@type': 'Person', name: 'Dariush Tahajomi', url: 'https://www.linkedin.com/in/dariush-tahajomi-09348b370/' },
-  ],
-}
-
 export default function UnifiedLanding() {
   return (
     <main style={{
@@ -42,7 +32,8 @@ export default function UnifiedLanding() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema()) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema()) }} />
 
       {/* Ambient backdrop */}
       <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
