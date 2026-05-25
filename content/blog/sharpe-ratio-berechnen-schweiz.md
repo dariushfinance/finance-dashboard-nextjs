@@ -43,33 +43,8 @@ Annualisierte Standardabweichung der monatlichen oder täglichen Returns. Mindes
 - Über 1.0: gut
 - Über 2.0: misstrauisch werden (Selection Bias oder Overfitting)
 
-## Was [Quantfoli](/how-it-works) anders macht
+## Was [Quantfoli](/portfolio/how-it-works) anders macht
 
-Standard-Tools nehmen USD-Rates und ignorieren FX-Effekte. Wir berechnen Sharpe in CHF, mit Schweizer Risk-Free-Rate, auf deinem importierten ZKB/Yuh-Depot. Mehr dazu im [Backtest-Bereich](/backtests).
+Standard-Tools nehmen USD-Rates und ignorieren FX-Effekte. Wir berechnen Sharpe in CHF, mit Schweizer Risk-Free-Rate, auf deinem importierten ZKB/Yuh-Depot. Mehr dazu im [Backtest-Bereich](/portfolio/how-it-works).
 
 Externe Referenz: die [SNB Yield Curve](https://www.snb.ch/en/iabout/stat/statpub/zidea/id/current_interest_exchange_rates).
-
-```jsonld-faq
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Welche Risk-Free-Rate für Schweizer Portfolios?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Die 3-Monats-Eidgenossen-Rendite der SNB. Nicht der US-Treasury-Satz."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Was ist eine gute Sharpe Ratio?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Über 1.0 ist gut. Über 2.0 sollte misstrauisch machen, da oft Overfitting oder Selection Bias dahinterstecken."
-      }
-    }
-  ]
-}
-```
