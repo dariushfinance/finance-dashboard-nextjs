@@ -1,8 +1,8 @@
 # HANDOFF — Quantfoli (Sessions 8 → 14)
 
 **Date last touched:** 2026-05-24
-**Branch:** `refactor/unified-landing` (awaiting Dariush review + merge to `main`)
-**Last commit:** session 14 work uncommitted at handoff time; spec in `docs/MERGE_ARCHITECTURE.md`
+**Branch:** `main`
+**Last commit:** `66821b6` — session 14 shipped to production (unified landing + /portfolio migration + post-merge cleanups)
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
 **DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`).
 **Owner:** Dariush Tahajomi (`dariush.tahajomi@gmail.com`), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen.
@@ -54,25 +54,46 @@ Quantfoli now hosts two products under one domain. The existing portfolio app mo
 
 Hero headline `Finance, built for the next generation.` is placeholder — Dariush + Hugo to refine.
 
+### Post-merge tweaks (after shipping to main)
+
+| Commit | Change |
+|---|---|
+| `a0e1993` | Merged `refactor/unified-landing` → `main` (fast-forward). Vercel auto-deployed. |
+| `d601b82` | Removed duplicate legal links on `/` — the in-page block under the founder badges duplicated the global `Footer`. Kept the global footer only. |
+| `66821b6` | Dropped "Dariush Tahajomi, Einzelunternehmen, Schaffhausen, Schweiz" line from `components/Footer.tsx` per Dariush. ⚠️ See Impressum note in "Still to do". |
+
+Also added in post-merge polish (part of the merge commit `a0e1993`):
+- **"One pipeline" section** on `/` (Learn → Import → Measure, 3 step cards) — product-marketing tone, explains how the two products connect.
+- **Founder badges** (DT indigo, HT amber initials; DT links to LinkedIn).
+- **Footnote moved** out of the Portfolio card to a single page-bottom disclaimer so both product-card CTAs align at equal height.
+- **Backlinks to `/`**: Landing logo, Dashboard sidebar brand (now a `<Link>`, was a static div), login back-arrow, and how-it-works "← Back to Quantfoli" all route to the unified host `/`.
+
 ### Verification
 
-- `npm test` — 62/62 ✅ (no test count change; FIDLEG-lint passes against `app/portfolio/how-it-works`)
-- `npm run build` — clean. New page count includes `/`, `/learn`, `/portfolio`, and all `/portfolio/*` subroutes.
-- Manual smoke tests not yet run — see `docs/AUTH_MIGRATION.md` §5 for the post-deploy checklist Dariush should run.
+- `npm test` — 62/62 ✅ (FIDLEG-lint passes against `app/portfolio/how-it-works`)
+- `npm run build` — clean. `tsc --noEmit` clean after each post-merge edit.
+- Production smoke tests — **not yet confirmed by Dariush.** Checklist in `docs/AUTH_MIGRATION.md` §5.
 
-### Manual steps required (Dariush, post-merge)
+### Still to do (session 15 pickup) — unified-landing follow-ups
 
-See `docs/AUTH_MIGRATION.md`. Summary:
-1. Supabase Dashboard → Authentication → URL Configuration: Site URL `https://quantfoli.com/portfolio`; Redirect URLs add `https://quantfoli.com/portfolio/**`.
-2. Stripe Dashboard: no change needed.
-3. Google Search Console: re-submit sitemap.
-4. Run smoke checklist.
+🔴 = blocks correctness/compliance · 🟠 = should do soon · 🟢 = polish
 
-### Branch status
+| Sev | Task | Notes |
+|---|---|---|
+| 🔴 | **Supabase URL config** | Dashboard → Authentication → URL Configuration: Site URL `https://quantfoli.com/portfolio`; add Redirect URL `https://quantfoli.com/portfolio/**`. Until done, email-confirm links may land wrong. **Dariush manual.** |
+| 🔴 | **Run prod smoke checklist** | `docs/AUTH_MIGRATION.md` §5 — verify 301s fire (`/how-it-works` → `/portfolio/how-it-works`), signup→confirm lands on `/portfolio`, Stripe checkout returns to `/portfolio?upgraded=1`. |
+| 🟠 | **Rewrite terms/privacy/support for BOTH products** | Legal pages still portfolio-only. Need Analysts Lens coverage. Blocked on Hugo defining Lens scope (accounts? data collection?). `/advisor-legal` stays portfolio-only. Coordinate with `@agent-fidleg-reviewer`. |
+| 🟠 | **Impressum check** | Removed firm name + address from footer. Swiss Impressumspflicht expects it visible somewhere — confirm `/terms` or `/support` still carries "Dariush Tahajomi, Einzelunternehmen, Schaffhausen". Add back if missing. |
+| 🟢 | **Hero copy** | `Finance, built for the next generation.` is placeholder — Dariush + Hugo to finalize. |
+| 🟢 | **`--accent-learn` hue** | Warm amber `oklch(0.78 0.150 75)` is a placeholder. Get Hugo's brand color. |
+| 🟢 | **`/learn` real content** | Currently a "Coming soon" placeholder. Hugo builds the real platform. |
+| 🟢 | **Google Search Console** | Re-submit `https://quantfoli.com/sitemap.xml` after deploy confirmed. |
 
-`refactor/unified-landing` — all work committed locally, **not pushed**. Dariush to review, then either:
-- `git push origin refactor/unified-landing` and open a PR for one final pass, OR
-- `git checkout main && git merge --ff-only refactor/unified-landing && git push` to ship.
+### Carried-over backlog (pre-session-14, still open)
+
+- **Per-chart ProGate blur** (🟠) — spec ready in `docs/PROGATE_REDESIGN.md` §10, FIDLEG pre-pass done, 9 CTA strings approved. Note: `fidleg-lint` `SCAN_FILES` already lists the components; when adding `ProChart`, extend that list.
+- RLS hardening before >10 paying users.
+- Stripe support phone placeholder `+41 000 000 0000`.
 
 ---
 
