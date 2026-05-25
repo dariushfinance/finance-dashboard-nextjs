@@ -55,5 +55,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // Exclude Next static assets, image files, and metadata routes (sitemap.xml,
+  // robots.txt, blog sitemap, OG images). Without the xml/txt exclusion the auth
+  // gate below 307-redirects anonymous crawlers off /sitemap.xml to the login page.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|xml|txt)$).*)'],
 }
