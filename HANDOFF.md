@@ -1,14 +1,73 @@
-# HANDOFF — Quantfoli (Sessions 8 → 14)
+# HANDOFF — Quantfoli (Sessions 8 → 15)
 
-**Date last touched:** 2026-05-24
+**Date last touched:** 2026-05-25
 **Branch:** `main`
-**Last commit:** `66821b6` — session 14 shipped to production (unified landing + /portfolio migration + post-merge cleanups)
+**Last commit:** `4b3c6df` — session 15 shipped (AEO structured data + per-article FAQ)
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
 **DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`).
 **Owner:** Dariush Tahajomi (`dariush.tahajomi@gmail.com`), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen.
 **LinkedIn:** https://www.linkedin.com/in/dariush-tahajomi-09348b370/
 
-> Read this file end-to-end before touching anything. Sessions 1–7 in git history. Sessions 8–13 documented below Session 14.
+> Read this file end-to-end before touching anything. Sessions 1–7 in git history. Sessions 8–14 documented below Session 15.
+
+---
+
+## Session 15 (2026-05-25) — AEO structured data · sitemap fix · per-article FAQ
+
+### What was done
+
+Follow-up to the session-14 unified-landing launch. Focus: answer-engine optimization (AEO) so LLMs (ChatGPT, Perplexity, Google AI Overviews) can name, price, and describe Quantfoli, plus a production bug fix.
+
+| Commit | Change |
+|---|---|
+| `6e8c6a0` | **🔴 Bug fix:** middleware matcher excluded image files but not `.xml`/`.txt`, so anon hits to `/sitemap.xml` and `/portfolio/blog/sitemap.xml` 307-redirected to `/portfolio/login` ("Redirecting..." instead of the sitemap). Added `sitemap.xml`, `robots.txt`, `.xml`, `.txt` to the matcher negative-lookahead. **Pre-existing bug, not from the merge.** |
+| `a43d6a9` | **AEO schema.** New `lib/schema.ts` — centralized JSON-LD builders: `organizationSchema()`, `softwareApplicationSchema()`, `faqSchema()`, plus canonical `PORTFOLIO_FAQ`. `/` emits Organization + SoftwareApplication; `/portfolio` (anon view) emits SoftwareApplication + FAQPage and renders a visible `components/FaqSection.tsx`. |
+| `1a71cc6` | **Per-article FAQ.** Replaced the hand-written ```` ```jsonld-faq ```` markdown fence with a typed frontmatter `faq:` array. `lib/blog.ts` builds FAQPage JSON-LD via `faqSchema()` and exposes items for a visible "Häufige Fragen" accordion on each article. Added a 4-Q FAQ to the Sharpe article. |
+| `4b3c6df` | **Cleanup.** The Sharpe article still carried the old jsonld-faq fence in its body; after the `1a71cc6` refactor removed fence-stripping, it rendered as visible code. Removed it. Also repointed two in-body markdown links (`/how-it-works`, `/backtests` → `/portfolio/how-it-works`) — markdown body links were missed in the session-14 migration which only grepped `.tsx`. |
+
+### FIDLEG
+
+All new schema/FAQ copy ran through `@agent-fidleg-reviewer`. English product FAQ: clean as-is. German Sharpe-article FAQ: the "good Sharpe ratio" answer was rewritten from prescriptive thresholds to neutral statistical categories + explicit "Quantfoli bewertet nicht, welche Quote du anstreben solltest".
+
+### Verified
+
+- `npm test` 62/62 · `npm run build` clean (42 pages) · `tsc --noEmit` clean.
+- **Google Rich Results Test confirmed the schema is detected** (Dariush verified). Indexing now waits on Google recrawl (days–weeks).
+- Sitemap is submitted in Google Search Console.
+
+### How to add a FAQ to any future article
+
+Put this in the markdown frontmatter — schema + visible block render automatically:
+
+```yaml
+faq:
+  - q: "Frage?"
+    a: "Antwort."
+```
+
+Do NOT use the old ```` ```jsonld-faq ```` fence — it's gone, it'll render as raw code.
+
+### Still to do (session 16 pickup)
+
+🔴 = blocks correctness/compliance · 🟠 = high ROI · 🟢 = polish
+
+| Sev | Task | Notes |
+|---|---|---|
+| 🔴 | **Supabase URL config** | Dashboard → Authentication → URL Configuration: Site URL `https://quantfoli.com/portfolio`; add Redirect URL `https://quantfoli.com/portfolio/**`. Confirm whether this was done. `docs/AUTH_MIGRATION.md` §1. **Dariush manual.** |
+| 🔴 | **Run prod smoke checklist** | `docs/AUTH_MIGRATION.md` §5 — confirm signup→confirm lands on `/portfolio`, Stripe checkout returns to `/portfolio?upgraded=1`, 301s fire. |
+| 🟠 | **Content volume — the biggest growth lever** | Only 1 blog article live. Schema makes pages citable; articles make them rank. Use `seo-article-writer`. Next picks: (1) "ZKB Depot analysieren", (2) "Klumpenrisiko / Diversifikation messen", (3) "Wechselkursrisiko ETF in CHF" (the FX edge nobody else covers). Each ships with frontmatter `faq:` → schema automatic. |
+| 🟠 | **Rewrite terms/privacy/support for BOTH products** | Legal pages still portfolio-only. Need Analysts Lens coverage. Blocked on Hugo defining Lens scope. `/advisor-legal` stays portfolio-only. Run copy through `@agent-fidleg-reviewer`. |
+| 🟠 | **Impressum check** | Footer firm-name+address line was removed (`66821b6`). Swiss Impressumspflicht expects it visible somewhere — confirm `/terms` or `/support` carries "Dariush Tahajomi, Einzelunternehmen, Schaffhausen". Add back if missing. |
+| 🟢 | **Internal linking pass** | Cross-link articles → `/portfolio/how-it-works` and each other. Google weights internal link graphs. |
+| 🟢 | **Hero copy** | `Finance, built for the next generation.` is placeholder — Dariush + Hugo to finalize. |
+| 🟢 | **`--accent-learn` hue** | Warm amber placeholder; get Hugo's brand color. |
+| 🟢 | **`/learn` real content** | Coming-soon placeholder; Hugo builds it. |
+
+### Carried-over backlog (pre-session-15)
+
+- **Per-chart ProGate blur** (🟠) — spec ready `docs/PROGATE_REDESIGN.md` §10, FIDLEG pre-pass done, 9 CTA strings approved. When adding `ProChart`, extend `fidleg-lint` `SCAN_FILES`.
+- RLS hardening before >10 paying users.
+- Stripe support phone placeholder `+41 000 000 0000`.
 
 ---
 
