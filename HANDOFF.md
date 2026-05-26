@@ -1,14 +1,63 @@
-# HANDOFF — Quantfoli (Sessions 8 → 15)
+# HANDOFF — Quantfoli (Sessions 8 → 16)
 
-**Date last touched:** 2026-05-25
+**Date last touched:** 2026-05-26
 **Branch:** `main`
-**Last commit:** `4b3c6df` — session 15 shipped (AEO structured data + per-article FAQ)
+**Last commit:** `16196c6` — session 16 shipped (phantom-drop fix + CHF conversion in Portfolio Value History)
 **Deployment:** Vercel auto-deploys from `main`. Live at https://quantfoli.com / https://www.quantfoli.com
 **DNS:** Cloudflare (nameservers `adrian.ns.cloudflare.com`, `norm.ns.cloudflare.com`).
 **Owner:** Dariush Tahajomi (`dariush.tahajomi@gmail.com`), 18, HSG St. Gallen 2027, Einzelunternehmen in Schaffhausen.
 **LinkedIn:** https://www.linkedin.com/in/dariush-tahajomi-09348b370/
 
 > Read this file end-to-end before touching anything. Sessions 1–7 in git history. Sessions 8–14 documented below Session 15.
+
+---
+
+## Session 16 (2026-05-26) — Portfolio Value History: phantom 70% drops + CHF conversion
+
+### Incident brief
+
+Portfolio Value History chart showed phantom single-day drops (~CHF 300k → ~91k) on isolated days that recovered the next day, with no transactions. Reported on the real CHF ~307k portfolio.
+
+### Root cause (two bugs, one chart)
+
+1. **🔴 Phantom drop.** `app/api/history/route.ts` built the value series on the **union of every ticker's trading days with no forward-fill**. On European-only holidays (Whit Monday 2026-05-25, Easter Monday, Ascension, Labour Day — US open, SIX/Xetra closed), closed-exchange positions had no price bar and were silently valued at **0** → one-day cliff. Hypotheses H4 (cache gaps not backfilled) = cause, H2 (zero-valuation) = mechanism. Good Friday does NOT trigger it (NYSE also closed → no US-only union date), which matched the reported symptom exactly.
+2. **🟠 FX.** The series summed native-currency prices (USD/EUR/CHF) as if 1:1 with CHF — wrong CHF axis for mixed portfolios.
+
+### Fix
+
+| Commit | Change |
+|---|---|
+| `b47b974` (merged via `16196c6`) | Full fix below. |
+
+- **`lib/history-fill.ts` (NEW)** — `forwardFillPriceMap()` carries each ticker's last-known close onto the union grid (only after its first bar, never back-fill). `toChfPriceMap()` converts native → CHF via **per-day historical FX** (`USDCHF=X`, `EURCHF=X`, forward-filled across FX holidays), with **spot fallback — never 1.0**; omits entries with no usable rate so the caller flags them as data gaps.
+- **`lib/ticker-currency.ts` (NEW)** — `tickerCurrency()` classifies ticker → CHF/EUR/USD (`.SW`→CHF, euro suffixes→EUR, else `ticker-meta` currency, USD catch-all). Unsupported currencies (GBP/DKK/HKD/JPY) approximated as USD — documented limitation.
+- **`app/api/history/route.ts`** — forward-fill + CHF conversion before summing; CHF map fed to `calcTWRReturns` too (TWR now reflects a CHF investor incl. FX moves); `dataGaps[]` surfaced in response; genuine gaps flagged per-point (`gap`).
+- **`types/index.ts`** — `HistoricalDataPoint.gap?`, `HistoryResult.dataGaps`.
+- **`components/HistoryChart.tsx`** — axis + tooltip labels `$` → `CHF`. FIDLEG-reviewed: compliant (factual currency labels on user's own values).
+- **`lib/history-fill.test.ts` (NEW)** — 17 regression tests incl. the specific pattern guard (no single-day drop >50% without a transaction) + proof the OLD logic WOULD drop >50%.
+- **`scripts/verify-history.ts` (NEW)** — real-data audit harness. Run `npx tsx scripts/verify-history.ts` (loads `.env.local`, service-role, real Yahoo).
+
+### Verified (real DB + real Yahoo, all 15 users)
+
+| Portfolio | OLD worst 1-day drop | NEW |
+|---|---|---|
+| CHF 307k (reported, `f47ba9f2`) | **88.5%** (2026-05-25 Whit Monday) | **1.8%** ✅ |
+| CHF 50k (`myportfo`, London `.L`) | 81.0% | 7.3% ✅ |
+| CHF 349 (`ef1cfcbd`) | 85.9% | 4.0% ✅ |
+| all 15 users | — | **<50%** ✅ |
+
+Real drops (April 2025 tariff selloff etc.) preserved. Junk-ticker portfolios (`meinport`) correctly flag data gaps instead of zeroing.
+
+- `npm test` **79/79** · `tsc --noEmit` clean · `next build` clean.
+- **No change to `lib/yahoo.ts` core math** (hard rule honored — fill/FX live in new lib files + route).
+
+### Hard-rule note / known limitation
+
+GBP/DKK/HKD/JPY positions are approximated as USD for CHF conversion (additive, close, not exact). A full fix would read `meta.currency` from the Yahoo response — deferred to avoid changing `lib/yahoo.ts`. If a customer holds London-pence or Tokyo listings, their CHF axis will be slightly off (not a phantom drop). Tracked as future work.
+
+### Process note
+
+`gh` CLI is **not installed** on this machine — no PR could be opened from the terminal. Merged `fix/history-phantom-drops` → `main` locally (`--no-ff`) and pushed. Vercel auto-deploys main → production.
 
 ---
 
@@ -470,7 +519,7 @@ Tasks:
 ## 6. Test + build commands
 
 ```bash
-npm test                  # 62 tests: 36 yahoo + 13 engine + 2 FX + 9 rate-limit + 2 FIDLEG
+npm test                  # 79 tests: 36 yahoo + 13 engine + 2 FX + 9 rate-limit + 2 FIDLEG + 17 history-fill
 npm run test:watch        # TDD mode
 npm run build             # tsx scripts/verify-backtest-jsons.ts && next build
 npm run build:backtests   # regenerate public/backtests/*.json (fetches live Yahoo + FX data)
