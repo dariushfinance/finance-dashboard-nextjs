@@ -21,9 +21,9 @@ function filterByRange<T extends { date: string }>(arr: T[], range: Range): T[] 
 }
 
 const fmtY = (v: number) =>
-  v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M`
-  : v >= 1_000   ? `$${(v / 1_000).toFixed(0)}K`
-  : `$${v}`
+  v >= 1_000_000 ? `CHF ${(v / 1_000_000).toFixed(1)}M`
+  : v >= 1_000   ? `CHF ${(v / 1_000).toFixed(0)}K`
+  : `CHF ${v}`
 
 // Parse YYYY-MM-DD as local time (avoids UTC midnight → previous day in negative-offset zones)
 const fmtDate = (dateStr: string) => {
@@ -66,7 +66,7 @@ export default function HistoryChart({ positions }: Props) {
       }}>
         <div style={{ color: 'var(--ink-3)', marginBottom: 5, fontSize: 11 }}>{label}</div>
         <div style={{ color: 'var(--pos)', fontWeight: 700, fontSize: 15 }}>
-          ${payload[0].value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          CHF {payload[0].value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </div>
       </div>
     )
