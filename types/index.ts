@@ -27,6 +27,7 @@ export interface PortfolioMetrics {
 export interface HistoricalDataPoint {
   date: string
   value: number
+  gap?: boolean // true = a held position had no price even after forward-fill (genuine data gap)
 }
 
 export interface BenchmarkDataPoint {
@@ -58,6 +59,7 @@ export interface HistoryResult {
   maxDrawdown: number | null
   var95: number | null
   cvar95: number | null
+  dataGaps: string[] // dates where a held position had no price even after forward-fill
 }
 
 export interface BenchmarkResult {
