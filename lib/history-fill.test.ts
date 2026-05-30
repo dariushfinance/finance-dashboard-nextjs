@@ -98,6 +98,43 @@ describe('Portfolio Value History — phantom drop regression', () => {
     expect(maxSingleDayDrop(buggy)).toBeGreaterThan(0.5) // 10000 → 3000 = 70%
   })
 
+  it('invariant: no >50% day-over-day move without a matching transaction date', () => {
+    // Spec from session 16 + task 3: a large jump in portfolio value must be
+    // explained by a cashflow event (a buy_date in this simplified model). If
+    // the series ever moves >50% on a day with no transaction, that's the
+    // phantom-drop bug class.
+    //
+    // Scenario: 1 NESN.SW share on 2026-04-02. On 2026-04-06 the user buys
+    // 99 more shares — a real 100x jump justified by the transaction. The
+    // remaining day-over-day moves must all be ≤50%.
+    const txPositions = [
+      { ticker: 'NESN.SW', shares: 1,  buy_date: '2026-04-02' },
+      { ticker: 'NESN.SW', shares: 99, buy_date: '2026-04-06' },
+    ]
+    const txPriceMap: PriceMap = {
+      'NESN.SW': {
+        '2026-04-02': 100,
+        '2026-04-03': 100,
+        '2026-04-06': 100,
+        '2026-04-07': 100,
+      },
+    }
+    const transactionDates = new Set(txPositions.map((p) => p.buy_date))
+    const series = buildValueSeries(txPositions, txPriceMap, sortedDates)
+
+    for (let i = 1; i < series.length; i++) {
+      const prev = series[i - 1].value
+      const curr = series[i].value
+      const pctChange = Math.abs(curr - prev) / prev
+      if (pctChange > 0.5) {
+        expect(
+          transactionDates.has(series[i].date),
+          `Unexplained ${(pctChange * 100).toFixed(0)}% move on ${series[i].date} — no transaction. Phantom-drop regression.`,
+        ).toBe(true)
+      }
+    }
+  })
+
   it('flags a genuine data gap (position held before its ticker has any data)', () => {
     const pm: PriceMap = {
       AAPL: { '2026-04-02': 100, '2026-04-03': 100, '2026-04-06': 100, '2026-04-07': 100 },

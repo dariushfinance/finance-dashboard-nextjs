@@ -37,3 +37,7 @@ next-env.d.ts
 # Claude Code — local-only state
 .claude/worktrees/
 .claude/settings.local.json
+
+# Private — strategy, research, founder notes, incident reports.
+# Never push. Mirror outside the repo if you need cloud backup.
+.private/
