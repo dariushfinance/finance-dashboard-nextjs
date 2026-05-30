@@ -1,9 +1,30 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Script from 'next/script'
 import { createBrowserSupabase } from '@/lib/supabase-browser'
 import { useRouter, useSearchParams } from 'next/navigation'
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+interface TurnstileApi {
+  render: (el: HTMLElement, opts: {
+    sitekey: string
+    callback?: (token: string) => void
+    'expired-callback'?: () => void
+    'error-callback'?: () => void
+    theme?: 'light' | 'dark' | 'auto'
+    appearance?: 'always' | 'execute' | 'interaction-only'
+  }) => string
+  reset: (widgetId?: string) => void
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi
+  }
+}
 
 function LoginPageInner() {
   const searchParams = useSearchParams()
@@ -16,8 +37,31 @@ function LoginPageInner() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [message, setMessage] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileReady, setTurnstileReady] = useState(false)
+  const turnstileContainer = useRef<HTMLDivElement | null>(null)
+  const turnstileWidgetId  = useRef<string | null>(null)
   const router   = useRouter()
   const supabase = createBrowserSupabase()
+
+  // Render Turnstile when on the signup tab + site key configured + script loaded.
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return
+    if (tab !== 'signup') return
+    if (!turnstileReady) return
+    if (!turnstileContainer.current) return
+    if (turnstileWidgetId.current) return
+    if (!window.turnstile) return
+
+    turnstileWidgetId.current = window.turnstile.render(turnstileContainer.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token: string) => setTurnstileToken(token),
+      'expired-callback': () => setTurnstileToken(null),
+      'error-callback':   () => setTurnstileToken(null),
+      theme: 'dark',
+      appearance: 'interaction-only',
+    })
+  }, [tab, turnstileReady])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,6 +71,11 @@ function LoginPageInner() {
       if (error) setError(error.message)
       else { router.push('/portfolio'); router.refresh() }
     } else {
+      if (TURNSTILE_SITE_KEY && !turnstileToken) {
+        setError('Please complete the verification challenge.')
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -37,13 +86,17 @@ function LoginPageInner() {
       })
       if (error) {
         setError(error.message)
+        if (window.turnstile && turnstileWidgetId.current) {
+          window.turnstile.reset(turnstileWidgetId.current)
+          setTurnstileToken(null)
+        }
       } else {
         setMessage('Check your email to confirm, then sign in.')
         // Fire-and-forget welcome email — non-blocking, failure doesn't affect signup UX
         fetch('/api/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, name: name.trim() }),
+          body: JSON.stringify({ email, name: name.trim(), turnstileToken }),
         }).catch(() => { /* swallow — signup already succeeded */ })
       }
     }
@@ -58,6 +111,13 @@ function LoginPageInner() {
       background: 'var(--bg)',
       position: 'relative', overflow: 'hidden',
     }}>
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onLoad={() => setTurnstileReady(true)}
+        />
+      )}
       {/* Ambient blobs */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '60%', height: '60%', background: 'radial-gradient(ellipse, oklch(0.68 0.18 258 / 0.10) 0%, transparent 65%)', borderRadius: '50%' }} />
@@ -197,6 +257,13 @@ function LoginPageInner() {
                 autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
               />
             </div>
+
+            {tab === 'signup' && TURNSTILE_SITE_KEY && (
+              <div
+                ref={turnstileContainer}
+                style={{ minHeight: 65, display: 'flex', justifyContent: 'center' }}
+              />
+            )}
 
             {error && (
               <div style={{ fontSize: 12, color: 'var(--neg)', padding: '8px 12px', background: 'var(--neg-soft)', border: '1px solid var(--neg-line)', borderRadius: 8 }}>

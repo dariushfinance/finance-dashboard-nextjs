@@ -1,26 +1,57 @@
 import { NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/resend'
 import { rateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
+import { sanitizeUserName } from '@/lib/sanitize'
+import { verifyTurnstileToken } from '@/lib/turnstile'
+import { wasRecentlySent, markSent } from '@/lib/welcome-dedup'
 
 export async function POST(req: Request) {
-  // Rate-limit: 3 welcome emails per IP per 10 minutes
-  const rl = rateLimit(`welcome:${getClientIdentifier(req)}`, 3, 10 * 60_000)
-  if (!rl.allowed) return rateLimitResponse(rl, 'Too many requests.')
+  const ip = getClientIdentifier(req)
 
-  let email: string, name: string
+  // Per-IP cap: 3 welcome-email requests per hour.
+  const ipRl = rateLimit(`welcome:ip:${ip}`, 3, 60 * 60_000)
+  if (!ipRl.allowed) return rateLimitResponse(ipRl, 'Too many requests.')
+
+  let email: string, rawName: unknown, turnstileToken: string | null
   try {
     const body = await req.json()
     email = (body.email ?? '').trim().toLowerCase()
-    name  = (body.name  ?? '').trim()
+    rawName = body.name
+    turnstileToken = typeof body.turnstileToken === 'string' ? body.turnstileToken : null
   } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
 
-  const firstName = name.split(' ')[0] || 'there'
+  // Per-email cap: 1 welcome per hour. Stops the recorded abuse pattern (same
+  // attacker resubmitting the form with varying junk names).
+  const emailRl = rateLimit(`welcome:email:${email}`, 1, 60 * 60_000)
+  if (!emailRl.allowed) {
+    // Silent OK rather than 429 — don't reveal that the email was already used.
+    return NextResponse.json({ ok: true })
+  }
+
+  // Turnstile gate. Skipped at runtime when TURNSTILE_SECRET_KEY is unset
+  // (local dev, preview deployments before env var is wired).
+  const turnstile = await verifyTurnstileToken(turnstileToken, ip)
+  if (!turnstile.ok) {
+    console.warn('[welcome] turnstile failed:', { ip, codes: turnstile.errorCodes })
+    return NextResponse.json({ error: 'Verification failed' }, { status: 400 })
+  }
+
+  // 24h dedup — if we already sent a welcome to this address recently, ack
+  // with 200 OK but do not actually send. Prevents accidental duplicates from
+  // form double-submit and resource-abuse retries.
+  if (wasRecentlySent(email)) {
+    return NextResponse.json({ ok: true, deduped: true })
+  }
+
+  const { firstName } = sanitizeUserName(rawName)
+  const greeting = firstName ? `Welcome, ${firstName}.` : 'Welcome.'
+  const textGreeting = firstName ? `Welcome to Quantfoli, ${firstName}.` : 'Welcome to Quantfoli.'
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -54,7 +85,7 @@ export async function POST(req: Request) {
         <tr>
           <td style="padding:36px 40px 28px;">
             <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f8f8fc;letter-spacing:-0.025em;line-height:1.3;">
-              Welcome, ${firstName}.
+              ${greeting}
             </p>
             <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#9098b8;">
               Your account is set up. Once you confirm your email, you can import your first portfolio — ZKB, Yuh, or Neon CSV — and see your Sharpe ratio, efficient frontier, and stress-test results in under a minute.
@@ -126,13 +157,15 @@ export async function POST(req: Request) {
     to: email,
     subject: 'Welcome to Quantfoli',
     html,
-    text: `Welcome to Quantfoli, ${firstName}.\n\nYour account is set up. Confirm your email, then import your first portfolio at https://quantfoli.com/portfolio.\n\nNot investment advice.`,
+    text: `${textGreeting}\n\nYour account is set up. Confirm your email, then import your first portfolio at https://quantfoli.com/portfolio.\n\nNot investment advice.`,
   })
 
   if (!result.ok) {
-    // Non-fatal — signup already succeeded, don't surface this to the user
     console.error('[welcome] email failed:', result.error)
+    // Don't mark as sent if delivery failed — let the user retry.
+    return NextResponse.json({ ok: true })
   }
 
+  markSent(email)
   return NextResponse.json({ ok: true })
 }

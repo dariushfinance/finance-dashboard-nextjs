@@ -554,6 +554,12 @@ npm run dev               # localhost:3000
 | `SENTRY_DSN` | Activates server + edge error capture |
 | `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Source-map upload |
 
+### To delete in Vercel — dead config
+
+| Var | Why |
+|---|---|
+| `ADMIN_PASSWORD` | Dead. Only consumer (`/api/admin/verify`) deleted in 2026-05-22 security fix. Removed from local `.env.local` on 2026-05-26. **Still needs deletion in Vercel dashboard.** See `docs/SECURITY_FIX.md`. |
+
 ---
 
 ## 8. Personal + working-style context for the fresh agent

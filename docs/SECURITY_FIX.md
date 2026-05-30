@@ -80,8 +80,8 @@ Edge thresholds are intentionally **higher** than app-layer thresholds — the a
 
 ## Manual follow-ups for Dariush
 
-- [ ] **Delete `ADMIN_PASSWORD` env var** in Vercel project settings (no longer used).
-- [ ] Remove `ADMIN_PASSWORD` from local `.env.local` if present.
+- [x] **Delete `ADMIN_PASSWORD` env var** in Vercel project settings (no longer used). _(2026-05-26: removed from `.env.local`; delete in Vercel dashboard too.)_
+- [x] Remove `ADMIN_PASSWORD` from local `.env.local` if present. _(2026-05-26: done.)_
 - [ ] Apply Cloudflare WAF rules above.
 - [ ] Reply to Dominik Buchegger with:
   > The reported `/api/admin/verify` endpoint has been removed entirely — it was orphaned dead code, no frontend used it. Preventive rate limiting (app layer + Cloudflare WAF) has been added to remaining sensitive POST routes (`/api/stripe/checkout`, `/api/support`, plus heavy-compute portfolio routes scoped per authenticated user). Happy for you to re-test.
